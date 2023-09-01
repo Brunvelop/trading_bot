@@ -24,10 +24,10 @@ plt.plot(btc.index, btc['Close'], label='BTC-USD Close Price', color='blue')
 plt.plot(btc.index, btc['MA200'], label='200 Hour MA', color='red')
 
 # Plot the buy signals
-plt.plot(btc[btc['Buy_Signal']].index, btc['Close'][btc['Buy_Signal']], '^', markersize=10, color='g', label='buy')
+plt.plot(btc[btc['Buy_Signal']].index, btc['Close'][btc['Buy_Signal']], '^', markersize=1, color='g', label='buy')
 
 # Plot the sell signals
-plt.plot(btc[btc['Sell_Signal']].index, btc['Close'][btc['Sell_Signal']], 'v', markersize=10, color='r', label='sell')
+plt.plot(btc[btc['Sell_Signal']].index, btc['Close'][btc['Sell_Signal']], 'v', markersize=1, color='r', label='sell')
 
 plt.xlabel('Date')
 plt.ylabel('Close Price')
