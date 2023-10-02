@@ -220,69 +220,6 @@ def backtest(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10):
 
     return purchases, balances
 
-def backtest2(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10):
-    purchases = pd.DataFrame(columns=['Timestamp', 'Buy_Amount_USD', 'Quantity_BTC', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD', 'Is_Sold', 'Sell_Amount_USD', 'Sell_Quantity_BTC', 'Sell_Timestamp'])
-    balances = pd.DataFrame(columns=['Timestamp', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD'])
-    total_value = usd_balance
-    stop_loss = None
-    take_profit = None
-
-    open_operation = False
-    for i, row in tqdm(data.iterrows(), total=data.shape[0]):
-        # Check if there has been a buy signal in the last 50 bars
-        last_50_bars = data.loc[:i].tail(50)
-        buy_signal_in_last_50_bars = last_50_bars['Buy_Signal'].any()
-
-        # Buy
-        if row['Buy_Signal'] and usd_balance >= buy_amount and not open_operation and not buy_signal_in_last_50_bars:
-            open_operation = True
-            quantity = buy_amount / row['Close']
-            coin_balance += quantity
-            usd_balance -= buy_amount
-            total_value = usd_balance + coin_balance * row['Close']
-            new_purchase = pd.DataFrame(
-                {
-                    'Timestamp': [i], 
-                    'Buy_Amount_USD': [buy_amount],
-                    'Quantity_BTC': [quantity], 
-                    'Balance_USD': [usd_balance],
-                    'Balance_BTC': [coin_balance],
-                    'Total_Value_USD': [total_value],
-                    'Is_Sold': 0,
-                    'Sell_Amount_USD': [None],
-                    'Sell_Quantity_BTC': [None],
-                    'Sell_Timestamp': [None]
-                }
-            )
-            purchases = pd.concat([purchases, new_purchase], ignore_index=True)
-            # Set stop loss and take profit
-            stop_loss = data['Low'].shift(10).loc[:i].min()
-            take_profit = row['Close'] + (row['Close'] - stop_loss)
-        # Sell
-        elif (stop_loss is not None and row['Close'] <= stop_loss) or (take_profit is not None and row['Close'] >= take_profit):
-            open_operation = False
-            sell_amount = coin_balance * row['Close']
-            sell_quantity = coin_balance
-            usd_balance += sell_amount
-            coin_balance = 0
-            total_value = usd_balance + coin_balance * row['Close']
-            stop_loss = None
-            take_profit = None
-
-        # Store balances
-        new_balance = pd.DataFrame(
-            {
-                'Timestamp': [i],
-                'Balance_USD': [usd_balance],
-                'Balance_BTC': [coin_balance],
-                'Total_Value_USD': [total_value]
-            }
-        )
-        balances = pd.concat([balances, new_balance], ignore_index=True)
-
-    return purchases, balances
-
-
 
 def plot_data(data, purchases, balances, debug=False):
     fig, ax = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
