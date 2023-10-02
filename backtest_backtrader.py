@@ -19,6 +19,7 @@ class SuperStrategy(bt.Strategy):
         ('range_period', 10),
         ('range_mult', 100),
         ('lookback_period', 300),
+        ('stop_loss_period', 10),
     )
 
     def __init__(self):
@@ -41,6 +42,15 @@ class SuperStrategy(bt.Strategy):
         self.max300 = bt.indicators.Highest(self.data.close(-1), period=self.params.lookback_period)
         self.min300 = bt.indicators.Lowest(self.data.close(-1), period=self.params.lookback_period)
 
+        # Calculate the maximum and minimum of the last 10 bars for stop loss and take profit
+        self.max10 = bt.indicators.Highest(self.data.close(-1), period=self.params.stop_loss_period)
+        self.min10 = bt.indicators.Lowest(self.data.close(-1), period=self.params.stop_loss_period)
+
+        # Initialize order and stop loss order to None
+        self.order = None
+        self.stop_loss_order = None
+        self.take_profit_order = None
+
     def next(self):
         # Add conditions to break the maximum or minimum of the last 300 bars
         volatility_up = self.avg_range10[0] > self.avg_range50[0] and self.avg_range50[0] > self.avg_range100[0] and self.avg_range100[0] > self.avg_range200[0]
@@ -51,10 +61,32 @@ class SuperStrategy(bt.Strategy):
         sell_signal = break_min_300 and volatility_up
         buy_signal = break_max_300 and volatility_up
 
-        if sell_signal:
-            self.sell()
-        elif buy_signal:
-            self.buy()
+        # If there is an open order, do nothing
+        if self.order:
+            return
+
+        # If there is an open position
+        if self.position:
+            # If the stop loss or take profit has been hit, close the position
+            if self.stop_loss_order and self.stop_loss_order.executed:
+                self.close()
+                self.stop_loss_order = None
+                self.take_profit_order = None
+            elif self.take_profit_order and self.take_profit_order.executed:
+                self.close()
+                self.stop_loss_order = None
+                self.take_profit_order = None
+        else:
+            # If there is a sell signal, sell and set the stop loss and take profit
+            if sell_signal:
+                self.order = self.sell()
+                self.stop_loss_order = self.sell(exectype=bt.Order.Stop, price=self.max10[0])
+                self.take_profit_order = self.sell(exectype=bt.Order.Limit, price=self.min10[0] - (self.max10[0] - self.data.close[0]))
+            # If there is a buy signal, buy and set the stop loss and take profit
+            elif buy_signal:
+                self.order = self.buy()
+                self.stop_loss_order = self.buy(exectype=bt.Order.Stop, price=self.min10[0])
+                self.take_profit_order = self.buy(exectype=bt.Order.Limit, price=self.max10[0] + (self.data.close[0] - self.min10[0]))
 
 def download_currency_data(currency='BTC', days_to_download=30, interval='1h'):
     end = datetime.today()
