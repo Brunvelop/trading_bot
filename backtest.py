@@ -341,3 +341,57 @@ plot_data2(coin_data_signals, purchases, balances, debug=True)
 
 
 
+def backtest2(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10):
+    purchases = pd.DataFrame(columns=['Timestamp', 'Buy_Amount_USD', 'Quantity_BTC', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD', 'Is_Sold', 'Sell_Amount_USD', 'Sell_Quantity_BTC', 'Sell_Timestamp'])
+    balances = pd.DataFrame(columns=['Timestamp', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD'])
+    total_value = usd_balance
+    stop_loss = None
+    take_profit = None
+
+    for i, row in tqdm(data.iterrows(), total=data.shape[0]):
+        # Buy
+        if row['Buy_Signal'] and usd_balance >= buy_amount:
+            quantity = buy_amount / row['Close']
+            coin_balance += quantity
+            usd_balance -= buy_amount
+            total_value = usd_balance + coin_balance * row['Close']
+            new_purchase = pd.DataFrame(
+                {
+                    'Timestamp': [i], 
+                    'Buy_Amount_USD': [buy_amount],
+                    'Quantity_BTC': [quantity], 
+                    'Balance_USD': [usd_balance],
+                    'Balance_BTC': [coin_balance],
+                    'Total_Value_USD': [total_value],
+                    'Is_Sold': 0,
+                    'Sell_Amount_USD': [None],
+                    'Sell_Quantity_BTC': [None],
+                    'Sell_Timestamp': [None]
+                }
+            )
+            purchases = pd.concat([purchases, new_purchase], ignore_index=True)
+            # Set stop loss and take profit
+            stop_loss = data['Low'].iloc[i-10:i].min()
+            take_profit = row['Close'] + (row['Close'] - stop_loss)
+        # Sell
+        elif row['Close'] <= stop_loss or row['Close'] >= take_profit:
+            sell_amount = coin_balance * row['Close']
+            sell_quantity = coin_balance
+            usd_balance += sell_amount
+            coin_balance = 0
+            total_value = usd_balance + coin_balance * row['Close']
+            stop_loss = None
+            take_profit = None
+
+        # Store balances
+        new_balance = pd.DataFrame(
+            {
+                'Timestamp': [i],
+                'Balance_USD': [usd_balance],
+                'Balance_BTC': [coin_balance],
+                'Total_Value_USD': [total_value]
+            }
+        )
+        balances = pd.concat([balances, new_balance], ignore_index=True)
+
+    return purchases, balances
