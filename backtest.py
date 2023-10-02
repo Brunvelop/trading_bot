@@ -253,7 +253,7 @@ def backtest2(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10):
             stop_loss = data['Low'].iloc[i-10:i].min()
             take_profit = row['Close'] + (row['Close'] - stop_loss)
         # Sell
-        elif row['Close'] <= stop_loss or row['Close'] >= take_profit:
+        elif (stop_loss is not None and row['Close'] <= stop_loss) or (take_profit is not None and row['Close'] >= take_profit):
             sell_amount = coin_balance * row['Close']
             sell_quantity = coin_balance
             usd_balance += sell_amount
