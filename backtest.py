@@ -227,9 +227,15 @@ def backtest2(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10):
     stop_loss = None
     take_profit = None
 
+    open_operation = False
     for i, row in tqdm(data.iterrows(), total=data.shape[0]):
+        # Check if there has been a buy signal in the last 50 bars
+        last_50_bars = data.loc[:i].tail(50)
+        buy_signal_in_last_50_bars = last_50_bars['Buy_Signal'].any()
+
         # Buy
-        if row['Buy_Signal'] and usd_balance >= buy_amount:
+        if row['Buy_Signal'] and usd_balance >= buy_amount and not open_operation and not buy_signal_in_last_50_bars:
+            open_operation = True
             quantity = buy_amount / row['Close']
             coin_balance += quantity
             usd_balance -= buy_amount
@@ -254,6 +260,7 @@ def backtest2(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10):
             take_profit = row['Close'] + (row['Close'] - stop_loss)
         # Sell
         elif (stop_loss is not None and row['Close'] <= stop_loss) or (take_profit is not None and row['Close'] >= take_profit):
+            open_operation = False
             sell_amount = coin_balance * row['Close']
             sell_quantity = coin_balance
             usd_balance += sell_amount
