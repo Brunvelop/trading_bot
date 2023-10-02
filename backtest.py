@@ -123,17 +123,25 @@ def calculate_strategy_3(data):
 
     return data
 
-def calculate_strategy_4(data):
+def calculate_strategy_5(data):
     # Calculate the moving averages
     data['MA10'] = data['Close'].rolling(window=10).mean()
     data['MA50'] = data['Close'].rolling(window=50).mean()
     data['MA100'] = data['Close'].rolling(window=100).mean()
     data['MA200'] = data['Close'].rolling(window=200).mean()
 
-    # Calculate Bollinger Bands
-    data['MA20'] = data['Close'].rolling(window=20).mean()
-    data['BB_upper'] = data['MA20'] + 1*data['Close'].rolling(window=20).std()
-    data['BB_lower'] = data['MA20'] - 1*data['Close'].rolling(window=20).std()
+    # Calculate the bar range as a percentage of the close price
+    data['BarRange'] = abs(data['High'] - data['Low']) / data['Low'] * 100
+
+    # Calculate the exponential moving averages of the BarRange
+    data['avgRange10'] = data['BarRange'].ewm(span=10).mean()
+    data['avgRange50'] = data['BarRange'].ewm(span=50).mean()
+    data['avgRange100'] = data['BarRange'].ewm(span=100).mean()
+    data['avgRange200'] = data['BarRange'].ewm(span=200).mean()
+
+    # Calculate the max and min of the last 300 bars excluding the current bar
+    data['Max300'] = data['Close'].shift(1).rolling(window=300).max()
+    data['Min300'] = data['Close'].shift(1).rolling(window=300).min()
 
     # Define the strategy
     close_less_than_min_MA = data['Close'] < data[['MA10', 'MA50', 'MA100', 'MA200']].min(axis=1)
@@ -141,12 +149,16 @@ def calculate_strategy_4(data):
     MA_increasing = (data['MA10'] < data['MA50']) & (data['MA50'] < data['MA100']) & (data['MA100'] < data['MA200'])
     MA_decreasing = (data['MA10'] > data['MA50']) & (data['MA50'] > data['MA100']) & (data['MA100'] > data['MA200'])
 
-    # Add Bollinger Bands logic
-    close_below_BB_lower = data['Close'] < data['BB_lower']
-    close_above_BB_upper = data['Close'] > data['BB_upper']
+    # Add conditions for breaking the max or min of the last 300 bars
+    volatility_down =  (data['avgRange10'] < data['avgRange50']) &  (data['avgRange50'] < data['avgRange100']) & (data['avgRange100'] < data['avgRange200'])
+    volatility_up =  (data['avgRange10'] > data['avgRange50']) & (data['avgRange50'] > data['avgRange100']) & (data['avgRange100'] > data['avgRange200'])
 
-    data['Buy_Signal'] = close_less_than_min_MA & MA_increasing & close_below_BB_lower
-    data['Sell_Signal'] = close_greater_than_max_MA & MA_decreasing
+    break_max_300 = data['Close'] > data['Max300']
+    break_min_300 = data['Close'] < data['Min300']
+
+    data['Buy_Signal'] = break_max_300 & volatility_up
+    data['Sell_Signal'] = break_min_300 & volatility_down
+    data['Sell_Signal_super'] = break_min_300 & volatility_up
 
     return data
 
