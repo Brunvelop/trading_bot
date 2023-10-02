@@ -33,10 +33,10 @@ class SuperStrategy(bt.Strategy):
         self.bar_range = bt.indicators.TrueRange(self.data) / self.data.close * self.params.range_mult
 
         # Calculate exponential moving averages of bar range
-        self.avg_range10 = bt.indicators.ExponentialMovingAverage(self.bar_range, period=self.params.range_period)
-        self.avg_range50 = bt.indicators.ExponentialMovingAverage(self.bar_range, period=50)
-        self.avg_range100 = bt.indicators.ExponentialMovingAverage(self.bar_range, period=100)
-        self.avg_range200 = bt.indicators.ExponentialMovingAverage(self.bar_range, period=200)
+        self.avg_range10 = bt.indicators.SimpleMovingAverage(self.bar_range, period=self.params.range_period)
+        self.avg_range50 = bt.indicators.SimpleMovingAverage(self.bar_range, period=50)
+        self.avg_range100 = bt.indicators.SimpleMovingAverage(self.bar_range, period=100)
+        self.avg_range200 = bt.indicators.SimpleMovingAverage(self.bar_range, period=200)
 
         # Calculate the maximum and minimum of the last 300 bars, excluding the current bar
         self.max300 = bt.indicators.Highest(self.data.close(-1), period=self.params.lookback_period)
@@ -84,6 +84,11 @@ class SuperStrategy(bt.Strategy):
                 self.stop_loss_order = self.sell(exectype=bt.Order.Stop, price=stop_loss_price)
                 take_profit_price = self.data.close[0] - (self.data.close[0] - stop_loss_price)
                 self.take_profit_order = self.sell(exectype=bt.Order.Limit, price=take_profit_price)
+                self.plotinfo.plot = True
+                self.plotlines = dict(
+                    take_profit=dict(_plotskip='True',),
+                    stop_loss=dict(_plotskip='True',),
+                )
             # If there is a buy signal, buy and set the stop loss and take profit
             elif buy_signal:
                 self.order = self.buy()
@@ -91,6 +96,11 @@ class SuperStrategy(bt.Strategy):
                 self.stop_loss_order = self.buy(exectype=bt.Order.Stop, price=stop_loss_price)
                 take_profit_price = self.data.close[0] + (stop_loss_price - self.data.close[0])
                 self.take_profit_order = self.buy(exectype=bt.Order.Limit, price=take_profit_price)
+                self.plotinfo.plot = True
+                self.plotlines = dict(
+                    take_profit=dict(_plotskip='True',),
+                    stop_loss=dict(_plotskip='True',),
+                )
 
 def download_currency_data(currency='BTC', days_to_download=30, interval='1h'):
     end = datetime.today()
