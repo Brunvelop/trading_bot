@@ -81,6 +81,7 @@ class SuperStrategy(bt.Strategy):
             # Si hay una señal de venta, vende y establece el stop loss y el take profit
             if sell_signal:
                 self.order = self.sell()
+                print(f'Sell Order: Price {self.data.close[0]}')  # Add this line
                 stop_loss_price = self.max10[0]
                 print(f'Sell Order: Stop Loss set at {stop_loss_price}')  # Agregar esta línea
                 self.stop_loss_order = self.sell(exectype=bt.Order.Stop, price=stop_loss_price)
@@ -91,6 +92,7 @@ class SuperStrategy(bt.Strategy):
             # Si hay una señal de compra, compra y establece el stop loss y el take profit
             elif buy_signal:
                 self.order = self.buy()
+                print(f'Buy Order: Price {self.data.close[0]}')  # Add this line
                 stop_loss_price = self.min10[0]
                 print(f'Buy Order: Stop Loss set at {stop_loss_price}')  # Agregar esta línea
                 self.stop_loss_order = self.buy(exectype=bt.Order.Stop, price=stop_loss_price)
