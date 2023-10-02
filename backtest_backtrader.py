@@ -78,29 +78,25 @@ class SuperStrategy(bt.Strategy):
                 self.take_profit_order = None
         else:
             # If there is a sell signal, sell and set the stop loss and take profit
+            # Si hay una señal de venta, vende y establece el stop loss y el take profit
             if sell_signal:
                 self.order = self.sell()
                 stop_loss_price = self.max10[0]
+                print(f'Sell Order: Stop Loss set at {stop_loss_price}')  # Agregar esta línea
                 self.stop_loss_order = self.sell(exectype=bt.Order.Stop, price=stop_loss_price)
                 take_profit_price = self.data.close[0] - (self.data.close[0] - stop_loss_price)
+                print(f'Sell Order: Take Profit set at {take_profit_price}')  # Agregar esta línea
                 self.take_profit_order = self.sell(exectype=bt.Order.Limit, price=take_profit_price)
-                self.plotinfo.plot = True
-                self.plotlines = dict(
-                    take_profit=dict(_plotskip='True',),
-                    stop_loss=dict(_plotskip='True',),
-                )
-            # If there is a buy signal, buy and set the stop loss and take profit
+
+            # Si hay una señal de compra, compra y establece el stop loss y el take profit
             elif buy_signal:
                 self.order = self.buy()
                 stop_loss_price = self.min10[0]
+                print(f'Buy Order: Stop Loss set at {stop_loss_price}')  # Agregar esta línea
                 self.stop_loss_order = self.buy(exectype=bt.Order.Stop, price=stop_loss_price)
                 take_profit_price = self.data.close[0] + (stop_loss_price - self.data.close[0])
+                print(f'Buy Order: Take Profit set at {take_profit_price}')  # Agregar esta línea
                 self.take_profit_order = self.buy(exectype=bt.Order.Limit, price=take_profit_price)
-                self.plotinfo.plot = True
-                self.plotlines = dict(
-                    take_profit=dict(_plotskip='True',),
-                    stop_loss=dict(_plotskip='True',),
-                )
 
 def download_currency_data(currency='BTC', days_to_download=30, interval='1h'):
     end = datetime.today()
