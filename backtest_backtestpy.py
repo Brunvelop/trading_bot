@@ -80,6 +80,6 @@ class SuperStrategy(Strategy):
 
 if __name__ == '__main__':
     data = download_currency_data('BTC', 60, '15m')
-    bt = Backtest(data, SuperStrategy, cash=10000, commission=.002)
+    bt = Backtest(data, SuperStrategy, cash=100000, commission=.002)
     stats = bt.run()
     bt.plot()
