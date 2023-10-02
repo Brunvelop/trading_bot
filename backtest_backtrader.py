@@ -80,13 +80,17 @@ class SuperStrategy(bt.Strategy):
             # If there is a sell signal, sell and set the stop loss and take profit
             if sell_signal:
                 self.order = self.sell()
-                self.stop_loss_order = self.sell(exectype=bt.Order.Stop, price=self.max10[0])
-                self.take_profit_order = self.sell(exectype=bt.Order.Limit, price=self.min10[0] - (self.max10[0] - self.data.close[0]))
+                stop_loss_price = self.max10[0]
+                self.stop_loss_order = self.sell(exectype=bt.Order.Stop, price=stop_loss_price)
+                take_profit_price = self.data.close[0] - (self.data.close[0] - stop_loss_price)
+                self.take_profit_order = self.sell(exectype=bt.Order.Limit, price=take_profit_price)
             # If there is a buy signal, buy and set the stop loss and take profit
             elif buy_signal:
                 self.order = self.buy()
-                self.stop_loss_order = self.buy(exectype=bt.Order.Stop, price=self.min10[0])
-                self.take_profit_order = self.buy(exectype=bt.Order.Limit, price=self.max10[0] + (self.data.close[0] - self.min10[0]))
+                stop_loss_price = self.min10[0]
+                self.stop_loss_order = self.buy(exectype=bt.Order.Stop, price=stop_loss_price)
+                take_profit_price = self.data.close[0] + (stop_loss_price - self.data.close[0])
+                self.take_profit_order = self.buy(exectype=bt.Order.Limit, price=take_profit_price)
 
 def download_currency_data(currency='BTC', days_to_download=30, interval='1h'):
     end = datetime.today()
