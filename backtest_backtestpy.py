@@ -1,9 +1,29 @@
 import pandas as pd
 from backtesting import Backtest, Strategy
-from backtesting.lib import crossover
-from backtesting.test import SMA, GOOG
+from backtesting.test import SMA
 
-from backtesting.lib import Highest, Lowest, SMA, crossover
+import yfinance as yf
+from datetime import datetime, timedelta
+
+
+def Highest(series, n):
+    return pd.Series(series).rolling(n).max()
+
+def Lowest(series, n):
+    return pd.Series(series).rolling(n).min()
+
+# def SMA(array, n):
+#     return sma(array, n)
+
+def download_currency_data(currency='BTC', days_to_download=30, interval='1h'):
+    end = datetime.today()
+    start = end - timedelta(days=days_to_download)
+    data = yf.download(f'{currency}-USD', start=start, end=end, interval=interval)
+    if data.empty:
+        print(f"Error occurred: No data was downloaded for {currency}")
+    else:
+        data = data.drop_duplicates().sort_index()
+    return data
 
 class SuperStrategy(Strategy):
     ma_period = 10
@@ -14,7 +34,7 @@ class SuperStrategy(Strategy):
 
     def init(self):
         # Calculate moving averages
-        self.ma10 = self.I(SMA, self.data.Close, self.ma_period)
+        self.ma10 = self.I(SMA, self.data.Close, 10)
         self.ma50 = self.I(SMA, self.data.Close, 50)
         self.ma100 = self.I(SMA, self.data.Close, 100)
         self.ma200 = self.I(SMA, self.data.Close, 200)
@@ -23,7 +43,7 @@ class SuperStrategy(Strategy):
         self.bar_range = (self.data.High - self.data.Low) / self.data.Close * self.range_mult
 
         # Calculate exponential moving averages of bar range
-        self.avg_range10 = self.I(SMA, self.bar_range, self.range_period)
+        self.avg_range10 = self.I(SMA, self.bar_range, 10)
         self.avg_range50 = self.I(SMA, self.bar_range, 50)
         self.avg_range100 = self.I(SMA, self.bar_range, 100)
         self.avg_range200 = self.I(SMA, self.bar_range, 200)
@@ -59,7 +79,7 @@ class SuperStrategy(Strategy):
             take_profit_price = self.data.Close + (self.data.Close - stop_loss_price)
 
 if __name__ == '__main__':
-    data = pd.read_csv('data.csv')  # Replace with your data source
+    data = download_currency_data('BTC', 60, '15m')
     bt = Backtest(data, SuperStrategy, cash=10000, commission=.002)
     stats = bt.run()
     bt.plot()
