@@ -3,3 +3,4 @@ __pycache__
 db.db
 trader.log
 conection
+.aider*
