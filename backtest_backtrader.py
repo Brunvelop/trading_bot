@@ -53,3 +53,27 @@ class SuperStrategy(bt.Strategy):
             self.sell()
         elif buy_signal:
             self.buy()
+
+# Create a cerebro instance
+cerebro = bt.Cerebro()
+
+# Add the strategy
+cerebro.addstrategy(SuperStrategy)
+
+# Load the BTC data
+data = get_btc_data()
+
+# Resample the data to 15 minute intervals
+data = cerebro.resampledata(data, timeframe=bt.TimeFrame.Minutes, compression=15)
+
+# Add the data to cerebro
+cerebro.adddata(data)
+
+# Set the initial capital
+cerebro.broker.setcash(100000)
+
+# Set the commission
+cerebro.broker.setcommission(commission=0.001)
+
+# Run the backtest
+cerebro.run()
