@@ -69,17 +69,26 @@ class SuperStrategy(Strategy):
         # If there is a sell signal, sell and set the stop loss and take profit
         if sell_signal and not self.position:
             self.sell()
-            stop_loss_price = self.max10
-            take_profit_price = self.data.Close + (self.data.Close - stop_loss_price)
+            self.stop_loss_price = self.max10
+            self.take_profit_price = self.data.Close + (self.data.Close - self.stop_loss_price)
 
         # If there is a buy signal, buy and set the stop loss and take profit
         elif buy_signal and not self.position:
             self.buy()
-            stop_loss_price = self.min10
-            take_profit_price = self.data.Close + (self.data.Close - stop_loss_price)
+            self.stop_loss_price = self.min10
+            self.take_profit_price = self.data.Close + (self.data.Close - self.stop_loss_price)
+
+        # If there is a position, check if it's time to close it
+        # if self.position:
+        #     if self.position.is_long:
+        #         if self.data.Close <= self.stop_loss_price or self.data.Close >= self.take_profit_price:
+        #             self.position.close()
+        #     elif self.position.is_short:
+        #         if self.data.Close >= self.stop_loss_price or self.data.Close <= self.take_profit_price:
+        #             self.position.close()
 
 if __name__ == '__main__':
     data = download_currency_data('BTC', 60, '15m')
-    bt = Backtest(data, SuperStrategy, cash=100000, commission=.002)
+    bt = Backtest(data, SuperStrategy, cash=1000000, commission=.002)
     stats = bt.run()
     bt.plot()
