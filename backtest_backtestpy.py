@@ -3,14 +3,60 @@ from backtesting import Backtest, Strategy
 from backtesting.lib import crossover
 from backtesting.test import SMA, GOOG
 
+from backtesting.lib import Highest, Lowest, SMA, crossover
+
 class SuperStrategy(Strategy):
+    ma_period = 10
+    range_period = 10
+    range_mult = 100
+    lookback_period = 300
+    stop_loss_period = 10
+
     def init(self):
-        # Initialize the indicators and other variables here
-        pass
+        # Calculate moving averages
+        self.ma10 = self.I(SMA, self.data.Close, self.ma_period)
+        self.ma50 = self.I(SMA, self.data.Close, 50)
+        self.ma100 = self.I(SMA, self.data.Close, 100)
+        self.ma200 = self.I(SMA, self.data.Close, 200)
+
+        # Calculate bar range as percentage of closing price
+        self.bar_range = (self.data.High - self.data.Low) / self.data.Close * self.range_mult
+
+        # Calculate exponential moving averages of bar range
+        self.avg_range10 = self.I(SMA, self.bar_range, self.range_period)
+        self.avg_range50 = self.I(SMA, self.bar_range, 50)
+        self.avg_range100 = self.I(SMA, self.bar_range, 100)
+        self.avg_range200 = self.I(SMA, self.bar_range, 200)
+
+        # Calculate the maximum and minimum of the last 300 bars, excluding the current bar
+        self.max300 = self.I(Highest, self.data.Close, self.lookback_period)
+        self.min300 = self.I(Lowest, self.data.Close, self.lookback_period)
+
+        # Calculate the maximum and minimum of the last 10 bars for stop loss and take profit
+        self.max10 = self.I(Highest, self.data.Close, self.stop_loss_period)
+        self.min10 = self.I(Lowest, self.data.Close, self.stop_loss_period)
 
     def next(self):
-        # Implement the trading logic here
-        pass
+        # Add conditions to break the maximum or minimum of the last 300 bars
+        volatility_up = self.avg_range10 > self.avg_range50 and self.avg_range50 > self.avg_range100 and self.avg_range100 > self.avg_range200
+
+        break_max_300 = self.data.Close > self.max300
+        break_min_300 = self.data.Close < self.min300
+
+        sell_signal = break_min_300 and volatility_up
+        buy_signal = break_max_300 and volatility_up
+
+        # If there is a sell signal, sell and set the stop loss and take profit
+        if sell_signal and not self.position:
+            self.sell()
+            stop_loss_price = self.max10
+            take_profit_price = self.data.Close + (self.data.Close - stop_loss_price)
+
+        # If there is a buy signal, buy and set the stop loss and take profit
+        elif buy_signal and not self.position:
+            self.buy()
+            stop_loss_price = self.min10
+            take_profit_price = self.data.Close + (self.data.Close - stop_loss_price)
 
 if __name__ == '__main__':
     data = pd.read_csv('data.csv')  # Replace with your data source
