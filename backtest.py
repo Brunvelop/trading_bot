@@ -323,20 +323,6 @@ def plot_data2(data, purchases, balances, debug=False):
     plt.tight_layout()
     plt.show()
 
-def plot_buy_streaks(buy_streaks):
-    plt.hist(buy_streaks, bins=range(1, buy_streaks.max() + 1), align='left', rwidth=0.8)
-    plt.xlabel('Buy Streak Length')
-    plt.ylabel('Frequency')
-    plt.title('Distribution of Buy Streak Lengths')
-    plt.show()
-
-coin = 'BTC'
-coin_data = download_currency_data2(coin, days_to_download=60, interval='15m')
-coin_data_signals = calculate_strategy_2(coin_data)
-
-purchases, balances = backtest(coin_data_signals, buy_amount=10)
-
-plot_data3(coin_data_signals, purchases, balances, debug=False)
 def plot_data3(data, purchases, balances, debug=False):
     fig, ax = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
 
@@ -406,3 +392,19 @@ def plot_data3(data, purchases, balances, debug=False):
 
     plt.tight_layout()
     plt.show()
+
+def plot_buy_streaks(buy_streaks):
+    plt.hist(buy_streaks, bins=range(1, buy_streaks.max() + 1), align='left', rwidth=0.8)
+    plt.xlabel('Buy Streak Length')
+    plt.ylabel('Frequency')
+    plt.title('Distribution of Buy Streak Lengths')
+    plt.show()
+
+coin = 'BTC'
+coin_data = download_currency_data2(coin, days_to_download=60, interval='15m')
+coin_data_signals = calculate_strategy_2(coin_data)
+
+purchases, balances = backtest(coin_data_signals, buy_amount=10)
+
+plot_data3(coin_data_signals, purchases, balances, debug=False)
+
