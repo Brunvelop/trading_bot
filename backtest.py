@@ -157,8 +157,8 @@ def calculate_strategy_5(data):
     break_min_300 = data['Close'] < data['Min300']
 
     data['Buy_Signal'] = break_max_300 & volatility_up
-    data['Sell_Signal'] = break_min_300 & volatility_down
-    data['Sell_Signal_super'] = break_min_300 & volatility_up
+    # data['Sell_Signal'] = break_min_300 & volatility_down
+    data['Sell_Signal'] = break_min_300 & volatility_up
 
     return data
 
@@ -220,6 +220,67 @@ def backtest(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10):
 
     return purchases, balances
 
+def backtest2(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10):
+    purchases = pd.DataFrame(columns=['Timestamp', 'Buy_Amount_USD', 'Quantity_BTC', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD', 'Is_Sold', 'Sell_Amount_USD', 'Sell_Quantity_BTC', 'Sell_Timestamp'])
+    balances = pd.DataFrame(columns=['Timestamp', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD'])
+    total_value = usd_balance
+    last_buy = last_sell = pd.Timestamp.now() - pd.Timedelta(days=50)
+
+    for i, row in tqdm(data.iterrows(), total=data.shape[0]):
+        # Comprar
+        if row['Buy_Signal']:
+            quantity = buy_amount / row['Close']
+            coin_balance += quantity
+            usd_balance -= buy_amount
+            total_value = usd_balance + coin_balance * row['Close']
+            # Establecer stop loss y take profit
+            stop_loss = data['Low'].iloc[i-pd.Timedelta(days=10):i].min()
+            take_profit = 2 * row['Close'] - stop_loss
+            # Registrar la compra
+            purchases = purchases.append({
+                'Timestamp': i,
+                'Buy_Amount_USD': buy_amount,
+                'Quantity_BTC': quantity,
+                'Balance_USD': usd_balance,
+                'Balance_BTC': coin_balance,
+                'Total_Value_USD': total_value,
+                'Is_Sold': False,
+                'Sell_Amount_USD': None,
+                'Sell_Quantity_BTC': None,
+                'Sell_Timestamp': None
+            }, ignore_index=True)
+            last_buy = i
+        # Vender
+        elif row['Sell_Signal']:
+            sell_amount = coin_balance * row['Close']
+            sell_quantity = coin_balance
+            usd_balance += sell_amount
+            coin_balance = 0
+            total_value = usd_balance
+            # Establecer stop loss y take profit
+            stop_loss = data['High'].iloc[i-pd.Timedelta(days=10):i].max()
+            take_profit = 2 * row['Close'] - stop_loss
+            # Registrar la venta
+            purchases.loc[(purchases['Timestamp'] == last_buy) & (purchases['Is_Sold'] == False), ['Is_Sold', 'Sell_Amount_USD', 'Sell_Quantity_BTC', 'Sell_Timestamp']] = [True, sell_amount, sell_quantity, i]
+            last_sell = i
+
+        # Actualizar balances
+        usd_balance = usd_balance
+        coin_balance = coin_balance * row['Close']
+        total_value = usd_balance + coin_balance
+
+        # Almacenar balances
+        new_balance = pd.DataFrame(
+            {
+                'Timestamp': [i],
+                'Balance_USD': [usd_balance],
+                'Balance_BTC': [coin_balance],
+                'Total_Value_USD': [total_value]
+            }
+        )
+        balances = pd.concat([balances, new_balance], ignore_index=True)
+
+    return purchases, balances
 
 def plot_data(data, purchases, balances, debug=False):
     fig, ax = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
@@ -332,20 +393,12 @@ def plot_buy_streaks(buy_streaks):
 
 coin = 'BTC'
 coin_data = download_currency_data2(coin, days_to_download=60, interval='15m')
-coin_data_signals = calculate_strategy_2a(coin_data)
+coin_data_signals = calculate_strategy_5(coin_data)
 
+purchases, balances = backtest2(coin_data_signals, buy_amount=10)
 
-# # Create a series that changes every time a Sell_Signal is True
-# sell_groups = (coin_data_1h_signals['Sell_Signal']).cumsum()
-# # Group by the sell_groups series and count the number of Buy_Signals in each group
-# buy_streaks = coin_data_1h_signals.groupby(sell_groups)['Buy_Signal'].sum()
-# # The longest buy streak is the maximum value in the buy_streaks series
+plot_data(coin_data_signals, purchases, balances, debug=True)
 
-# plot_buy_streaks(buy_streaks)
-
-purchases, balances = backtest(coin_data_signals, buy_amount=10)
-
-plot_data2(coin_data_signals, purchases, balances, debug=True)
 
 
 
