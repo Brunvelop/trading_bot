@@ -65,16 +65,13 @@ class SuperStrategy(bt.Strategy):
         if self.order:
             return
 
-        # If there is an open position
-        if self.position:
-            # If the stop loss or take profit has been hit, close the position
-            if self.stop_loss_order and self.stop_loss_order.executed:
-                self.close()
+        # If there is an open position and the stop loss or take profit has been hit, cancel the remaining orders
+        if self.position and (self.stop_loss_order or self.take_profit_order):
+            if self.stop_loss_order:
+                self.cancel(self.stop_loss_order)
                 self.stop_loss_order = None
-                self.take_profit_order = None
-            elif self.take_profit_order and self.take_profit_order.executed:
-                self.close()
-                self.stop_loss_order = None
+            if self.take_profit_order:
+                self.cancel(self.take_profit_order)
                 self.take_profit_order = None
         else:
             # If there is a sell signal, sell and set the stop loss and take profit
