@@ -1,5 +1,17 @@
 import backtrader as bt
 import math
+import yfinance as yf
+from datetime import datetime, timedelta
+
+# Import the necessary module
+from backtrader.feeds import PandasData
+
+# Define a new class to include 'Volume' in the data feed
+class PandasDataVolume(PandasData):
+    lines = ('volume',)
+    params = (('volume', -1),)
+
+
 
 class SuperStrategy(bt.Strategy):
     params = (
@@ -30,29 +42,29 @@ class SuperStrategy(bt.Strategy):
         self.min300 = bt.indicators.Lowest(self.data.close(-1), period=self.params.lookback_period)
 
     def next(self):
-        # Define the strategy
-        close_less_than_min_ma = self.data.close[0] < min(self.ma10[0], self.ma50[0], self.ma100[0], self.ma200[0])
-        close_greater_than_max_ma = self.data.close[0] > max(self.ma10[0], self.ma50[0], self.ma100[0], self.ma200[0])
-        ma_increasing = self.ma10[0] < self.ma50[0] and self.ma50[0] < self.ma100[0] and self.ma100[0] < self.ma200[0]
-        ma_decreasing = self.ma10[0] > self.ma50[0] and self.ma50[0] > self.ma100[0] and self.ma100[0] > self.ma200[0]
-
         # Add conditions to break the maximum or minimum of the last 300 bars
-        volatility_down = self.avg_range10[0] < self.avg_range50[0] and self.avg_range50[0] < self.avg_range100[0] and self.avg_range100[0] < self.avg_range200[0]
         volatility_up = self.avg_range10[0] > self.avg_range50[0] and self.avg_range50[0] > self.avg_range100[0] and self.avg_range100[0] > self.avg_range200[0]
 
         break_max_300 = self.data.close[0] > self.max300[0]
         break_min_300 = self.data.close[0] < self.min300[0]
 
-        sell_signal = break_min_300 and volatility_down
-        sell_signal_super = break_min_300 and volatility_up
+        sell_signal = break_min_300 and volatility_up
         buy_signal = break_max_300 and volatility_up
 
         if sell_signal:
             self.sell()
-        elif sell_signal_super:
-            self.sell()
         elif buy_signal:
             self.buy()
+
+def download_currency_data(currency='BTC', days_to_download=30, interval='1h'):
+    end = datetime.today()
+    start = end - timedelta(days=days_to_download)
+    data = yf.download(f'{currency}-USD', start=start, end=end, interval=interval)
+    if data.empty:
+        print(f"Error occurred: No data was downloaded for {currency}")
+    else:
+        data = data.drop_duplicates().sort_index()
+    return data
 
 # Create a cerebro instance
 cerebro = bt.Cerebro()
@@ -61,13 +73,14 @@ cerebro = bt.Cerebro()
 cerebro.addstrategy(SuperStrategy)
 
 # Load the BTC data
-data = get_btc_data()
+data = download_currency_data('BTC', 60, '15m')
 
-# Resample the data to 15 minute intervals
-data = cerebro.resampledata(data, timeframe=bt.TimeFrame.Minutes, compression=15)
+# Convert the DataFrame to a DataFeed
+data_feed = PandasDataVolume(dataname=data)
 
 # Add the data to cerebro
-cerebro.adddata(data)
+cerebro.adddata(data_feed)
+
 
 # Set the initial capital
 cerebro.broker.setcash(100000)
@@ -75,5 +88,13 @@ cerebro.broker.setcash(100000)
 # Set the commission
 cerebro.broker.setcommission(commission=0.001)
 
-# Run the backtest
+# Print out the starting conditions
+print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
+
+# Run over everything
 cerebro.run()
+
+# Print out the final result
+print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
+
+cerebro.plot()
