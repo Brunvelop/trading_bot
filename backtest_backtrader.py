@@ -85,7 +85,7 @@ class SuperStrategy(bt.Strategy):
                 stop_loss_price = self.max10[0]
                 print(f'Sell Order: Stop Loss set at {stop_loss_price}')  # Agregar esta línea
                 self.stop_loss_order = self.sell(exectype=bt.Order.Stop, price=stop_loss_price)
-                take_profit_price = self.data.close[0] - (self.data.close[0] - stop_loss_price)
+                take_profit_price = self.data.close[0] + (self.data.close[0] - stop_loss_price)
                 print(f'Sell Order: Take Profit set at {take_profit_price}')  # Agregar esta línea
                 self.take_profit_order = self.sell(exectype=bt.Order.Limit, price=take_profit_price)
 
@@ -96,7 +96,7 @@ class SuperStrategy(bt.Strategy):
                 stop_loss_price = self.min10[0]
                 print(f'Buy Order: Stop Loss set at {stop_loss_price}')  # Agregar esta línea
                 self.stop_loss_order = self.buy(exectype=bt.Order.Stop, price=stop_loss_price)
-                take_profit_price = self.data.close[0] + (stop_loss_price - self.data.close[0])
+                take_profit_price = self.data.close[0] + (self.data.close[0] - stop_loss_price)
                 print(f'Buy Order: Take Profit set at {take_profit_price}')  # Agregar esta línea
                 self.take_profit_order = self.buy(exectype=bt.Order.Limit, price=take_profit_price)
 
