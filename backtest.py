@@ -332,7 +332,7 @@ def plot_buy_streaks(buy_streaks):
 
 coin = 'BTC'
 coin_data = download_currency_data2(coin, days_to_download=60, interval='15m')
-coin_data_signals = calculate_strategy_2(coin_data)
+coin_data_signals = calculate_strategy_5(coin_data)
 
 purchases, balances = backtest(coin_data_signals, buy_amount=10)
 
