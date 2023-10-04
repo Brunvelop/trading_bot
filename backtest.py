@@ -358,16 +358,32 @@ def plot_data2(data, purchases, balances, debug=False, plot_mas=False):
             start_sell = None
 
     # Calculate and plot the average price for each buy streak
+    avg_buy_label = 'Avg Buy Streak Price'
     for start, end in buy_streaks:
         buy_streak_data = data.loc[start:end]
         avg_price = buy_streak_data.loc[buy_streak_data['Buy_Signal'], 'Close'].mean()
-        ax[0].plot([start, end], [avg_price, avg_price], color='cyan', label='Avg Buy Streak Price')
+        ax[0].plot([start, end], [avg_price, avg_price], color='cyan', label=avg_buy_label)
+        avg_buy_label = "_nolegend_"  # Prevent this line from being added to the legend again
 
-    # Calculate and plot the average price for each sell streak
+
+    # Draw the last buy price
+    if start_buy is not None:
+        last_buy_price = data.loc[start_buy, 'Close']
+        ax[0].plot([start_buy, data.index[-1]], [last_buy_price, last_buy_price], color='orange', linestyle='--', label='Last Buy Price')
+
+# Calculate and plot the average price for each sell streak
+    avg_sell_label = 'Avg Sell Streak Price'
     for start, end in sell_streaks:
         sell_streak_data = data.loc[start:end]
         avg_price = sell_streak_data.loc[sell_streak_data['Sell_Signal'], 'Close'].mean()
-        ax[0].plot([start, end], [avg_price, avg_price], color='magenta', label='Avg Sell Streak Price')
+        ax[0].plot([start, end], [avg_price, avg_price], color='magenta', label=avg_sell_label)
+        avg_sell_label = "_nolegend_"  # Prevent this line from being added to the legend again
+
+
+    # Draw the last sell price
+    if start_sell is not None:
+        last_sell_price = data.loc[start_sell, 'Close']
+        ax[0].plot([start_sell, data.index[-1]], [last_sell_price, last_sell_price], color='magenta', linestyle='--', label='Last Sell Price')
 
     ax[0].plot(data[data['Buy_Signal']].index, data['Close'][data['Buy_Signal']], '^', markersize=3, color='g', label='buy')
     ax[0].plot(data[data['Sell_Signal']].index, data['Close'][data['Sell_Signal']], 'v', markersize=3, color='r', label='sell')
@@ -399,7 +415,7 @@ def plot_data2(data, purchases, balances, debug=False, plot_mas=False):
     plt.show()
 
 coin = 'BTC'
-coin_data = download_currency_data(coin,'EUR', days_to_download=60, interval='15m')
+coin_data = download_currency_data(coin, 'USD', days_to_download=60, interval='15m')
 coin_data_signals = calculate_strategy_2(coin_data)
 
 purchases, balances = backtest(coin_data_signals, buy_amount=10)
