@@ -6,12 +6,12 @@ import pandas as pd
 from tqdm import tqdm
 import yfinance as yf
 
-def download_currency_data(currency='BTC', days_to_download=30, interval='15m'):
+def download_currency_data(currency_a='BTC', currency_b='USD', days_to_download=30, interval='15m'):
     end = datetime.today()
     start = end - timedelta(days=days_to_download)
-    data = yf.download(f'{currency}-USD', start=start, end=end, interval=interval)
+    data = yf.download(f'{currency_a}-{currency_b}', start=start, end=end, interval=interval)
     if data.empty:
-        print(f"Error occurred: No data was downloaded for {currency}")
+        print(f"Error occurred: No data was downloaded for {currency_a}")
     else:
         data = data.drop_duplicates().sort_index()
     return data
@@ -397,9 +397,9 @@ def plot_data2(data, purchases, balances, debug=False, plot_mas=False):
 
     plt.tight_layout()
     plt.show()
-    
+
 coin = 'BTC'
-coin_data = download_currency_data(coin, days_to_download=60, interval='15m')
+coin_data = download_currency_data(coin,'EUR', days_to_download=60, interval='15m')
 coin_data_signals = calculate_strategy_2(coin_data)
 
 purchases, balances = backtest(coin_data_signals, buy_amount=10)
