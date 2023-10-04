@@ -16,7 +16,6 @@ def download_currency_data(currency='BTC', days_to_download=30, interval='15m'):
         data = data.drop_duplicates().sort_index()
     return data
 
-
 def calculate_strategy_1(data):
     # Calculate the 200 hour moving average
     data['MA200'] = data['Close'].rolling(window=200).mean()
@@ -201,6 +200,80 @@ def backtest(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10):
 
     return purchases, balances
 
+def backtest2(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10):
+    purchases = pd.DataFrame(columns=['Timestamp', 'Buy_Amount_USD', 'Quantity_BTC', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD', 'Is_Sold', 'Sell_Amount_USD', 'Sell_Quantity_BTC', 'Sell_Timestamp'])
+    balances = pd.DataFrame(columns=['Timestamp', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD'])
+    total_value = usd_balance
+    buy_streak = []
+    stop_loss = None
+
+    for i, row in tqdm(data.iterrows(), total=data.shape[0]):
+        # Comprar
+        if row['Buy_Signal'] and usd_balance >= buy_amount:
+            quantity = buy_amount / row['Close']
+            coin_balance += quantity
+            usd_balance -= buy_amount
+            total_value = usd_balance + coin_balance * row['Close']
+            new_purchase = pd.DataFrame(
+                {
+                    'Timestamp': [i], 
+                    'Buy_Amount_USD': [buy_amount],
+                    'Quantity_BTC': [quantity], 
+                    'Balance_USD': [usd_balance],
+                    'Balance_BTC': [coin_balance],
+                    'Total_Value_USD': [total_value],
+                    'Is_Sold': 0,
+                    'Sell_Amount_USD': [None],
+                    'Sell_Quantity_BTC': [None],
+                    'Sell_Timestamp': [None]
+                }
+            )
+            purchases = pd.concat([purchases, new_purchase], ignore_index=True)
+            buy_streak.append(new_purchase)
+            if row['Close'] > 1.005 * sum([purchase['Buy_Amount_USD'][0] for purchase in buy_streak]) / sum([purchase['Quantity_BTC'][0] for purchase in buy_streak]):
+                stop_loss = 0.998 * sum([purchase['Buy_Amount_USD'][0] for purchase in buy_streak]) / sum([purchase['Quantity_BTC'][0] for purchase in buy_streak])
+        # Vender
+        elif row['Sell_Signal'] and coin_balance > 0:
+            if stop_loss is not None and row['Close'] <= stop_loss:
+                for idx, purchase in enumerate(buy_streak):
+                    sell_amount = purchase['Quantity_BTC'][0] * row['Close']
+                    sell_quantity = purchase['Quantity_BTC'][0]
+                    usd_balance += sell_amount
+                    coin_balance -= sell_quantity
+                    total_value = usd_balance + coin_balance * row['Close']
+                    purchases.at[idx, 'Is_Sold'] = 1
+                    purchases.at[idx, 'Sell_Amount_USD'] = sell_amount
+                    purchases.at[idx, 'Sell_Quantity_BTC'] = sell_quantity
+                    purchases.at[idx, 'Sell_Timestamp'] = i
+                buy_streak = []
+                stop_loss = None
+            else:
+                for j, purchase in purchases.iterrows():
+                    if (row['Close'] * purchase['Quantity_BTC'] - purchase['Buy_Amount_USD']) / purchase['Buy_Amount_USD'] >= 0.01 and not purchase['Is_Sold']:
+                        sell_amount = purchase['Quantity_BTC'] * row['Close']
+                        sell_quantity = purchase['Quantity_BTC']
+                        usd_balance += sell_amount
+                        coin_balance -= sell_quantity
+                        total_value = usd_balance + coin_balance * row['Close']
+                        purchases.at[j, 'Is_Sold'] = 1
+                        purchases.at[j, 'Sell_Amount_USD'] = sell_amount
+                        purchases.at[j, 'Sell_Quantity_BTC'] = sell_quantity
+                        purchases.at[j, 'Sell_Timestamp'] = i
+                        break
+
+        # Almacenar balances
+        new_balance = pd.DataFrame(
+            {
+                'Timestamp': [i],
+                'Balance_USD': [usd_balance],
+                'Balance_BTC': [coin_balance],
+                'Total_Value_USD': [total_value]
+            }
+        )
+        balances = pd.concat([balances, new_balance], ignore_index=True)
+
+    return purchases, balances
+
 
 def plot_data(data, purchases, balances, debug=False):
     fig, ax = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
@@ -266,20 +339,35 @@ def plot_data2(data, purchases, balances, debug=False, plot_mas=False):
     
     # Track the start and end of each buy streak
     buy_streaks = []
-    start = None
+    sell_streaks = []
+    start_buy = None
+    start_sell = None
     for i in range(1, len(data)):
-        if data['Buy_Signal'].iloc[i] and start is None:
-            start = data.index[i]
-        elif not data['Buy_Signal'].iloc[i] and data['Sell_Signal'].iloc[i] and start is not None:
-            end = data.index[i]
-            buy_streaks.append((start, end))
-            start = None
+        if data['Buy_Signal'].iloc[i] and start_buy is None:
+            start_buy = data.index[i]
+        elif not data['Buy_Signal'].iloc[i] and data['Sell_Signal'].iloc[i] and start_buy is not None:
+            end_buy = data.index[i]
+            buy_streaks.append((start_buy, end_buy))
+            start_buy = None
+
+        if data['Sell_Signal'].iloc[i] and start_sell is None:
+            start_sell = data.index[i]
+        elif not data['Sell_Signal'].iloc[i] and data['Buy_Signal'].iloc[i] and start_sell is not None:
+            end_sell = data.index[i]
+            sell_streaks.append((start_sell, end_sell))
+            start_sell = None
 
     # Calculate and plot the average price for each buy streak
     for start, end in buy_streaks:
         buy_streak_data = data.loc[start:end]
         avg_price = buy_streak_data.loc[buy_streak_data['Buy_Signal'], 'Close'].mean()
         ax[0].plot([start, end], [avg_price, avg_price], color='cyan', label='Avg Buy Streak Price')
+
+    # Calculate and plot the average price for each sell streak
+    for start, end in sell_streaks:
+        sell_streak_data = data.loc[start:end]
+        avg_price = sell_streak_data.loc[sell_streak_data['Sell_Signal'], 'Close'].mean()
+        ax[0].plot([start, end], [avg_price, avg_price], color='magenta', label='Avg Sell Streak Price')
 
     ax[0].plot(data[data['Buy_Signal']].index, data['Close'][data['Buy_Signal']], '^', markersize=3, color='g', label='buy')
     ax[0].plot(data[data['Sell_Signal']].index, data['Close'][data['Sell_Signal']], 'v', markersize=3, color='r', label='sell')
@@ -309,12 +397,12 @@ def plot_data2(data, purchases, balances, debug=False, plot_mas=False):
 
     plt.tight_layout()
     plt.show()
-
+    
 coin = 'BTC'
 coin_data = download_currency_data(coin, days_to_download=60, interval='15m')
 coin_data_signals = calculate_strategy_2(coin_data)
 
 purchases, balances = backtest(coin_data_signals, buy_amount=10)
 
-plot_data2(coin_data_signals, purchases, balances, debug=False, plot_mas=True)
+plot_data2(coin_data_signals, purchases, balances, debug=False, plot_mas=False)
 
