@@ -275,21 +275,25 @@ def plot_data2(data, purchases, balances, debug=False, plot_mas=False):
     # Plot the cumulative average purchase price
     ax[0].plot(purchases['Timestamp'], purchases['Cumulative_Avg_Buy_Price'], color='purple', linestyle='--', label='Cumulative Avg Purchase Price')
     
-    # # Plot the average purchase price of unsold purchases
-    # ax[0].plot(purchases['Timestamp'], purchases['Unsold_Avg_Buy_Price'], color='pink', linestyle='--', label='Avg Purchase Price of Unsold')
+    # Track the start and end of each buy streak
+    buy_streaks = []
+    start = None
+    for i in range(1, len(data)):
+        if data['Buy_Signal'].iloc[i] and not data['Buy_Signal'].iloc[i-1]:
+            start = data.index[i]
+        elif not data['Buy_Signal'].iloc[i] and data['Buy_Signal'].iloc[i-1] and start is not None:
+            end = data.index[i]
+            buy_streaks.append((start, end))
+            start = None
 
-    # # Plot the average sell price of sold purchases
-    # ax[0].plot(purchases['Timestamp'], purchases['Sold_Avg_Sell_Price'], color='gray', linestyle='--', label='Avg Sell Price of Sold')
+    # Calculate and plot the average price for each buy streak
+    for start, end in buy_streaks:
+        avg_price = data['Close'].loc[start:end].mean()
+        ax[0].plot([start, end], [avg_price, avg_price], color='black', label='Avg Buy Streak Price')
 
     ax[0].plot(data[data['Buy_Signal']].index, data['Close'][data['Buy_Signal']], '^', markersize=3, color='g', label='buy')
     ax[0].plot(data[data['Sell_Signal']].index, data['Close'][data['Sell_Signal']], 'v', markersize=3, color='r', label='sell')
 
-    # Plot lines connecting each buy and sell
-    if debug:
-        for _, purchase in purchases.iterrows():
-            if purchase['Is_Sold']:
-                ax[0].plot([purchase['Timestamp'], purchase['Sell_Timestamp']], [purchase['Buy_Price'], purchase['Sell_Amount_USD'] / purchase['Sell_Quantity_BTC']], color='black', linestyle=':', linewidth=0.5)
-    
     ax[0].set(xlabel='Date', ylabel='Close Price')
     ax[0].grid(True)
     ax[0].legend()
