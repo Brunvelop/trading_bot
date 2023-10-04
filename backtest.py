@@ -279,17 +279,18 @@ def plot_data2(data, purchases, balances, debug=False, plot_mas=False):
     buy_streaks = []
     start = None
     for i in range(1, len(data)):
-        if data['Buy_Signal'].iloc[i] and not data['Buy_Signal'].iloc[i-1]:
+        if data['Buy_Signal'].iloc[i] and start is None:
             start = data.index[i]
-        elif not data['Buy_Signal'].iloc[i] and data['Buy_Signal'].iloc[i-1] and start is not None:
+        elif not data['Buy_Signal'].iloc[i] and data['Sell_Signal'].iloc[i] and start is not None:
             end = data.index[i]
             buy_streaks.append((start, end))
             start = None
 
     # Calculate and plot the average price for each buy streak
     for start, end in buy_streaks:
-        avg_price = data['Close'].loc[start:end].mean()
-        ax[0].plot([start, end], [avg_price, avg_price], color='black', label='Avg Buy Streak Price')
+        buy_streak_data = data.loc[start:end]
+        avg_price = buy_streak_data.loc[buy_streak_data['Buy_Signal'], 'Close'].mean()
+        ax[0].plot([start, end], [avg_price, avg_price], color='cyan', label='Avg Buy Streak Price')
 
     ax[0].plot(data[data['Buy_Signal']].index, data['Close'][data['Buy_Signal']], '^', markersize=3, color='g', label='buy')
     ax[0].plot(data[data['Sell_Signal']].index, data['Close'][data['Sell_Signal']], 'v', markersize=3, color='r', label='sell')
@@ -322,7 +323,7 @@ def plot_data2(data, purchases, balances, debug=False, plot_mas=False):
 
 coin = 'BTC'
 coin_data = download_currency_data2(coin, days_to_download=60, interval='15m')
-coin_data_signals = calculate_strategy_2(coin_data)
+coin_data_signals = calculate_strategy_1(coin_data)
 
 purchases, balances = backtest(coin_data_signals, buy_amount=10)
 
