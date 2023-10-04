@@ -6,18 +6,7 @@ import pandas as pd
 from tqdm import tqdm
 import yfinance as yf
 
-
-def download_currency_data(currency='BTC', days_to_download=30, interval='1h'):
-    end = datetime.today()
-    start = end - timedelta(days=days_to_download)
-    data = yf.download(f'{currency}-USD', start=start, end=end, interval=interval)
-    if data.empty:
-        print(f"Error occurred: No data was downloaded for {currency}")
-    else:
-        data = data.drop_duplicates().sort_index()
-    return data
-
-def download_currency_data2(currency='BTC', days_to_download=30, interval='15m'):
+def download_currency_data(currency='BTC', days_to_download=30, interval='15m'):
     end = datetime.today()
     start = end - timedelta(days=days_to_download)
     data = yf.download(f'{currency}-USD', start=start, end=end, interval=interval)
@@ -148,9 +137,9 @@ def calculate_strategy_5(data):
     break_max_300 = data['Close'] > data['Max300']
     break_min_300 = data['Close'] < data['Min300']
 
-    data['Buy_Signal'] = break_max_300 & volatility_up
+    data['Sell_Signal'] = break_max_300 & volatility_up
     # data['Sell_Signal'] = break_min_300 & volatility_down
-    data['Sell_Signal'] = break_min_300 & volatility_up
+    data['Buy_Signal'] = break_min_300 & volatility_up
 
     return data
 
@@ -322,10 +311,10 @@ def plot_data2(data, purchases, balances, debug=False, plot_mas=False):
     plt.show()
 
 coin = 'BTC'
-coin_data = download_currency_data2(coin, days_to_download=60, interval='15m')
-coin_data_signals = calculate_strategy_1(coin_data)
+coin_data = download_currency_data(coin, days_to_download=60, interval='15m')
+coin_data_signals = calculate_strategy_2(coin_data)
 
 purchases, balances = backtest(coin_data_signals, buy_amount=10)
 
-plot_data2(coin_data_signals, purchases, balances, debug=False)
+plot_data2(coin_data_signals, purchases, balances, debug=False, plot_mas=True)
 
