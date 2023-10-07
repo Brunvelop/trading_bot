@@ -50,19 +50,23 @@ class DB():
 
     def get_last_position(self):
         result = self.supabase.table('trades').select('position').order('position', desc=True).limit(1).execute()
-        if not result['data'][0]['position']:
+        if not result.data[0]['position']:
             return 0  # return 0 if the result is None or empty
-        return result['data'][0]['position']
+        return result.data[0]['position']
     
 
     def update_null_positions(self, position_number):
         return self.supabase.table('trades').update(
             {'position': position_number}
             ).is_('position', 'null').execute()
+    
+    def get_orders_with_highest_position(self):
+        highest_position = self.get_last_position()
+        return self.supabase.table('trades').select('*').filter('position', 'eq', highest_position).execute().data
 
 if __name__ == '__main__':
     db = DB()
-    a = db.update_null_positions(1)
+    a = db.get_orders_with_highest_position()
     print(a)
 #     import datetime
 #     db = DB()
