@@ -63,12 +63,11 @@ class KrakenAPI:
 
 
 class Trader:
-    def __init__(self, pair='BTC/USD', cost=5, time_period='1h', gain_threshold=0.05):
+    def __init__(self, pair='BTC/USD', cost=5, time_period='1h'):
         self.kraken_api = KrakenAPI()
         self.pair = pair
         self.cost = cost
         self.time_period = time_period
-        self.gain_threshold = gain_threshold
         self.db = DB()
 
     def get_amount(self, price):
@@ -104,6 +103,14 @@ class Trader:
                 False
             )
         return self.get_order_info(order['id'])
+    
+    def update_position(self):
+        last_position = self.db.get_last_position()
+        # Si no hay ninguna posición, establecer la posición en 1
+        if last_position is None:
+            position = 1
+        else:
+            position = last_position + 1
 
     def sell(self):
         price = self.kraken_api.get_latest_price(self.pair)
@@ -123,22 +130,6 @@ class Trader:
             return order_info
         return None
 
-    def sell_to_market(self, order_id):
-        order = self.db.get_order_by_id(order_id)[0]
-        amount = order[3]
-        price = self.kraken_api.get_latest_price(self.pair)
-        order_new = self.kraken_api.create_order(self.pair, 'market', 'sell', amount, price)
-        order_new_info = self.get_order_info(order_new['id'])
-        self.db.update_order(
-                    order_id,
-                    order_new_info['timestamp'],
-                    order_new_info['price'],
-                    order_new_info['amount'],
-                    order_new_info['cost'],
-                    order_new_info['fees'],
-            )
-        return order_new_info
-
     def get_order_info(self, order_id):
         order = self.kraken_api.get_order(order_id)
         return {
@@ -150,17 +141,14 @@ class Trader:
             'fees': order['fees'][0]['cost'],
         }
 
+trader = Trader(
+    pair='BTC/EUR', 
+    cost=10, 
+    time_period='15m'
+)
 
-import timeit
-import pandas as pd
+trader.run_strategy()
 
 
 
-# Crea una instancia de la clase que contiene las funciones
-kraken_api = KrakenAPI()
 
-pair='BTC/USD'
-time_period='15m'
-bars = kraken_api.get_bars(pair, time_period, 200)
-
-sma_10, sma_50, sma_100, sma_200 = kraken_api.get_smas(bars)
