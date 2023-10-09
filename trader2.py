@@ -101,6 +101,7 @@ class Trader:
             print('Trying to sell...', flush=True)
             self.update_position()
             self.sell()
+            self.set_stop_loss(sma_200)
         elif price < sma_10 < sma_50 < sma_100 < sma_200:
             print('Buying...', flush=True)
             self.buy()
@@ -110,8 +111,10 @@ class Trader:
     def buy(self):
         price = self.kraken_api.get_latest_price(self.pair)
         amount = self.get_amount(price)
+
         order = self.kraken_api.create_order(self.pair, 'market', 'buy', amount, price)
         order_executed_info = self.get_order_info(order['id'])
+
         self.db.insert_order(
                 order_executed_info['id'],
                 order_executed_info['timestamp'],
@@ -164,6 +167,21 @@ class Trader:
             'cost': order['cost'], 
             'fees': order['fees'][0]['cost'],
         }
+    
+    def set_stop_loss(self, sma_200):
+        orders = self.db.get_open_trades_with_highest_position()
+
+        total_price = sum(order['price'] for order in orders)
+        total_amount = sum(order['amount'] for order in orders)
+
+        average_price = total_price / len(orders) if orders else 0
+        stop_loss_price = sma_200 * 0.9990
+        
+        if average_price < stop_loss_price * (1 - self.gain_threshold):
+            return self.kraken_api.update_stop_loss(self.pair, 'sell', stop_loss_price, total_amount)
+        else:
+            return None
+
 
 trader = Trader(
     pair='BTC/EUR', 
