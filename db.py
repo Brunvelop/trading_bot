@@ -60,9 +60,12 @@ class DB():
             {'position': position_number}
             ).is_('position', 'null').execute()
     
-    def get_orders_with_highest_position(self):
+    def get_open_trades_with_highest_position(self):
         highest_position = self.get_last_position()
-        return self.supabase.table('trades').select('*').filter('position', 'eq', highest_position).execute().data
+        return self.supabase.table('trades').select('*').filter(
+            'position', 'eq', highest_position).filter(
+            'closed', 'eq', False
+        ).execute().data
 
 if __name__ == '__main__':
     db = DB()

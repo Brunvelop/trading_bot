@@ -65,9 +65,10 @@ class KrakenAPI:
         # Cancelar la orden
         return self.cancelOrder(id, symbol)
 
-    def update_stop_loss(self, pair, side, price):
+    def update_stop_loss(self, pair, side, price, amount):
+        exchange = self.connect_api()
         # Buscar todas las órdenes abiertas
-        open_orders = self.fetchOpenOrders(pair)
+        open_orders = exchange.fetchOpenOrders(pair)
 
         # Encontrar la orden de stop loss existente
         stop_loss_order = next((order for order in open_orders if order['type'] == 'stopLoss'), None)
@@ -76,14 +77,6 @@ class KrakenAPI:
         if stop_loss_order is not None:
             self.cancel_order(stop_loss_order['id'], pair)
 
-        # Aquí asumimos que la cantidad de la orden de stop loss es todo el saldo disponible
-        # Puedes cambiar esto según tus necesidades
-        balance = self.get_account_balance(pair.split('/')[0])
-        amount = balance['free']
-
-        # Crear una nueva orden de stop loss
-        # El tipo de orden es 'stopLoss', el precio es el precio de stop loss
-        # y la cantidad es la cantidad calculada anteriormente
         return self.create_order(pair, 'stopLoss', side, amount, price)
 
 
@@ -106,7 +99,8 @@ class Trader:
         print("price:", price, "smas(10,50,100,200)=", sma_10, sma_50, sma_100, sma_200)
         if price > sma_10 > sma_50 > sma_100 > sma_200:
             print('Trying to sell...', flush=True)
-            self.sell()
+            self.update_position()
+            self.sell(sma_200)
         elif price < sma_10 < sma_50 < sma_100 < sma_200:
             print('Buying...', flush=True)
             self.buy()
@@ -139,20 +133,16 @@ class Trader:
 
         self.db.update_null_positions(position)
 
-    def sell(self):
-        self.update_position()
-        orders = self.db.get_orders_with_highest_position()
+    def sell(self, sma_200):
+        orders = self.db.get_open_trades_with_highest_position()
 
-        # Calcular el precio medio de los pedidos
         total_price = sum(order['price'] for order in orders)
         average_price = total_price / len(orders) if orders else 0
+        amount = sum(order['amount'] for order in orders)
 
-        # Calcular el precio de stop loss que es el 1% por debajo del precio medio
-        stop_loss_price = average_price * 1.01
+        stop_loss_price = sma_200 * 0.9990
 
-        self.kraken_api.update_stop_loss(self.pair, 'sell', stop_loss_price)
-
-        return None
+        return self.kraken_api.update_stop_loss(self.pair, 'sell', stop_loss_price, amount)
 
     def get_order_info(self, order_id):
         order = self.kraken_api.get_order(order_id)
@@ -171,8 +161,7 @@ trader = Trader(
     time_period='15m'
 )
 
-trader.run_strategy()
-
+# trader.run_strategy()
 
 
 
