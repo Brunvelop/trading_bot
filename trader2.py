@@ -81,7 +81,7 @@ class KrakenAPI:
 
 
 class Trader:
-    def __init__(self, pair='BTC/USD', cost=5, time_period='1h'):
+    def __init__(self, pair='BTC/USD', cost=5, time_period='1h', gain_threshold=0.005):
         self.kraken_api = KrakenAPI()
         self.pair = pair
         self.cost = cost
@@ -100,7 +100,7 @@ class Trader:
         if price > sma_10 > sma_50 > sma_100 > sma_200:
             print('Trying to sell...', flush=True)
             self.update_position()
-            self.sell(sma_200)
+            self.sell()
         elif price < sma_10 < sma_50 < sma_100 < sma_200:
             print('Buying...', flush=True)
             self.buy()
@@ -133,16 +133,26 @@ class Trader:
 
         self.db.update_null_positions(position)
 
-    def sell(self, sma_200):
+    def sell(self):
         orders = self.db.get_open_trades_with_highest_position()
 
-        total_price = sum(order['price'] for order in orders)
-        average_price = total_price / len(orders) if orders else 0
-        amount = sum(order['amount'] for order in orders)
+        price = self.kraken_api.get_latest_price(self.pair)
+        orders = self.db.get_orders_below(price*(1-self.gain_threshold))
 
-        stop_loss_price = sma_200 * 0.9990
-
-        return self.kraken_api.update_stop_loss(self.pair, 'sell', stop_loss_price, amount)
+        if orders:
+            amount = orders[0][3]
+            order = self.kraken_api.create_order(self.pair, 'market', 'sell', amount, price)
+            order_info = self.get_order_info(order['id'])
+            self.db.update_order(
+                    orders[0][0],
+                    order_info['timestamp'],
+                    order_info['price'],
+                    order_info['amount'],
+                    order_info['cost'],
+                    order_info['fees'],
+            )
+            return order_info
+        return None
 
     def get_order_info(self, order_id):
         order = self.kraken_api.get_order(order_id)
@@ -157,8 +167,8 @@ class Trader:
 
 trader = Trader(
     pair='BTC/EUR', 
-    cost=10, 
-    time_period='15m'
+    cost=3, 
+    time_period='1m'
 )
 
 # trader.run_strategy()

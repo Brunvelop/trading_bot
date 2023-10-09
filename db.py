@@ -27,7 +27,7 @@ class DB():
         return self.supabase.table('trades').select().filter('order_id', 'eq', order_id).execute()
 
     def get_orders_below(self, price):
-        return self.supabase.table('trades').select().filter('buy_price', 'lt', price).filter('closed', 'eq', 0).order('buy_price', ascending=False).execute()
+        return self.supabase.table('trades').select().filter('buy_price', 'lt', price).filter('closed', 'eq', False).order('buy_price', ascending=False).execute()
 
     def get_all_orders(self):
         return self.supabase.table('trades').select().execute()
