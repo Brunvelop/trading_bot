@@ -135,8 +135,6 @@ class Trader:
         self.db.update_null_positions(position)
 
     def sell(self):
-        orders = self.db.get_open_trades_with_highest_position()
-
         price = self.kraken_api.get_latest_price(self.pair)
         orders = self.db.get_orders_below(price*(1-self.gain_threshold)).data
         print("Price below: ", price*(1-self.gain_threshold))

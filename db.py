@@ -68,18 +68,4 @@ class DB():
         ).execute().data
 
 if __name__ == '__main__':
-    db = DB()
-    a = db.get_orders_with_highest_position()
-    print(a)
-#     import datetime
-#     db = DB()
-#     a = db.insert_order(
-#         order_id="ON5D2D-UWENB-E4D6AR",
-#         timestamp=datetime.datetime.fromtimestamp(1696436779).isoformat(),
-#         price=45000.00,
-#         amount=0.001,
-#         cost=45.00,
-#         fees=0.01,
-#         closed=False
-#     )
-#     a
+    pass
