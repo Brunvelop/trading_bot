@@ -27,10 +27,10 @@ class DB():
         return self.supabase.table('trades').select().filter('order_id', 'eq', order_id).execute()
 
     def get_orders_below(self, price):
-        return self.supabase.table('trades').select().filter('buy_price', 'lt', price).filter('closed', 'eq', False).order('buy_price', ascending=False).execute()
+        return self.supabase.table('trades').select().filter('buy_price', 'lt', price).filter('closed', 'eq', False).order('buy_price', desc=True).execute()
 
     def get_all_orders(self):
-        return self.supabase.table('trades').select().execute()
+        return self.supabase.table('trades').select('*').execute()
 
     def update_order(self, order_id, sell_timestamp, sell_price, sell_amount, sell_cost, sell_fees):
         self.supabase.table('trades').update({

@@ -2,3 +2,4 @@ ccxt==2.7.39
 streamlit==1.18.1
 python-dotenv
 supabase
+schedule

@@ -1,4 +1,5 @@
 import os
+import datetime
 from dotenv import load_dotenv
 
 import time
@@ -48,16 +49,12 @@ class KrakenAPI:
 
     def get_smas(self, bars, periods=(10, 50, 100, 200)):
         smas = []
-        sma_totals = [0] * len(periods)
-        max_period = max(periods)
+        prices = [bar[4] for bar in bars]
 
-        for i, bar in enumerate(bars[:max_period], start=1):
-            price = bar[1]
-            for j, period in enumerate(periods):
-                if i < period:
-                    sma_totals[j] += price
-                elif i == period:
-                    smas.append(sma_totals[j] / period)
+        for period in periods:
+            if len(prices) >= period:  # Ensure there are enough prices to calculate SMA
+                sma = sum(prices[:period]) / period  # Calculate SMA for first 'period' prices
+                smas.append(sma)
 
         return smas
     
@@ -87,6 +84,7 @@ class Trader:
         self.cost = cost
         self.time_period = time_period
         self.db = DB()
+        self.gain_threshold = gain_threshold
 
     def get_amount(self, price):
         return self.cost / price
@@ -117,7 +115,7 @@ class Trader:
 
         self.db.insert_order(
                 order_executed_info['id'],
-                order_executed_info['timestamp'],
+                datetime.datetime.fromtimestamp(int(order_executed_info['timestamp']/1000)).isoformat(),
                 order_executed_info['price'],
                 order_executed_info['amount'],
                 order_executed_info['cost'],
@@ -140,7 +138,8 @@ class Trader:
         orders = self.db.get_open_trades_with_highest_position()
 
         price = self.kraken_api.get_latest_price(self.pair)
-        orders = self.db.get_orders_below(price*(1-self.gain_threshold))
+        orders = self.db.get_orders_below(price*(1-self.gain_threshold)).data
+        print("Price below: ", price*(1-self.gain_threshold))
 
         if orders:
             amount = orders[0][3]
@@ -148,7 +147,7 @@ class Trader:
             order_info = self.get_order_info(order['id'])
             self.db.update_order(
                     orders[0][0],
-                    order_info['timestamp'],
+                    datetime.datetime.fromtimestamp(int(order_info['timestamp']/1000)).isoformat(),
                     order_info['price'],
                     order_info['amount'],
                     order_info['cost'],
@@ -171,25 +170,46 @@ class Trader:
     def set_stop_loss(self, sma_200):
         orders = self.db.get_open_trades_with_highest_position()
 
-        total_price = sum(order['price'] for order in orders)
+        total_price = sum(order['buy_price'] for order in orders)
         total_amount = sum(order['amount'] for order in orders)
 
         average_price = total_price / len(orders) if orders else 0
         stop_loss_price = sma_200 * 0.9990
         
+        print("Average price: ", average_price)
+        print("Stop loss price ", stop_loss_price * (1 - self.gain_threshold))
         if average_price < stop_loss_price * (1 - self.gain_threshold):
             return self.kraken_api.update_stop_loss(self.pair, 'sell', stop_loss_price, total_amount)
         else:
             return None
 
 
-trader = Trader(
-    pair='BTC/EUR', 
-    cost=3, 
-    time_period='1m'
-)
 
-# trader.run_strategy()
+
+if __name__ == "__main__":
+    import time
+    import schedule
+
+    trader = Trader(
+        pair='BTC/EUR', 
+        cost=3, 
+        time_period='1m'
+    )
+
+
+    def job():
+        start_time = time.time()  # Inicio del tiempo de ejecución
+        print("----------- RUN -----------")
+        trader.run_strategy()
+        end_time = time.time()  # Fin del tiempo de ejecución
+        print("Tiempo de ejecución: {} segundos".format(end_time - start_time))
+
+    schedule.every().minute.at(":06").do(job)
+
+    while True:
+        # print("Esperando el próximo trabajo...")
+        schedule.run_pending()
+        time.sleep(1)
 
 
 
