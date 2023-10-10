@@ -274,6 +274,97 @@ def backtest2(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10):
 
     return purchases, balances
 
+def backtest3(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10, gain_threshold=0.005):
+    purchases = pd.DataFrame(columns=['Timestamp', 'Buy_Price','Buy_Amount_USD', 'Quantity_BTC', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD', 'Is_Sold', 'Sell_Amount_USD', 'Sell_Quantity_BTC', 'Sell_Timestamp', 'position'])
+    balances = pd.DataFrame(columns=['Timestamp', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD'])
+    total_value = usd_balance
+    stop_loss = None
+
+    # Calculate moving averages
+    data['MA10'] = data['Close'].rolling(window=10).mean()
+    data['MA50'] = data['Close'].rolling(window=50).mean()
+    data['MA100'] = data['Close'].rolling(window=100).mean()
+    data['MA200'] = data['Close'].rolling(window=200).mean()
+
+    for i, row in tqdm(data.iterrows(), total=data.shape[0]):
+        # Buy
+        if row['Close'] < row['MA10'] < row['MA50'] < row['MA100'] < row['MA200'] and usd_balance >= buy_amount:
+            quantity = buy_amount / row['Close']
+            coin_balance += quantity
+            usd_balance -= buy_amount
+            total_value = usd_balance + coin_balance * row['Close']
+            new_purchase = pd.DataFrame(
+                {
+                    'Timestamp': [i],
+                    'Buy_Price': row['Close'],
+                    'Buy_Amount_USD': [buy_amount],
+                    'Quantity_BTC': [quantity], 
+                    'Balance_USD': [usd_balance],
+                    'Balance_BTC': [coin_balance],
+                    'Total_Value_USD': [total_value],
+                    'Is_Sold': 0,
+                    'Sell_Amount_USD': [None],
+                    'Sell_Quantity_BTC': [None],
+                    'Sell_Timestamp': [None],
+                    'position': [None]
+                }
+            )
+            purchases = pd.concat([purchases, new_purchase], ignore_index=True)
+
+        elif coin_balance > 0 and (row['Close'] > row['MA10'] > row['MA50'] > row['MA100'] > row['MA200']):
+            # Encuentra el valor máximo en la columna 'position'
+            max_position = purchases['position'].max()
+
+            # Si max_position es None o NaN, entonces establece max_position a 0
+            if max_position is None or max_position is pd.NA:
+                max_position = 0
+
+            # Actualiza todas las posiciones None a max_position + 1
+            purchases['position'] = purchases['position'].fillna(max_position + 1)
+
+            # Encuentra las órdenes que están por debajo del precio actual por un gain_threshold
+            orders_to_sell = purchases[(purchases['Buy_Price'] < row['Close'] * (1 - gain_threshold)) & (purchases['Is_Sold'] == 0)]
+            
+            if not orders_to_sell.empty:
+                sell_amount = orders_to_sell['Quantity_BTC'].sum() * row['Close']
+                sell_quantity = orders_to_sell['Quantity_BTC'].sum()
+                usd_balance += sell_amount
+                coin_balance -= sell_quantity
+                total_value = usd_balance + coin_balance * row['Close']
+                
+                # Marca las órdenes vendidas como vendidas y actualiza los detalles de venta
+                purchases.loc[orders_to_sell.index, 'Is_Sold'] = 1
+                purchases.loc[orders_to_sell.index, 'Sell_Amount_USD'] = sell_amount
+                purchases.loc[orders_to_sell.index, 'Sell_Quantity_BTC'] = sell_quantity
+                purchases.loc[orders_to_sell.index, 'Sell_Timestamp'] = i
+                
+                stop_loss = row['MA200'] * 0.9990
+
+        if stop_loss:
+            if coin_balance > 0 and row['Close'] < stop_loss:
+                sell_amount = coin_balance * row['Close']
+                sell_quantity = coin_balance
+                usd_balance += sell_amount
+                coin_balance = 0
+                total_value = usd_balance + coin_balance * row['Close']
+                purchases.loc[purchases['Is_Sold'] == 0, 'Is_Sold'] = 1
+                purchases.loc[purchases['Sell_Amount_USD'].isnull(), 'Sell_Amount_USD'] = sell_amount
+                purchases.loc[purchases['Sell_Quantity_BTC'].isnull(), 'Sell_Quantity_BTC'] = sell_quantity
+                purchases.loc[purchases['Sell_Timestamp'].isnull(), 'Sell_Timestamp'] = i
+                stop_loss = None
+
+        # Store balances
+        new_balance = pd.DataFrame(
+            {
+                'Timestamp': [i],
+                'Balance_USD': [usd_balance],
+                'Balance_BTC': [coin_balance],
+                'Total_Value_USD': [total_value]
+            }
+        )
+        balances = pd.concat([balances, new_balance], ignore_index=True)
+
+    return purchases, balances
 
 def plot_data(data, purchases, balances, debug=False):
     fig, ax = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
@@ -415,10 +506,14 @@ def plot_data2(data, purchases, balances, debug=False, plot_mas=False):
     plt.show()
 
 coin = 'BTC'
-coin_data = download_currency_data(coin, 'USD', days_to_download=60, interval='15m')
+coin_data2 = download_currency_data(coin, 'USD', days_to_download=60, interval='15m')
+
+total_datos = len(pd.read_csv('btceur_15m.csv'))
+coin_data = pd.read_csv('btceur_15m.csv', skiprows=range(1, total_datos - total_datos//10))
+
 coin_data_signals = calculate_strategy_2(coin_data)
 
-purchases, balances = backtest(coin_data_signals, buy_amount=10)
+purchases, balances = backtest3(coin_data_signals, buy_amount=100)
 
 plot_data2(coin_data_signals, purchases, balances, debug=False, plot_mas=False)
 
