@@ -1,5 +1,4 @@
 import os
-import datetime
 from dotenv import load_dotenv
 
 import time
@@ -8,7 +7,6 @@ import ccxt
 from db import DB
 
 load_dotenv()
-
 
 class KrakenAPI:
     def __init__(self):
@@ -49,42 +47,33 @@ class KrakenAPI:
 
     def get_smas(self, bars, periods=(10, 50, 100, 200)):
         smas = []
-        prices = [bar[4] for bar in bars]
+        sma_totals = [0] * len(periods)
+        max_period = max(periods)
 
-        for period in periods:
-            if len(prices) >= period:  # Ensure there are enough prices to calculate SMA
-                sma = sum(prices[:period]) / period  # Calculate SMA for first 'period' prices
-                smas.append(sma)
+        for i, bar in enumerate(bars[:max_period]):
+            price = bar[1]
+            for j, period in enumerate(periods):
+                if i < period:
+                    sma_totals[j] += price
+                elif i == period:
+                    smas.append(sma_totals[j] / period)
 
         return smas
-    
-    def cancel_order(self, id, symbol):
-        # Cancelar la orden
-        return self.cancelOrder(id, symbol)
 
-    def update_stop_loss(self, pair, side, price, amount):
+    def get_order_book(self, pair):
         exchange = self.connect_api()
-        # Buscar todas las órdenes abiertas
-        open_orders = exchange.fetchOpenOrders(pair)
-
-        # Encontrar la orden de stop loss existente
-        stop_loss_order = next((order for order in open_orders if order['type'] == 'stopLoss'), None)
-
-        # Cancelar la orden de stop loss existente si existe
-        if stop_loss_order is not None:
-            self.cancel_order(stop_loss_order['id'], pair)
-
-        return self.create_order(pair, 'stopLoss', side, amount, price)
+        orderbook = exchange.fetch_order_book(pair)
+        return orderbook
 
 
 class Trader:
-    def __init__(self, pair='BTC/USD', cost=5, time_period='1h', gain_threshold=0.005):
+    def __init__(self, pair='BTC/USD', cost=5, time_period='1h', gain_threshold=0.05):
         self.kraken_api = KrakenAPI()
         self.pair = pair
         self.cost = cost
         self.time_period = time_period
-        self.db = DB()
         self.gain_threshold = gain_threshold
+        self.db = DB()
 
     def get_amount(self, price):
         return self.cost / price
@@ -97,9 +86,7 @@ class Trader:
         print("price:", price, "smas(10,50,100,200)=", sma_10, sma_50, sma_100, sma_200)
         if price > sma_10 > sma_50 > sma_100 > sma_200:
             print('Trying to sell...', flush=True)
-            self.update_position()
             self.sell()
-            self.set_stop_loss(sma_200)
         elif price < sma_10 < sma_50 < sma_100 < sma_200:
             print('Buying...', flush=True)
             self.buy()
@@ -109,13 +96,11 @@ class Trader:
     def buy(self):
         price = self.kraken_api.get_latest_price(self.pair)
         amount = self.get_amount(price)
-
         order = self.kraken_api.create_order(self.pair, 'market', 'buy', amount, price)
         order_executed_info = self.get_order_info(order['id'])
-
         self.db.insert_order(
                 order_executed_info['id'],
-                datetime.datetime.fromtimestamp(int(order_executed_info['timestamp']/1000)).isoformat(),
+                order_executed_info['timestamp'],
                 order_executed_info['price'],
                 order_executed_info['amount'],
                 order_executed_info['cost'],
@@ -123,29 +108,17 @@ class Trader:
                 False
             )
         return self.get_order_info(order['id'])
-    
-    def update_position(self):
-        last_position = self.db.get_last_position()
-        # Si no hay ninguna posición, establecer la posición en 1
-        if last_position is None:
-            position = 1
-        else:
-            position = last_position + 1
-
-        self.db.update_null_positions(position)
 
     def sell(self):
         price = self.kraken_api.get_latest_price(self.pair)
-        orders = self.db.get_orders_below(price*(1-self.gain_threshold)).data
-        print("Price below: ", price*(1-self.gain_threshold))
-
+        orders = self.db.get_orders_below(price*(1-self.gain_threshold))
         if orders:
             amount = orders[0][3]
             order = self.kraken_api.create_order(self.pair, 'market', 'sell', amount, price)
             order_info = self.get_order_info(order['id'])
             self.db.update_order(
                     orders[0][0],
-                    datetime.datetime.fromtimestamp(int(order_info['timestamp']/1000)).isoformat(),
+                    order_info['timestamp'],
                     order_info['price'],
                     order_info['amount'],
                     order_info['cost'],
@@ -153,6 +126,22 @@ class Trader:
             )
             return order_info
         return None
+
+    def sell_to_market(self, order_id):
+        order = self.db.get_order_by_id(order_id)[0]
+        amount = order[3]
+        price = self.kraken_api.get_latest_price(self.pair)
+        order_new = self.kraken_api.create_order(self.pair, 'market', 'sell', amount, price)
+        order_new_info = self.get_order_info(order_new['id'])
+        self.db.update_order(
+                    order_id,
+                    order_new_info['timestamp'],
+                    order_new_info['price'],
+                    order_new_info['amount'],
+                    order_new_info['cost'],
+                    order_new_info['fees'],
+            )
+        return order_new_info
 
     def get_order_info(self, order_id):
         order = self.kraken_api.get_order(order_id)
@@ -164,50 +153,17 @@ class Trader:
             'cost': order['cost'], 
             'fees': order['fees'][0]['cost'],
         }
-    
-    def set_stop_loss(self, sma_200):
-        orders = self.db.get_open_trades_with_highest_position()
-
-        total_price = sum(order['buy_price'] for order in orders)
-        total_amount = sum(order['amount'] for order in orders)
-
-        average_price = total_price / len(orders) if orders else 0
-        stop_loss_price = sma_200 * 0.9990
-        
-        print("Average price: ", average_price)
-        print("Stop loss price ", stop_loss_price * (1 - self.gain_threshold))
-        if average_price < stop_loss_price * (1 - self.gain_threshold):
-            return self.kraken_api.update_stop_loss(self.pair, 'sell', stop_loss_price, total_amount)
-        else:
-            return None
 
 
-
-
-if __name__ == "__main__":
-    import time
-    import schedule
+if __name__ == '__main__':
 
     trader = Trader(
         pair='BTC/EUR', 
-        cost=3, 
-        time_period='1m'
+        cost=5, 
+        time_period='1h',
+        gain_threshold= 5 / 100
     )
 
-
-    def job():
-        start_time = time.time()  # Inicio del tiempo de ejecución
-        print("----------- RUN -----------")
-        trader.run_strategy()
-        end_time = time.time()  # Fin del tiempo de ejecución
-        print("Tiempo de ejecución: {} segundos".format(end_time - start_time))
-
-    schedule.every().minute.at(":06").do(job)
-
     while True:
-        # print("Esperando el próximo trabajo...")
-        schedule.run_pending()
-        time.sleep(1)
-
-
-
+        trader.run_strategy()
+        time.sleep(60*60)
