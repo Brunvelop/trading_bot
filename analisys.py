@@ -1,13 +1,23 @@
 from datetime import datetime
 import matplotlib.pyplot as plt
 
-from trader2 import KrakenAPI
+from trader import KrakenAPI
 from db import DB
 
 
 def get_data_from_db():
     db = DB()
     all_orders = db.get_all_orders().data
+    return all_orders
+
+def get_last_position():
+    db = DB()
+    all_orders = db.get_open_trades_with_highest_position()
+    return all_orders
+
+def get_current_trades():
+    db = DB()
+    all_orders = db.get_current_trades()
     return all_orders
 
 
@@ -49,7 +59,8 @@ def plot_graph(timestamps, prices, buy_timestamps, buy_prices, mid_buy_price, xm
 
 
 
-all_orders = get_data_from_db()
+# all_orders = get_data_from_db()
+all_orders = get_current_trades()
 bars = get_bars_from_api()
 prices, timestamps = extract_prices_and_timestamps(bars)
 buy_prices = [order['buy_price'] for order in all_orders]
