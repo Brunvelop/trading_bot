@@ -50,7 +50,7 @@ class DB():
             print("Table does not exist. Please create it via the Supabase web interface.")
 
     def get_last_position(self):
-        result = self.supabase.table(self.table_name).select('position').order('position', desc=True).limit(1).execute()
+        result = self.supabase.table(self.table_name).select('position').order('position', desc=True).neq('position', 0).limit(1).execute()
         if not result.data[0]['position']:
             return 0  # return 0 if the result is None or empty
         return result.data[0]['position']
@@ -60,6 +60,11 @@ class DB():
         return self.supabase.table(self.table_name).update(
             {'position': position_number}
             ).is_('position', 'null').execute()
+
+    def get_current_trades(self):
+        return self.supabase.table(self.table_name).select('*').is_('position', 'null').filter(
+            'closed', 'eq', False
+        ).execute().data
     
     def get_open_trades_with_highest_position(self):
         highest_position = self.get_last_position()
@@ -67,6 +72,3 @@ class DB():
             'position', 'eq', highest_position).filter(
             'closed', 'eq', False
         ).execute().data
-
-if __name__ == '__main__':
-    pass

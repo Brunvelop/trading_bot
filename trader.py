@@ -1,89 +1,18 @@
-import os
-import datetime
-from dotenv import load_dotenv
-
 import time
-import ccxt
+import datetime
+
+import pandas as pd
 
 from db import DB
-
-load_dotenv()
-
-
-class KrakenAPI:
-    def __init__(self):
-        pass
-
-    def connect_api(self):
-        exchange = ccxt.kraken({
-            'apiKey': os.getenv('KRAKEN_API_KEY'),
-            'secret': os.getenv('KRAKEN_API_SECRET'),
-            'enableRateLimit': True,
-            'options':{
-                'defaultType': 'spot',
-            }
-        })
-        return exchange
-
-    def get_latest_price(self, pair):
-        exchange = self.connect_api()
-        ticker = exchange.fetch_ticker(pair)
-        return ticker['last']
-    
-    def get_account_balance(self, currency):
-        exchange = self.connect_api()
-        balance = exchange.fetch_balance()
-        return balance['total'][currency]
-
-    def get_bars(self, pair, timeframe, limit):
-        exchange = self.connect_api()
-        return exchange.fetch_ohlcv(pair, timeframe=timeframe, limit=limit)[::-1]
-
-    def get_order(self, order_id):
-        exchange = self.connect_api()
-        return exchange.fetch_order(order_id)
-
-    def create_order(self, pair, order_type, side, amount, price):
-        exchange = self.connect_api()
-        return exchange.create_order(pair, order_type, side, amount, price)
-
-    def get_smas(self, bars, periods=(10, 50, 100, 200)):
-        smas = []
-        prices = [bar[4] for bar in bars]
-
-        for period in periods:
-            if len(prices) >= period:  # Ensure there are enough prices to calculate SMA
-                sma = sum(prices[:period]) / period  # Calculate SMA for first 'period' prices
-                smas.append(sma)
-
-        return smas
-    
-    def cancel_order(self, id, symbol):
-        # Cancelar la orden
-        return self.cancelOrder(id, symbol)
-
-    def update_stop_loss(self, pair, side, price, amount):
-        exchange = self.connect_api()
-        # Buscar todas las órdenes abiertas
-        open_orders = exchange.fetchOpenOrders(pair)
-
-        # Encontrar la orden de stop loss existente
-        stop_loss_order = next((order for order in open_orders if order['type'] == 'stopLoss'), None)
-
-        # Cancelar la orden de stop loss existente si existe
-        if stop_loss_order is not None:
-            self.cancel_order(stop_loss_order['id'], pair)
-
-        return self.create_order(pair, 'stopLoss', side, amount, price)
-
+from kraken_api import KrakenAPI
 
 class Trader:
-    def __init__(self, pair='BTC/USD', cost=5, time_period='1h', gain_threshold=0.005):
+    def __init__(self, pair='BTC/USD', cost=5, time_period='1h', gain_threshold=0.005, table_name='trades'):
         self.kraken_api = KrakenAPI()
         self.pair = pair
         self.cost = cost
         self.time_period = time_period
-        self.db = DB()
+        self.db = DB(table_name)
         self.gain_threshold = gain_threshold
 
     def get_amount(self, price):
@@ -92,6 +21,7 @@ class Trader:
     def run_strategy(self):
         bars = self.kraken_api.get_bars(self.pair, self.time_period, 200)
         sma_10, sma_50, sma_100, sma_200 = self.kraken_api.get_smas(bars)
+        
         price = self.kraken_api.get_latest_price(self.pair)
         
         print("price:", price, "smas(10,50,100,200)=", sma_10, sma_50, sma_100, sma_200)
@@ -167,9 +97,11 @@ class Trader:
     
     def set_stop_loss(self, sma_200):
         orders = self.db.get_open_trades_with_highest_position()
-
+        if not orders:
+            return None
+        
         total_price = sum(order['buy_price'] for order in orders)
-        total_amount = sum(order['amount'] for order in orders)
+        total_amount = sum(order['buy_amount'] for order in orders)
 
         average_price = total_price / len(orders) if orders else 0
         stop_loss_price = sma_200 * 0.9990
@@ -180,8 +112,7 @@ class Trader:
             return self.kraken_api.update_stop_loss(self.pair, 'sell', stop_loss_price, total_amount)
         else:
             return None
-
-
+        
 
 
 if __name__ == "__main__":
