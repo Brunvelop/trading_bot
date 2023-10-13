@@ -25,10 +25,10 @@ class DB():
         return data
 
     def get_order_by_id(self, order_id):
-        return self.supabase.table(self.table_name).select().filter('order_id', 'eq', order_id).execute()
+        return self.supabase.table(self.table_name).select('*').filter('order_id', 'eq', order_id).execute()
 
     def get_orders_below(self, price):
-        return self.supabase.table(self.table_name).select().filter('buy_price', 'lt', price).filter('closed', 'eq', False).order('buy_price', desc=True).execute()
+        return self.supabase.table(self.table_name).select('*').filter('buy_price', 'lt', price).filter('closed', 'eq', False).order('buy_price', desc=True).execute()
 
     def get_all_orders(self):
         return self.supabase.table(self.table_name).select('*').execute()

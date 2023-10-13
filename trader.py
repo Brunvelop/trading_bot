@@ -70,11 +70,11 @@ class Trader:
         print("Price below: ", price*(1-self.gain_threshold))
 
         if orders:
-            amount = orders[0][3]
+            amount = orders[0]['buy_amount']
             order = self.kraken_api.create_order(self.pair, 'market', 'sell', amount, price)
             order_info = self.get_order_info(order['id'])
             self.db.update_order(
-                    orders[0][0],
+                    orders[0]['order_id'],
                     datetime.datetime.fromtimestamp(int(order_info['timestamp']/1000)).isoformat(),
                     order_info['price'],
                     order_info['amount'],
@@ -108,6 +108,7 @@ class Trader:
         
         print("Average price: ", average_price)
         print("Stop loss price ", stop_loss_price * (1 - self.gain_threshold))
+        print("Stop loss price - gain ", stop_loss_price * (1 - self.gain_threshold))
         if average_price < stop_loss_price * (1 - self.gain_threshold):
             return self.kraken_api.update_stop_loss(self.pair, 'sell', stop_loss_price, total_amount)
         else:

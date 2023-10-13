@@ -53,8 +53,8 @@ class KrakenAPI:
         return smas
     
     def cancel_order(self, id, symbol):
-        # Cancelar la orden
-        return self.cancelOrder(id, symbol)
+        exchange = self.connect_api()
+        return exchange.cancelOrder(id, symbol)
 
     def update_stop_loss(self, pair, side, price, amount):
         exchange = self.connect_api()
@@ -62,10 +62,10 @@ class KrakenAPI:
         open_orders = exchange.fetchOpenOrders(pair)
 
         # Encontrar la orden de stop loss existente
-        stop_loss_order = next((order for order in open_orders if order['type'] == 'stopLoss'), None)
+        stop_loss_order = next((order for order in open_orders if order['type'] == 'stop-loss'), None)
 
         # Cancelar la orden de stop loss existente si existe
         if stop_loss_order is not None:
             self.cancel_order(stop_loss_order['id'], pair)
 
-        return self.create_order(pair, 'stopLoss', side, amount, price)
+        return self.create_order(pair, 'stop-loss', side, amount, price)
