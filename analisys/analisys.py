@@ -69,8 +69,7 @@ timestamps = [bar[0] for bar in bars]
 
 all_orders = get_data_from_db()
 df = pd.DataFrame(all_orders)
-df.to_csv('all_orders.csv', index=False)
-# all_orders = get_current_trades()
+df.to_csv('analisys/all_orders.csv', index=False)
 
 buy_prices = [order['buy_price'] for order in all_orders]
 buy_timestamps = [int(datetime.strptime(order['buy_timestamp'], '%Y-%m-%dT%H:%M:%S').timestamp() * 1000) for order in all_orders]

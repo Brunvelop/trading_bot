@@ -20,7 +20,7 @@ def get_data_from_db():
 # Cargar los datos
 all_orders = get_data_from_db()
 df = pd.DataFrame(all_orders)
-df.to_csv('all_orders.csv', index=False)
+df.to_csv('analisys/all_orders.csv', index=False)
 orders_df = pd.read_csv('analisys/all_orders.csv')
 prices_df = pd.read_csv('data/BTC_EUR_1m.csv')
 

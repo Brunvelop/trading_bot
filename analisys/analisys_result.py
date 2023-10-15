@@ -15,68 +15,65 @@ def get_data_from_db():
 # Cargar los datos
 all_orders = get_data_from_db()
 df = pd.DataFrame(all_orders)
-# df.to_csv('all_orders.csv', index=False)
-orders = pd.read_csv('analisys/all_orders.csv' )
-btc_eur = pd.read_csv('data/BTC_EUR_1m.csv')
+df.to_csv('analisys/all_orders.csv', index=False)
 
-# Convertir las cadenas de texto a objetos datetime y asegurar que las zonas horarias son consistentes
-btc_eur['Datetime'] = pd.to_datetime(btc_eur['Datetime'], utc=True)
-orders['buy_timestamp'] = pd.to_datetime(orders['buy_timestamp'], utc=True)
-orders['sell_timestamp'] = pd.to_datetime(orders['sell_timestamp'], utc=True)
+# --- Load Data ---
+orders_df = pd.read_csv('analisys/all_orders.csv')
+btc_price_df = pd.read_csv('data/BTC_EUR_1m.csv')
 
-# Ajustar la marca de tiempo de compra restando 2 horas
-orders['buy_timestamp'] = orders['buy_timestamp'] - timedelta(hours=2)
+# --- Data Preprocessing ---
+# Convert timestamps and adjust time zones
+orders_df['buy_timestamp'] = pd.to_datetime(orders_df['buy_timestamp'])
+orders_df['sell_timestamp'] = pd.to_datetime(orders_df['sell_timestamp'])
+btc_price_df['Datetime'] = pd.to_datetime(btc_price_df['Datetime'], utc=True)
+btc_price_df['AdjustedDatetime'] = btc_price_df['Datetime'] + timedelta(hours=2)
 
-# Asegurarse de que las marcas de tiempo en btc_eur son únicas y establecerlas como índice
-btc_eur = btc_eur.drop_duplicates(subset='Datetime', keep='last').set_index('Datetime')
+# --- Profit Calculations ---
+# Last BTC price for open orders profitability calculation
+last_btc_price = btc_price_df['Close'].iloc[-1]
 
-# Establecer las marcas de tiempo como índice para las órdenes también
-orders = orders.set_index('buy_timestamp').sort_index()
+# Calculating profitability for closed orders
+closed_orders = orders_df[orders_df['closed']].copy()
+closed_orders['profit'] = (
+    (closed_orders['sell_price'] * closed_orders['sell_amount'] - closed_orders['sell_fees']) -
+    (closed_orders['buy_price'] * closed_orders['buy_amount'] + closed_orders['buy_fees'])
+)
 
-# Calcular la ganancia/pérdida para las posiciones cerradas
-closed_orders = orders[orders['closed']].copy()
-closed_orders['profit'] = closed_orders['sell_cost'] - closed_orders['buy_cost'] - closed_orders['buy_fees'] - closed_orders['sell_fees']
+# Calculating profitability for open orders using the last BTC price
+open_orders = orders_df[~orders_df['closed']].copy()
+open_orders['sell_price'] = last_btc_price  # Assuming the sell price as the last known price
+open_orders['sell_amount'] = open_orders['buy_amount']  # Assuming the sell amount as the buy amount
+open_orders['profit'] = (
+    (open_orders['sell_price'] * open_orders['sell_amount']) -  # No sell fees for open orders
+    (open_orders['buy_price'] * open_orders['buy_amount'] + open_orders['buy_fees'])
+)
 
-# Calcular la ganancia/pérdida para las posiciones abiertas
-open_orders = orders[~orders['closed']].copy()
-current_price = btc_eur['Close'].iloc[-1]  # Último precio en el conjunto de datos
-open_orders['profit'] = (current_price * open_orders['buy_amount']) - open_orders['buy_cost'] - open_orders['buy_fees']
+# Concatenating closed and open orders and sorting by buy_timestamp
+all_orders_with_profit = pd.concat([closed_orders, open_orders]).sort_values(by='buy_timestamp').reset_index(drop=True)
 
-# Concatenar los datos de ganancia/pérdida y ordenar por marca de tiempo
-all_profits = pd.concat([closed_orders, open_orders])['profit'].sort_index().cumsum()
+# Calculating cumulative profit
+all_orders_with_profit['cumulative_profit'] = all_orders_with_profit['profit'].cumsum()
 
-# Crear una figura con dos subgráficas
-fig, ax = plt.subplots(2, 1, figsize=(12, 10), sharex=True, gridspec_kw={'height_ratios': [2, 1]})
-fig.subplots_adjust(hspace=0.4)
+# --- Visualization ---
+plt.style.use('seaborn-darkgrid')
+palette = plt.get_cmap('Set1')
+fig, ax = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
 
-# Subgráfica 1: Precio y órdenes de compra y venta
-ax[0].plot(btc_eur.index, btc_eur['Close'], label='BTC/EUR Price', color='blue', alpha=0.8)
-ax[0].set_ylabel('Price (EUR)', color='blue')
-ax[0].tick_params(axis='y', labelcolor='blue')
-ax2 = ax[0].twinx()
-ax2.scatter(orders.index, orders['buy_price'], label='Buy Orders', color='red', marker='x')
-ax2.scatter(orders['sell_timestamp'], orders['sell_price'], label='Sell Orders', color='black', marker='o')
-ax2.set_ylabel('Order Price (EUR)', color='red')
-ax2.tick_params(axis='y', labelcolor='red')
-ax[0].set_title('BTC/EUR Price, Buy Orders, and Sell Orders Over Time')
-ax[0].grid(True, which='both', linestyle='--', linewidth=0.5)
-ax2.legend(loc='upper left')
+# Plot 1: Cumulative Profit Over Time
+ax[0].plot(all_orders_with_profit['buy_timestamp'], all_orders_with_profit['cumulative_profit'], marker='', color='blue', linewidth=2.5, alpha=0.9, label='Rentabilidad acumulada')
+ax[0].set_title('Rentabilidad Acumulada y Puntos de Compra/Venta en el Tiempo', loc='left', fontsize=12, fontweight=0, color='orange')
+ax[0].set_ylabel('Rentabilidad Acumulada (EUR)')
 
-# Subgráfica 2: Ganancia acumulativa
-ax[1].plot(all_profits.index, all_profits, label='Cumulative Profit', color='green')
-ax[1].axhline(y=0, color='black', linestyle='--', linewidth=0.8)
-ax[1].set_title('Total Cumulative Profit Over Time')
-ax[1].set_xlabel('Datetime')
-ax[1].set_ylabel('Cumulative Profit (EUR)')
-ax[1].grid(True, which='both', linestyle='--', linewidth=0.5)
-ax[1].legend()
+# Plot 2: Buy/Sell Points Over BTC Price
+ax[1].plot(btc_price_df['AdjustedDatetime'], btc_price_df['Close'], color='skyblue', label='Precio de BTC')
+ax[1].scatter(closed_orders['buy_timestamp'], closed_orders['buy_price'], color='green', s=50, label='Compra')
+ax[1].scatter(closed_orders['sell_timestamp'], closed_orders['sell_price'], color='red', s=50, label='Venta')
+ax[1].scatter(open_orders['buy_timestamp'], open_orders['buy_price'], color='green', s=50)
+ax[1].set_ylabel('Precio de BTC (EUR)')
+ax[1].xaxis.set_major_locator(mdates.DayLocator(interval=1))
+ax[1].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+plt.xticks(rotation=45)
+ax[1].legend(loc=2, ncol=2)
 
-# Formatear el eje x para mejor legibilidad
-for axis in ax:
-    axis.xaxis.set_major_locator(mdates.DayLocator(interval=1))
-    axis.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-    axis.tick_params(axis='x', rotation=45)
-
-# Ajustar el diseño para mejor legibilidad
 plt.tight_layout()
 plt.show()

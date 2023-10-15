@@ -67,7 +67,7 @@ class Trader:
     def sell(self):
         price = self.kraken_api.get_latest_price(self.pair)
         orders = self.db.get_orders_below(price*(1-self.gain_threshold)).data
-        print("Price below: ", price*(1-self.gain_threshold))
+        print("price*(1-gain_threshold): ", price*(1-self.gain_threshold))
 
         if orders:
             amount = orders[0]['buy_amount']
