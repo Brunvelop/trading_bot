@@ -1,5 +1,8 @@
+import os
+import sys
 from datetime import datetime
 import matplotlib.pyplot as plt
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from trader import KrakenAPI
 from db import DB
@@ -28,8 +31,7 @@ def get_bars_from_api():
 
 
 def extract_prices_and_timestamps(bars):
-    prices = [bar[4] for bar in bars]
-    timestamps = [bar[0] for bar in bars]
+
     return prices, timestamps
 
 
@@ -48,25 +50,32 @@ def calculate_xmin(first_buy_timestamp, timestamps):
     return xmin
 
 
-def plot_graph(timestamps, prices, buy_timestamps, buy_prices, mid_buy_price, xmin):
+def plot_graph(timestamps, prices, buy_timestamps, buy_prices, mid_buy_price):
     plt.figure(figsize=(14, 7))
     plt.plot(timestamps, prices, label='Precio de BTC')
     plt.plot(buy_timestamps, buy_prices, '^', markersize=3, color='g', label='Puntos de compra')
-    plt.axhline(y=mid_buy_price, color='g', linestyle='-', label='Punto medio de compra', xmin=xmin)
+    plt.axhline(y=mid_buy_price, color='g', linestyle='-', label='Punto medio de compra')
     plt.text(max(timestamps), mid_buy_price, 'PM: {:.2f}'.format(mid_buy_price), verticalalignment='bottom', horizontalalignment='left')
     plt.legend()
     plt.show()
 
 
 
-# all_orders = get_data_from_db()
-all_orders = get_current_trades()
+import pandas as pd
+
 bars = get_bars_from_api()
-prices, timestamps = extract_prices_and_timestamps(bars)
+prices = [bar[4] for bar in bars]
+timestamps = [bar[0] for bar in bars]
+
+all_orders = get_data_from_db()
+df = pd.DataFrame(all_orders)
+df.to_csv('all_orders.csv', index=False)
+# all_orders = get_current_trades()
+
 buy_prices = [order['buy_price'] for order in all_orders]
 buy_timestamps = [int(datetime.strptime(order['buy_timestamp'], '%Y-%m-%dT%H:%M:%S').timestamp() * 1000) for order in all_orders]
 mid_buy_price = calculate_mid_buy_price(buy_prices)
 first_buy_timestamp = find_first_buy_timestamp(buy_timestamps)
 xmin = calculate_xmin(first_buy_timestamp, timestamps)
 
-plot_graph(timestamps, prices, buy_timestamps, buy_prices, mid_buy_price, xmin)
+plot_graph(timestamps, prices, buy_timestamps, buy_prices, mid_buy_price)
