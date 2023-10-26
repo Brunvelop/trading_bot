@@ -3,3 +3,4 @@ streamlit==1.18.1
 python-dotenv
 supabase
 schedule
+seaborn

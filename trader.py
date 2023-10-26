@@ -4,142 +4,114 @@ import datetime
 import pandas as pd
 
 from db import DB
-from kraken_api import KrakenAPI
+from strategies import Action
 
 class Trader:
-    def __init__(self, pair='BTC/USD', cost=5, time_period='1h', gain_threshold=0.005, table_name='trades'):
-        self.kraken_api = KrakenAPI()
+    def __init__(self, strategy, db_name, exange_api, pair='BTC/USD'):
+        self.strategy = strategy
+        self.db = DB(db_name)
+        self.exange_api = exange_api
         self.pair = pair
-        self.cost = cost
-        self.time_period = time_period
-        self.db = DB(table_name)
-        self.gain_threshold = gain_threshold
 
-    def get_amount(self, price):
-        return self.cost / price
+    def execute_strategy(self, data, memory):
+        #old stop loss y take profit closed? limit orders? update?
+        actions = self.strategy.run(data, memory)
+        for action, price, quantity in actions:
+            if action == Action.BUY_MARKET:
+                self.buy_market(price, quantity)
+            elif action == Action.SELL_MARKET:
+                self.sell_market(price, quantity)
+            elif action == Action.BUY_LIMIT:
+                self.buy_limit(price, quantity)
+            elif action == Action.SELL_LIMIT:
+                self.sell_limit(price, quantity)
+            elif action == Action.STOP_LOSS:
+                self.set_stop_loss(price, quantity)
+            elif action == Action.TAKE_PROFIT:
+                self.set_take_profit(price, quantity)
+            else:
+                pass
 
-    def run_strategy(self):
-        bars = self.kraken_api.get_bars(self.pair, self.time_period, 200)
-        sma_10, sma_50, sma_100, sma_200 = self.kraken_api.get_smas(bars)
-        
-        price = self.kraken_api.get_latest_price(self.pair)
-        
-        print("price:", price, "smas(10,50,100,200)=", sma_10, sma_50, sma_100, sma_200)
-        if price > sma_10 > sma_50 > sma_100 > sma_200:
-            print('Trying to sell...', flush=True)
-            self.update_position()
-            self.sell()
-            self.set_stop_loss(sma_200)
-        elif price < sma_10 < sma_50 < sma_100 < sma_200:
-            print('Buying...', flush=True)
-            self.buy()
-        else:
-            print('Waiting...', flush=True)
-
-    def buy(self):
-        price = self.kraken_api.get_latest_price(self.pair)
-        amount = self.get_amount(price)
-
-        order = self.kraken_api.create_order(self.pair, 'market', 'buy', amount, price)
-        order_executed_info = self.get_order_info(order['id'])
-
+    def buy_market(self, price, quantity):
+        order = self.exange_api.create_order(self.pair, 'market', 'buy', quantity, price)
+        order_info = self.exange_api.get_order(order['id'])
         self.db.insert_order(
-                order_executed_info['id'],
-                datetime.datetime.fromtimestamp(int(order_executed_info['timestamp']/1000)).isoformat(),
-                order_executed_info['price'],
-                order_executed_info['amount'],
-                order_executed_info['cost'],
-                order_executed_info['fees'],
-                False
-            )
-        return self.get_order_info(order['id'])
+            order_info['id'],
+            datetime.datetime.fromtimestamp(int(order_info['timestamp']/1000)).isoformat(),
+            self.pair,
+            'buy',
+            order_info['price'],
+            order_info['amount'],
+            order_info['cost'],
+            True,
+            order_info
+        )
+
+    def sell_market(self, price, quantity):
+        order = self.exange_api.create_order(self.pair, 'market', 'sell', quantity, price)
+        order_info = self.exange_api.get_order(order['id'])
+        self.db.insert_order(
+            order_info['id'],
+            datetime.datetime.fromtimestamp(int(order_info['timestamp']/1000)).isoformat(),
+            self.pair,
+            'sell',
+            order_info['price'],
+            order_info['amount'],
+            order_info['cost'],
+            True,
+            order_info
+        )
     
-    def update_position(self):
-        last_position = self.db.get_last_position()
-        # Si no hay ninguna posición, establecer la posición en 1
-        if last_position is None:
-            position = 1
-        else:
-            position = last_position + 1
+    def buy_limit(price, quantity):
+        pass
 
-        self.db.update_null_positions(position)
+    def sell_limit(price, quantity):
+        pass
 
-    def sell(self):
-        price = self.kraken_api.get_latest_price(self.pair)
-        orders = self.db.get_orders_below(price*(1-self.gain_threshold)).data
-        print("price*(1-gain_threshold): ", price*(1-self.gain_threshold))
+    def set_stop_loss(self, price):
+        self.kraken_api.update_stop_loss('BTC/USD', 'sell', price, 1)
 
-        if orders:
-            amount = orders[0]['buy_amount']
-            order = self.kraken_api.create_order(self.pair, 'market', 'sell', amount, price)
-            order_info = self.get_order_info(order['id'])
-            self.db.update_order(
-                    orders[0]['order_id'],
-                    datetime.datetime.fromtimestamp(int(order_info['timestamp']/1000)).isoformat(),
-                    order_info['price'],
-                    order_info['amount'],
-                    order_info['cost'],
-                    order_info['fees'],
-            )
-            return order_info
-        return None
-
-    def get_order_info(self, order_id):
-        order = self.kraken_api.get_order(order_id)
-        return {
-            'id': order['id'],
-            'timestamp': order['timestamp'],
-            'price': order['price'], 
-            'amount': order['amount'], 
-            'cost': order['cost'], 
-            'fees': order['fees'][0]['cost'],
-        }
+    def set_take_profit(price, quantity):
+        pass
     
-    def set_stop_loss(self, sma_200):
-        orders = self.db.get_open_trades_with_highest_position()
-        if not orders:
-            return None
-        
-        total_price = sum(order['buy_price'] for order in orders)
-        total_amount = sum(order['buy_amount'] for order in orders)
-
-        average_price = total_price / len(orders) if orders else 0
-        stop_loss_price = sma_200 * 0.9990
-        
-        print("Average price: ", average_price)
-        print("Stop loss price ", stop_loss_price * (1 - self.gain_threshold))
-        print("Stop loss price - gain ", stop_loss_price * (1 - self.gain_threshold))
-        if average_price < stop_loss_price * (1 - self.gain_threshold):
-            return self.kraken_api.update_stop_loss(self.pair, 'sell', stop_loss_price, total_amount)
-        else:
-            return None
-        
-
-
 if __name__ == "__main__":
-    import time
-    import schedule
+    from kraken_api import KrakenAPI
+    from strategies import MovingAverageStrategy 
 
     trader = Trader(
-        pair='BTC/EUR', 
-        cost=3, 
-        time_period='1m'
+        strategy= MovingAverageStrategy(window_size=10),
+        db_name = 'trades',
+        exange_api = KrakenAPI(),
+        pair = 'BTC/EUR',
     )
+    price = trader.exange_api.get_latest_price(trader.pair)
+    trader.sell_market(price=price, quantity=0.0002)
 
+    # data = {}
+    # memory = trader.db.get_all_orders()
+    # trader.execute_strategy(data, memory)
 
-    def job():
-        start_time = time.time()  # Inicio del tiempo de ejecución
-        print("----------- RUN -----------")
-        trader.run_strategy()
-        end_time = time.time()  # Fin del tiempo de ejecución
-        print("Tiempo de ejecución: {} segundos".format(end_time - start_time))
+# ##############
 
-    schedule.every().minute.at(":06").do(job)
+    # import time
+    # import schedule
 
-    while True:
-        # print("Esperando el próximo trabajo...")
-        schedule.run_pending()
-        time.sleep(1)
+    # from strategies import MovingAverageStrategy  # Asegúrate de importar tu estrategia
 
+    # trader = Trader(MovingAverageStrategy(window_size=10))  # Inicializa Trader con tu estrategia
 
+    # def job():
+    #     start_time = time.time()  # Inicio del tiempo de ejecución
+    #     print("----------- RUN -----------")
+    #     data = {}  # Aquí debes obtener tus datos para la estrategia
+    #     memory = trader.db.get_all_orders()
+    #     trader.execute_strategy(data, memory)
+    #     end_time = time.time()  # Fin del tiempo de ejecución
+    #     print("Tiempo de ejecución: {} segundos".format(end_time - start_time))
 
+    # schedule.every().minute.at(":06").do(job)
+
+    # while True:
+    #     # print("Esperando el próximo trabajo...")
+    #     schedule.run_pending()
+    #     time.sleep(1)

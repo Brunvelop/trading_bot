@@ -18,6 +18,11 @@ class KrakenAPI:
             }
         })
         return exchange
+    
+    def create_order(self, pair, order_type, side, amount, price):
+        exchange = self.connect_api()
+        return exchange.create_order(pair, order_type, side, amount, price)
+
 
     def get_latest_price(self, pair):
         exchange = self.connect_api()
@@ -37,20 +42,6 @@ class KrakenAPI:
         exchange = self.connect_api()
         return exchange.fetch_order(order_id)
 
-    def create_order(self, pair, order_type, side, amount, price):
-        exchange = self.connect_api()
-        return exchange.create_order(pair, order_type, side, amount, price)
-
-    def get_smas(self, bars, periods=(10, 50, 100, 200)):
-        smas = []
-        prices = [bar[4] for bar in bars]
-
-        for period in periods:
-            if len(prices) >= period:  # Ensure there are enough prices to calculate SMA
-                sma = sum(prices[:period]) / period  # Calculate SMA for first 'period' prices
-                smas.append(sma)
-
-        return smas
     
     def cancel_order(self, id, symbol):
         exchange = self.connect_api()

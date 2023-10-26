@@ -1,7 +1,20 @@
 import os
-from supabase import create_client, Client
 from dotenv import load_dotenv
 
+from supabase import create_client, Client
+
+# | Column Name | Data Type | Default Value | Primary Key |
+# |-------------|-----------|---------------|-------------|
+# | id          | int8      | NULL          | Yes         |
+# | order_id    | text      | NULL          | No          |
+# | timestamp   | timestamp | NULL          | No          |
+# | pair        | text      | NULL          | No          |
+# | type        | text      | NULL          | No          |
+# | price       | numeric   | NULL          | No          |
+# | amount      | numeric   | NULL          | No          |
+# | cost        | numeric   | NULL          | No          |
+# | executed    | bool      | NULL          | No          |
+# | order_info  | jsonb     | {}            | No          |
 
 class DB():
     def __init__(self, table_name='trades'):
@@ -12,18 +25,20 @@ class DB():
         )
         self.table_name = table_name
 
-    def insert_order(self, order_id, timestamp, price, amount, cost, fees, closed):
+    def insert_order(self, order_id, timestamp, pair, type, price, amount, cost, executed, order_info):
         data = self.supabase.table(self.table_name).insert([{
             'order_id': order_id, 
-            'buy_timestamp': timestamp,
-            'buy_price': price,
-            'buy_amount': amount,
-            'buy_cost': cost,
-            'buy_fees': fees,
-            'closed': closed
+            'timestamp': timestamp,
+            'pair': pair,
+            'type': type,
+            'price': price,
+            'amount': amount,
+            'cost': cost,
+            'executed': executed,
+            'order_info': order_info
         }]).execute()
         return data
-
+    
     def get_order_by_id(self, order_id):
         return self.supabase.table(self.table_name).select('*').filter('order_id', 'eq', order_id).execute()
 
@@ -31,7 +46,7 @@ class DB():
         return self.supabase.table(self.table_name).select('*').filter('buy_price', 'lt', price).filter('closed', 'eq', False).order('buy_price', desc=True).execute()
 
     def get_all_orders(self):
-        return self.supabase.table(self.table_name).select('*').execute()
+        return self.supabase.table(self.table_name).select('*').execute().data
 
     def update_order(self, order_id, sell_timestamp, sell_price, sell_amount, sell_cost, sell_fees):
         self.supabase.table(self.table_name).update({
