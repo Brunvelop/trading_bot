@@ -16,7 +16,20 @@ class Action(Enum):
 class Strategy(ABC):
     @abstractmethod
     def run(self, data, memory) -> List[Tuple[Action, float, float]]:
-        pass # :return: [(action1, price1, quantity1), (action2, price2, quantity2), ...]
+        pass
+    
+    def get_balance(self, memory):
+        df = pd.DataFrame(memory)
+
+        if df.empty:
+            return 0
+
+        total_bought = df.loc[(df['type'] == 'buy_market') & (df['executed'] == True), 'amount'].sum()
+        total_sold = df.loc[(df['type'] == 'sell_market') & (df['executed'] == True), 'amount'].sum()
+
+        total_balance = total_bought - total_sold
+
+        return total_balance
 
 class MovingAverageStrategy(Strategy):
     def __init__(self, window_size, cost = 10):
@@ -25,17 +38,15 @@ class MovingAverageStrategy(Strategy):
 
     def run(self, data, memory):
         actions = []
-        data['moving_average'] = data['price'].rolling(window=self.window_size).mean()
 
-        if data['price'].iloc[-1] < data['moving_average'].iloc[-1] and self.balance_a > 0:
-            self.balance_a -= self.cost + self.cost * self.fee
-            self.balance_b += self.cost / data['price'].iloc[-1]
-            actions.append((Action.BUY, data['price'].iloc[-1], self.cost / data['price'].iloc[-1]))
+        data['moving_average'] = data['Close'].rolling(window=self.window_size).mean()
+        balance = self.get_balance(memory)
 
-        elif data['price'].iloc[-1] > data['moving_average'].iloc[-1] and self.balance_b > 0:
-            self.balance_b -= self.cost / data['price'].iloc[-1]
-            self.balance_a += self.cost - self.cost * self.fee
-            actions.append((Action.SELL, data['price'].iloc[-1], self.cost / data['price'].iloc[-1]))
+        if data['Close'].iloc[-1] < data['moving_average'].iloc[-1]:
+            actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
+
+        elif data['Close'].iloc[-1] > data['moving_average'].iloc[-1] and balance > 0:
+            actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
 
         else:
             actions.append((Action.WAIT, None, None))

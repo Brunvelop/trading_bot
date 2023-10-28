@@ -39,7 +39,7 @@ class Trader:
             order_info['id'],
             datetime.datetime.fromtimestamp(int(order_info['timestamp']/1000)).isoformat(),
             self.pair,
-            'buy',
+            'buy_market',
             order_info['price'],
             order_info['amount'],
             order_info['cost'],
@@ -54,7 +54,7 @@ class Trader:
             order_info['id'],
             datetime.datetime.fromtimestamp(int(order_info['timestamp']/1000)).isoformat(),
             self.pair,
-            'sell',
+            'sell_market',
             order_info['price'],
             order_info['amount'],
             order_info['cost'],
@@ -75,6 +75,8 @@ class Trader:
         pass
     
 if __name__ == "__main__":
+    import pandas as pd
+
     from kraken_api import KrakenAPI
     from strategies import MovingAverageStrategy 
 
@@ -84,12 +86,18 @@ if __name__ == "__main__":
         exange_api = KrakenAPI(),
         pair = 'BTC/EUR',
     )
-    price = trader.exange_api.get_latest_price(trader.pair)
-    trader.sell_market(price=price, quantity=0.0002)
 
-    # data = {}
-    # memory = trader.db.get_all_orders()
-    # trader.execute_strategy(data, memory)
+    data = trader.exange_api.get_bars(pair=trader.pair, timeframe='1m', limit=200)
+    data = pd.DataFrame(data, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+    
+    memory = trader.db.get_all_orders()
+    trader.execute_strategy(data, memory)
+
+
+# ##############
+
+    # price = trader.exange_api.get_latest_price(trader.pair)
+    # trader.sell_market(price=price, quantity=0.0002)
 
 # ##############
 
