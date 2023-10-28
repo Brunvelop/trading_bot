@@ -16,7 +16,7 @@ class Action(Enum):
 class Strategy(ABC):
     @abstractmethod
     def run(self, data, memory) -> List[Tuple[Action, float, float]]:
-        pass
+        pass # :return: [(action1, price1, quantity1), (action2, price2, quantity2), ...]
     
     def get_balance(self, memory):
         df = pd.DataFrame(memory)
@@ -45,7 +45,7 @@ class MovingAverageStrategy(Strategy):
         if data['Close'].iloc[-1] < data['moving_average'].iloc[-1]:
             actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
 
-        elif data['Close'].iloc[-1] > data['moving_average'].iloc[-1] and balance > 0:
+        elif data['Close'].iloc[-1] > data['moving_average'].iloc[-1] and balance > self.cost / data['Close'].iloc[-1]:
             actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
 
         else:
