@@ -1,519 +1,143 @@
-from tqdm import tqdm
-from datetime import datetime, timedelta
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 import pandas as pd
 from tqdm import tqdm
-import yfinance as yf
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
-def download_currency_data(currency_a='BTC', currency_b='USD', days_to_download=30, interval='15m'):
-    end = datetime.today()
-    start = end - timedelta(days=days_to_download)
-    data = yf.download(f'{currency_a}-{currency_b}', start=start, end=end, interval=interval)
-    if data.empty:
-        print(f"Error occurred: No data was downloaded for {currency_a}")
-    else:
-        data = data.drop_duplicates().sort_index()
-    return data
-
-def calculate_strategy_1(data):
-    # Calculate the 200 hour moving average
-    data['MA200'] = data['Close'].rolling(window=200).mean()
-
-    # Define the strategy
-    data['Buy_Signal'] = (data['Close'] < data['MA200'])
-    data['Sell_Signal'] = (data['Close'] > data['MA200'])
-    return data
-
-def calculate_strategy_2(data):
-    # Calculate the moving averages
-    data['MA10'] = data['Close'].rolling(window=10).mean()
-    data['MA50'] = data['Close'].rolling(window=50).mean()
-    data['MA100'] = data['Close'].rolling(window=100).mean()
-    data['MA200'] = data['Close'].rolling(window=200).mean()
-
-    # Define the strategy
-    close_less_than_min_MA = data['Close'] < data[['MA10', 'MA50', 'MA100', 'MA200']].min(axis=1)
-    close_greater_than_max_MA = data['Close'] > data[['MA10', 'MA50', 'MA100', 'MA200']].max(axis=1)
-    MA_increasing = (data['MA10'] < data['MA50']) & (data['MA50'] < data['MA100']) & (data['MA100'] < data['MA200'])
-    MA_decreasing = (data['MA10'] > data['MA50']) & (data['MA50'] > data['MA100']) & (data['MA100'] > data['MA200'])
-
-    data['Buy_Signal'] = close_less_than_min_MA & MA_increasing 
-    data['Sell_Signal'] = close_greater_than_max_MA & MA_decreasing
-
-    return data
-
-def calculate_strategy_2a(data):
-    # Calculate the moving averages
-    data['MA10'] = data['Close'].rolling(window=10).mean()
-    data['MA50'] = data['Close'].rolling(window=50).mean()
-    data['MA100'] = data['Close'].rolling(window=100).mean()
-    data['MA200'] = data['Close'].rolling(window=200).mean()
-
-    # Calculate the bar range as a percentage of the close price
-    data['BarRange'] = abs(data['High'] - data['Low']) / data['Low'] * 100
-
-    # Calculate the exponential moving averages of the BarRange
-    data['avgRange10'] = data['BarRange'].ewm(span=10).mean()
-    data['avgRange50'] = data['BarRange'].ewm(span=50).mean()
-    data['avgRange100'] = data['BarRange'].ewm(span=100).mean()
-    data['avgRange200'] = data['BarRange'].ewm(span=200).mean()
-
-    # Calculate the max and min of the last 300 bars excluding the current bar
-    data['Max300'] = data['Close'].shift(1).rolling(window=300).max()
-    data['Min300'] = data['Close'].shift(1).rolling(window=300).min()
-
-    # Define the strategy
-    close_less_than_min_MA = data['Close'] < data[['MA10', 'MA50', 'MA100', 'MA200']].min(axis=1)
-    close_greater_than_max_MA = data['Close'] > data[['MA10', 'MA50', 'MA100', 'MA200']].max(axis=1)
-    MA_increasing = (data['MA10'] < data['MA50']) & (data['MA50'] < data['MA100']) & (data['MA100'] < data['MA200'])
-    MA_decreasing = (data['MA10'] > data['MA50']) & (data['MA50'] > data['MA100']) & (data['MA100'] > data['MA200'])
-
-    # Add conditions for breaking the max or min of the last 300 bars
-    volatility_down =  (data['avgRange10'] < data['avgRange50']) &  (data['avgRange50'] < data['avgRange100']) & (data['avgRange100'] < data['avgRange200'])
-    volatility_up =  (data['avgRange10'] > data['avgRange50']) & (data['avgRange50'] > data['avgRange100']) & (data['avgRange100'] > data['avgRange200'])
-
-    break_max_300 = data['Close'] > data['Max300']
-    break_min_300 = data['Close'] < data['Min300']
-
-    data['Buy_Signal'] = break_min_300 & volatility_down
-    data['Sell_Signal'] = break_max_300 & volatility_up
-
-    return data
-
-def calculate_strategy_3(data):
-    # Calculate the moving averages
-    data['MA10'] = data['Close'].rolling(window=10).mean()
-    data['MA50'] = data['Close'].rolling(window=50).mean()
-    data['MA100'] = data['Close'].rolling(window=100).mean()
-    data['MA200'] = data['Close'].rolling(window=200).mean()
-
-    # Calculate the bar range as a percentage of the close price
-    data['BarRange'] = abs(data['High'] - data['Low']) / data['Low'] * 100
-
-    # Calculate the exponential moving averages of the BarRange
-    data['avgRange10'] = data['BarRange'].ewm(span=10).mean()
-    data['avgRange50'] = data['BarRange'].ewm(span=50).mean()
-    data['avgRange100'] = data['BarRange'].ewm(span=100).mean()
-    data['avgRange200'] = data['BarRange'].ewm(span=200).mean()
-
-    # Define the strategy
-    close_less_than_min_MA = data['Close'] < data[['MA10', 'MA50', 'MA100', 'MA200']].min(axis=1)
-    close_greater_than_max_MA = data['Close'] > data[['MA10', 'MA50', 'MA100', 'MA200']].max(axis=1)
-    MA_increasing = (data['MA10'] < data['MA50']) & (data['MA50'] < data['MA100']) & (data['MA100'] < data['MA200'])
-    MA_decreasing = (data['MA10'] > data['MA50']) & (data['MA50'] > data['MA100']) & (data['MA100'] > data['MA200'])
-    volatility_down =  (data['avgRange10'] < data['avgRange50']) &  (data['avgRange50'] < data['avgRange100']) & (data['avgRange100'] < data['avgRange200'])
-    volatility_up =  (data['avgRange10'] > data['avgRange50']) & (data['avgRange50'] > data['avgRange100']) & (data['avgRange100'] > data['avgRange200'])
+from backtester import Backtester
+import strategies
 
 
-    data['Buy_Signal'] = close_less_than_min_MA & MA_increasing & volatility_down
-    data['Sell_Signal'] = close_greater_than_max_MA & MA_decreasing
+def calculate_total_value(visualization_df):
+    # Crear una nueva columna 'total_value' en visualization_df
+    visualization_df['total_value'] = 0.0
 
-    return data
+    # Calcular el valor total
+    visualization_df['total_value'] = visualization_df['balance_a'] + visualization_df['balance_b'] * visualization_df['Close']
 
-def calculate_strategy_5(data):
-    # Calculate the moving averages
-    data['MA10'] = data['Close'].rolling(window=10).mean()
-    data['MA50'] = data['Close'].rolling(window=50).mean()
-    data['MA100'] = data['Close'].rolling(window=100).mean()
-    data['MA200'] = data['Close'].rolling(window=200).mean()
+    return visualization_df
 
-    # Calculate the bar range as a percentage of the close price
-    data['BarRange'] = abs(data['High'] - data['Low']) / data['Low'] * 100
-
-    # Calculate the exponential moving averages of the BarRange
-    data['avgRange10'] = data['BarRange'].ewm(span=10).mean()
-    data['avgRange50'] = data['BarRange'].ewm(span=50).mean()
-    data['avgRange100'] = data['BarRange'].ewm(span=100).mean()
-    data['avgRange200'] = data['BarRange'].ewm(span=200).mean()
-
-    # Calculate the max and min of the last 300 bars excluding the current bar
-    data['Max300'] = data['Close'].shift(1).rolling(window=300).max()
-    data['Min300'] = data['Close'].shift(1).rolling(window=300).min()
-
-    volatility_up =  (data['avgRange10'] > data['avgRange50']) & (data['avgRange50'] > data['avgRange100']) & (data['avgRange100'] > data['avgRange200'])
-
-    break_max_300 = data['Close'] > data['Max300']
-    break_min_300 = data['Close'] < data['Min300']
-
-    data['Sell_Signal'] = break_max_300 & volatility_up
-    # data['Sell_Signal'] = break_min_300 & volatility_down
-    data['Buy_Signal'] = break_min_300 & volatility_up
-
-    return data
-
-def backtest(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10):
-    purchases = pd.DataFrame(columns=['Timestamp', 'Buy_Amount_USD', 'Quantity_BTC', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD', 'Is_Sold', 'Sell_Amount_USD', 'Sell_Quantity_BTC', 'Sell_Timestamp'])
-    balances = pd.DataFrame(columns=['Timestamp', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD'])
-    total_value = usd_balance
+def calculate_balance_b(visualization_df, initial_balance_b = 0):
+    # Crear una nueva columna 'coin_change' que contenga el cambio en el balance de la moneda
+    visualization_df['coin_change'] = visualization_df['amount'].fillna(0)
     
-    for i, row in tqdm(data.iterrows(), total=data.shape[0]):
-        # Comprar
-        if row['Buy_Signal'] and usd_balance >= buy_amount:
-            quantity = buy_amount / row['Close']
-            coin_balance += quantity
-            usd_balance -= buy_amount
-            total_value = usd_balance + coin_balance * row['Close']
-            new_purchase = pd.DataFrame(
-                {
-                    'Timestamp': [i], 
-                    'Buy_Amount_USD': [buy_amount],
-                    'Quantity_BTC': [quantity], 
-                    'Balance_USD': [usd_balance],
-                    'Balance_BTC': [coin_balance],
-                    'Total_Value_USD': [total_value],
-                    'Is_Sold': 0,
-                    'Sell_Amount_USD': [None],
-                    'Sell_Quantity_BTC': [None],
-                    'Sell_Timestamp': [None]
-                }
-            )
-            purchases = pd.concat([purchases, new_purchase], ignore_index=True)
-        # Vender
-        elif row['Sell_Signal'] and coin_balance > 0:
-            # Buscar la compra más antigua con al menos un 1% de rentabilidad
-            for j, purchase in purchases.iterrows():
-                if (row['Close'] * purchase['Quantity_BTC'] - purchase['Buy_Amount_USD']) / purchase['Buy_Amount_USD'] >= 0.01 and not purchase['Is_Sold']:
-                    # Vender
-                    sell_amount = purchase['Quantity_BTC'] * row['Close']
-                    sell_quantity = purchase['Quantity_BTC']
-                    usd_balance += sell_amount
-                    coin_balance -= sell_quantity
-                    total_value = usd_balance + coin_balance * row['Close']
-                    # Actualizar el DataFrame de compras
-                    purchases.at[j, 'Is_Sold'] = 1
-                    purchases.at[j, 'Sell_Amount_USD'] = sell_amount
-                    purchases.at[j, 'Sell_Quantity_BTC'] = sell_quantity
-                    purchases.at[j, 'Sell_Timestamp'] = i
-                    break
-
-        # Almacenar balances
-        new_balance = pd.DataFrame(
-            {
-                'Timestamp': [i],
-                'Balance_USD': [usd_balance],
-                'Balance_BTC': [coin_balance],
-                'Total_Value_USD': [total_value]
-            }
-        )
-        balances = pd.concat([balances, new_balance], ignore_index=True)
-
-    return purchases, balances
-
-def backtest2(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10):
-    purchases = pd.DataFrame(columns=['Timestamp', 'Buy_Amount_USD', 'Quantity_BTC', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD', 'Is_Sold', 'Sell_Amount_USD', 'Sell_Quantity_BTC', 'Sell_Timestamp'])
-    balances = pd.DataFrame(columns=['Timestamp', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD'])
-    total_value = usd_balance
-    buy_streak = []
-    stop_loss = None
-
-    for i, row in tqdm(data.iterrows(), total=data.shape[0]):
-        # Comprar
-        if row['Buy_Signal'] and usd_balance >= buy_amount:
-            quantity = buy_amount / row['Close']
-            coin_balance += quantity
-            usd_balance -= buy_amount
-            total_value = usd_balance + coin_balance * row['Close']
-            new_purchase = pd.DataFrame(
-                {
-                    'Timestamp': [i], 
-                    'Buy_Amount_USD': [buy_amount],
-                    'Quantity_BTC': [quantity], 
-                    'Balance_USD': [usd_balance],
-                    'Balance_BTC': [coin_balance],
-                    'Total_Value_USD': [total_value],
-                    'Is_Sold': 0,
-                    'Sell_Amount_USD': [None],
-                    'Sell_Quantity_BTC': [None],
-                    'Sell_Timestamp': [None]
-                }
-            )
-            purchases = pd.concat([purchases, new_purchase], ignore_index=True)
-            buy_streak.append(new_purchase)
-            if row['Close'] > 1.005 * sum([purchase['Buy_Amount_USD'][0] for purchase in buy_streak]) / sum([purchase['Quantity_BTC'][0] for purchase in buy_streak]):
-                stop_loss = 0.998 * sum([purchase['Buy_Amount_USD'][0] for purchase in buy_streak]) / sum([purchase['Quantity_BTC'][0] for purchase in buy_streak])
-        # Vender
-        elif row['Sell_Signal'] and coin_balance > 0:
-            if stop_loss is not None and row['Close'] <= stop_loss:
-                for idx, purchase in enumerate(buy_streak):
-                    sell_amount = purchase['Quantity_BTC'][0] * row['Close']
-                    sell_quantity = purchase['Quantity_BTC'][0]
-                    usd_balance += sell_amount
-                    coin_balance -= sell_quantity
-                    total_value = usd_balance + coin_balance * row['Close']
-                    purchases.at[idx, 'Is_Sold'] = 1
-                    purchases.at[idx, 'Sell_Amount_USD'] = sell_amount
-                    purchases.at[idx, 'Sell_Quantity_BTC'] = sell_quantity
-                    purchases.at[idx, 'Sell_Timestamp'] = i
-                buy_streak = []
-                stop_loss = None
-            else:
-                for j, purchase in purchases.iterrows():
-                    if (row['Close'] * purchase['Quantity_BTC'] - purchase['Buy_Amount_USD']) / purchase['Buy_Amount_USD'] >= 0.01 and not purchase['Is_Sold']:
-                        sell_amount = purchase['Quantity_BTC'] * row['Close']
-                        sell_quantity = purchase['Quantity_BTC']
-                        usd_balance += sell_amount
-                        coin_balance -= sell_quantity
-                        total_value = usd_balance + coin_balance * row['Close']
-                        purchases.at[j, 'Is_Sold'] = 1
-                        purchases.at[j, 'Sell_Amount_USD'] = sell_amount
-                        purchases.at[j, 'Sell_Quantity_BTC'] = sell_quantity
-                        purchases.at[j, 'Sell_Timestamp'] = i
-                        break
-
-        # Almacenar balances
-        new_balance = pd.DataFrame(
-            {
-                'Timestamp': [i],
-                'Balance_USD': [usd_balance],
-                'Balance_BTC': [coin_balance],
-                'Total_Value_USD': [total_value]
-            }
-        )
-        balances = pd.concat([balances, new_balance], ignore_index=True)
-
-    return purchases, balances
-
-def backtest3(data, usd_balance=10000.0, coin_balance=0.0, buy_amount=10, gain_threshold=0.005):
-    purchases = pd.DataFrame(columns=['Timestamp', 'Buy_Price','Buy_Amount_USD', 'Quantity_BTC', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD', 'Is_Sold', 'Sell_Amount_USD', 'Sell_Quantity_BTC', 'Sell_Timestamp', 'position'])
-    balances = pd.DataFrame(columns=['Timestamp', 'Balance_USD', 'Balance_BTC', 'Total_Value_USD'])
-    total_value = usd_balance
-    stop_loss = None
-
-    # Calculate moving averages
-    data['MA10'] = data['Close'].rolling(window=10).mean()
-    data['MA50'] = data['Close'].rolling(window=50).mean()
-    data['MA100'] = data['Close'].rolling(window=100).mean()
-    data['MA200'] = data['Close'].rolling(window=200).mean()
-
-    for i, row in tqdm(data.iterrows(), total=data.shape[0]):
-        # Buy
-        if row['Close'] < row['MA10'] < row['MA50'] < row['MA100'] < row['MA200'] and usd_balance >= buy_amount:
-            quantity = buy_amount / row['Close']
-            coin_balance += quantity
-            usd_balance -= buy_amount
-            total_value = usd_balance + coin_balance * row['Close']
-            new_purchase = pd.DataFrame(
-                {
-                    'Timestamp': [i],
-                    'Buy_Price': row['Close'],
-                    'Buy_Amount_USD': [buy_amount],
-                    'Quantity_BTC': [quantity], 
-                    'Balance_USD': [usd_balance],
-                    'Balance_BTC': [coin_balance],
-                    'Total_Value_USD': [total_value],
-                    'Is_Sold': 0,
-                    'Sell_Amount_USD': [None],
-                    'Sell_Quantity_BTC': [None],
-                    'Sell_Timestamp': [None],
-                    'position': [None]
-                }
-            )
-            purchases = pd.concat([purchases, new_purchase], ignore_index=True)
-
-        elif coin_balance > 0 and (row['Close'] > row['MA10'] > row['MA50'] > row['MA100'] > row['MA200']):
-            # Encuentra el valor máximo en la columna 'position'
-            max_position = purchases['position'].max()
-
-            # Si max_position es None o NaN, entonces establece max_position a 0
-            if max_position is None or max_position is pd.NA:
-                max_position = 0
-
-            # Actualiza todas las posiciones None a max_position + 1
-            purchases['position'] = purchases['position'].fillna(max_position + 1)
-
-            # Encuentra las órdenes que están por debajo del precio actual por un gain_threshold
-            orders_to_sell = purchases[(purchases['Buy_Price'] < row['Close'] * (1 - gain_threshold)) & (purchases['Is_Sold'] == 0)]
-            
-            if not orders_to_sell.empty:
-                sell_amount = orders_to_sell['Quantity_BTC'].sum() * row['Close']
-                sell_quantity = orders_to_sell['Quantity_BTC'].sum()
-                usd_balance += sell_amount
-                coin_balance -= sell_quantity
-                total_value = usd_balance + coin_balance * row['Close']
-                
-                # Marca las órdenes vendidas como vendidas y actualiza los detalles de venta
-                purchases.loc[orders_to_sell.index, 'Is_Sold'] = 1
-                purchases.loc[orders_to_sell.index, 'Sell_Amount_USD'] = sell_amount
-                purchases.loc[orders_to_sell.index, 'Sell_Quantity_BTC'] = sell_quantity
-                purchases.loc[orders_to_sell.index, 'Sell_Timestamp'] = i
-                
-                stop_loss = row['MA200'] * 0.9990
-
-        if stop_loss:
-            if coin_balance > 0 and row['Close'] < stop_loss:
-                sell_amount = coin_balance * row['Close']
-                sell_quantity = coin_balance
-                usd_balance += sell_amount
-                coin_balance = 0
-                total_value = usd_balance + coin_balance * row['Close']
-                purchases.loc[purchases['Is_Sold'] == 0, 'Is_Sold'] = 1
-                purchases.loc[purchases['Sell_Amount_USD'].isnull(), 'Sell_Amount_USD'] = sell_amount
-                purchases.loc[purchases['Sell_Quantity_BTC'].isnull(), 'Sell_Quantity_BTC'] = sell_quantity
-                purchases.loc[purchases['Sell_Timestamp'].isnull(), 'Sell_Timestamp'] = i
-                stop_loss = None
-
-        # Store balances
-        new_balance = pd.DataFrame(
-            {
-                'Timestamp': [i],
-                'Balance_USD': [usd_balance],
-                'Balance_BTC': [coin_balance],
-                'Total_Value_USD': [total_value]
-            }
-        )
-        balances = pd.concat([balances, new_balance], ignore_index=True)
-
-    return purchases, balances
-
-def plot_data(data, purchases, balances, debug=False):
-    fig, ax = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
-
-    # Plot strategy on the first graph
-    ax[0].plot(data.index, data['Close'], label='Close Price', color='blue')
-    ax[0].plot(data.index, data['MA200'], label='200 Hour MA', color='red')
-    ax[0].plot(data.index, data['MA100'], label='100 Hour MA', color='yellow')
-    ax[0].plot(data.index, data['MA50'], label='50 Hour MA', color='magenta')
-    ax[0].plot(data.index, data['MA10'], label='10 Hour MA', color='cyan')
+    # Invertir el cambio para las operaciones de venta
+    visualization_df.loc[visualization_df['type'] == 'sell_market', 'coin_change'] *= -1
     
-    ax[0].plot(data[data['Buy_Signal']].index, data['Close'][data['Buy_Signal']], '^', markersize=3, color='g', label='buy')
-    ax[0].plot(data[data['Sell_Signal']].index, data['Close'][data['Sell_Signal']], 'v', markersize=3, color='r', label='sell')
-    ax[0].set(xlabel='Date', ylabel='Close Price')
-    ax[0].grid(True)
-    ax[0].legend()
+    # Calcular el balance acumulativo
+    visualization_df['balance_b'] = initial_balance_b + visualization_df['coin_change'].cumsum()
+    
+    # Eliminar la columna 'coin_change' ya que no es necesaria
+    visualization_df.drop(columns=['coin_change'], inplace=True)
+    
+    return visualization_df
 
-    # Convert Timestamp to datetime
-    purchases['Timestamp'] = pd.to_datetime(purchases['Timestamp']).dt.to_pydatetime()
+def calculate_balance_a(visualization_df, initial_balance = 10000):
+    # Crear una nueva columna 'cost' que contenga el costo de cada operación
+    visualization_df['cost'] = (visualization_df['price'] * visualization_df['amount']).fillna(0)
+    
+    # Invertir el costo para las operaciones de venta
+    visualization_df.loc[visualization_df['type'] == 'sell_market', 'cost'] *= -1
+    
+    # Calcular el balance acumulativo
+    visualization_df['balance_a'] = initial_balance - visualization_df['cost'].cumsum()
+    
+    # Eliminar la columna 'cost' ya que no es necesaria
+    visualization_df.drop(columns=['cost'], inplace=True)
+    
+    return visualization_df
 
-    # Plot balances and total value on the second graph
-    ax[1].plot(balances['Timestamp'], balances['Balance_USD'], label='USD Balance', color='green')
+def draw_graphs(memory_df):
+    # Establecer el estilo del gráfico
+    plt.style.use('ggplot')
 
-    # Create a second y-axis for the BTC balance
-    ax2 = ax[1].twinx()
-    ax2.plot(balances['Timestamp'], balances['Balance_BTC'], label='BTC Balance', color='orange')
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
 
-    ax[1].plot(balances['Timestamp'], balances['Total_Value_USD'], label='Total Value in USD', color='blue')
-    ax[1].set(ylabel='Amount (USD)')
-    ax2.set_ylabel('Amount (BTC)')
-    ax[1].grid(True)
+    # Dibujar los precios de cierre con un color azul oscuro
+    ax1.plot(data['Datetime'], data['Close'], label='Close Price', color='darkblue', linewidth=2)
 
-    # Add legends for both y-axes
-    ax[1].legend(bbox_to_anchor=(0.88, 1), loc='upper left')
-    ax2.legend(bbox_to_anchor=(0.88, 0.9), loc='upper left')
+    # Dibujar los puntos de compra y venta con un tamaño personalizado
+    buy_points = memory_df[memory_df['type'] == 'buy_market']
+    sell_points = memory_df[memory_df['type'] == 'sell_market']
+    ax1.scatter(buy_points['timestamp'], buy_points['price'], color='green', label='Buy', s=50)
+    ax1.scatter(sell_points['timestamp'], sell_points['price'], color='red', label='Sell', s=50)
 
-    plt.tight_layout()
+    # Formatear el eje x para mostrar las fechas correctamente
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))
+
+    # Añadir una leyenda con una fuente personalizada
+    ax1.legend(fontsize='large')
+
+    # Añadir títulos a los ejes y al gráfico
+    ax1.set_title('Buy and Sell Points Over Time', fontsize=16)
+    ax1.set_xlabel('Time', fontsize=14)
+    ax1.set_ylabel('Price', fontsize=14)
+
+    # Mostrar la gráfica
+    ax2.plot(memory_df['Datetime'], memory_df['balance_b'], label='BTC Balance', color='purple', linewidth=2)
+    ax2.set_ylabel('BTC Balance', fontsize=14)
+    ax2.scatter(memory_df['Datetime'].iloc[-1], memory_df['balance_b'].iloc[-1], color='purple', s=10)
+    ax2.text(memory_df['Datetime'].iloc[-1], memory_df['balance_b'].iloc[-1], f"{memory_df['balance_b'].iloc[-1]:.2f}", color='purple')
+    ax2.yaxis.grid(False)
+
+
+    # Crear un segundo eje y para 'EUR Balance'
+    ax3 = ax2.twinx()
+    ax3.plot(memory_df['Datetime'], memory_df['balance_a'], label='EUR Balance', color='orange', linewidth=2)
+    ax3.plot(memory_df['Datetime'], memory_df['total_value'], label='Total Balance', color='blue', linewidth=2)
+    ax3.scatter(memory_df['Datetime'].iloc[-1], memory_df['balance_a'].iloc[-1], color='orange', s=10)
+    ax3.text(memory_df['Datetime'].iloc[-1], memory_df['balance_a'].iloc[-1], f"{memory_df['balance_a'].iloc[-1]:.2f}", color='orange')
+    ax3.scatter(memory_df['Datetime'].iloc[-1], memory_df['total_value'].iloc[-1], color='blue', s=10)
+    ax3.text(memory_df['Datetime'].iloc[-1], memory_df['total_value'].iloc[-1], f"{memory_df['total_value'].iloc[-1]:.2f}", color='blue')
+
+    ax3.set_ylabel('EUR', fontsize=14)
+
+    # Formatear el eje x para mostrar las fechas correctamente
+    ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))
+
+    # Añadir una leyenda con una fuente personalizada
+    ax2.legend(loc='center left', bbox_to_anchor=(0, 0.5), fontsize='large')
+    ax3.legend(loc='center left', bbox_to_anchor=(0, 0.65), fontsize='large')
+
+    # Añadir títulos a los ejes y al gráfico
+    ax2.set_title('Strategy', fontsize=16)
+    ax2.set_xlabel('Time', fontsize=14)
+    ax2.set_ylabel('BTC balance', fontsize=14)
+    ax3.set_ylabel('Total Spend / Total Value', fontsize=14)  # Update label
+
+
+    # Mostrar la gráfica
     plt.show()
 
-def plot_data2(data, purchases, balances, debug=False, plot_mas=False):
-    fig, ax = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
-
-    # Calculate the cumulative average purchase price
-    purchases['Buy_Price'] = purchases['Buy_Amount_USD'] / purchases['Quantity_BTC']
-    purchases['Cumulative_Avg_Buy_Price'] = purchases['Buy_Price'].expanding().mean()
-
-    # Calculate the average purchase price of unsold purchases
-    purchases['Unsold_Avg_Buy_Price'] = purchases.loc[purchases['Is_Sold'] == 0, 'Buy_Price'].expanding().mean()
-
-    # Calculate the average sell price of sold purchases
-    purchases['Sold_Avg_Sell_Price'] = purchases.loc[purchases['Is_Sold'] == 1, 'Sell_Amount_USD'].div(purchases.loc[purchases['Is_Sold'] == 1, 'Sell_Quantity_BTC']).expanding().mean()
-
-    # Plot strategy on the first graph
-    ax[0].plot(data.index, data['Close'], label='Close Price', color='blue')
-    if plot_mas:
-        ax[0].plot(data.index, data['MA200'], label='200 Hour MA', color='red')
-        ax[0].plot(data.index, data['MA100'], label='100 Hour MA', color='yellow')
-        ax[0].plot(data.index, data['MA50'], label='50 Hour MA', color='magenta')
-        ax[0].plot(data.index, data['MA10'], label='10 Hour MA', color='cyan')
-    
-    # Plot the cumulative average purchase price
-    ax[0].plot(purchases['Timestamp'], purchases['Cumulative_Avg_Buy_Price'], color='purple', linestyle='--', label='Cumulative Avg Purchase Price')
-    
-    # Track the start and end of each buy streak
-    buy_streaks = []
-    sell_streaks = []
-    start_buy = None
-    start_sell = None
-    for i in range(1, len(data)):
-        if data['Buy_Signal'].iloc[i] and start_buy is None:
-            start_buy = data.index[i]
-        elif not data['Buy_Signal'].iloc[i] and data['Sell_Signal'].iloc[i] and start_buy is not None:
-            end_buy = data.index[i]
-            buy_streaks.append((start_buy, end_buy))
-            start_buy = None
-
-        if data['Sell_Signal'].iloc[i] and start_sell is None:
-            start_sell = data.index[i]
-        elif not data['Sell_Signal'].iloc[i] and data['Buy_Signal'].iloc[i] and start_sell is not None:
-            end_sell = data.index[i]
-            sell_streaks.append((start_sell, end_sell))
-            start_sell = None
-
-    # Calculate and plot the average price for each buy streak
-    avg_buy_label = 'Avg Buy Streak Price'
-    for start, end in buy_streaks:
-        buy_streak_data = data.loc[start:end]
-        avg_price = buy_streak_data.loc[buy_streak_data['Buy_Signal'], 'Close'].mean()
-        ax[0].plot([start, end], [avg_price, avg_price], color='cyan', label=avg_buy_label)
-        avg_buy_label = "_nolegend_"  # Prevent this line from being added to the legend again
 
 
-    # Draw the last buy price
-    if start_buy is not None:
-        last_buy_price = data.loc[start_buy, 'Close']
-        ax[0].plot([start_buy, data.index[-1]], [last_buy_price, last_buy_price], color='orange', linestyle='--', label='Last Buy Price')
+# Cargar los datos
+data = pd.read_csv('data/BTC_EUR_1m.csv')
+data = data.tail(1000)
+# data = data.iloc[-350:-250]
 
-# Calculate and plot the average price for each sell streak
-    avg_sell_label = 'Avg Sell Streak Price'
-    for start, end in sell_streaks:
-        sell_streak_data = data.loc[start:end]
-        avg_price = sell_streak_data.loc[sell_streak_data['Sell_Signal'], 'Close'].mean()
-        ax[0].plot([start, end], [avg_price, avg_price], color='magenta', label=avg_sell_label)
-        avg_sell_label = "_nolegend_"  # Prevent this line from being added to the legend again
+window_size = 50
+strategy = strategies.MovingAverageStrategy(window_size=window_size, cost=10)
+backtester = Backtester(strategy)
 
+data['Datetime'] = pd.to_datetime(data['Datetime'])
+data = data.drop_duplicates('Datetime', keep='first')
+# Simular la ejecución en tiempo real
+for i in tqdm(range(window_size, len(data))):
+    window_data = data.iloc[i-window_size+1:i+1]
+    backtester.execute_strategy(window_data)
 
-    # Draw the last sell price
-    if start_sell is not None:
-        last_sell_price = data.loc[start_sell, 'Close']
-        ax[0].plot([start_sell, data.index[-1]], [last_sell_price, last_sell_price], color='magenta', linestyle='--', label='Last Sell Price')
+#Fix data
+memory_df = pd.DataFrame(backtester.memory)
+memory_df['timestamp'] = pd.to_datetime(memory_df['timestamp']).dt.tz_localize(None)
+memory_df['timestamp'] = pd.to_datetime(memory_df['timestamp']).dt.tz_localize(None)
+data['Datetime'] = pd.to_datetime(data['Datetime']).dt.tz_localize(None)
 
-    ax[0].plot(data[data['Buy_Signal']].index, data['Close'][data['Buy_Signal']], '^', markersize=3, color='g', label='buy')
-    ax[0].plot(data[data['Sell_Signal']].index, data['Close'][data['Sell_Signal']], 'v', markersize=3, color='r', label='sell')
+#Calculate extra
+visualization_df = pd.merge(data, memory_df, left_on='Datetime', right_on='timestamp', how='left')
 
-    ax[0].set(xlabel='Date', ylabel='Close Price')
-    ax[0].grid(True)
-    ax[0].legend()
+visualization_df = calculate_balance_a(visualization_df)
+visualization_df = calculate_balance_b(visualization_df)
+visualization_df = calculate_total_value(visualization_df)
 
-    # Convert Timestamp to datetime
-    purchases['Timestamp'] = pd.to_datetime(purchases['Timestamp']).dt.to_pydatetime()
-
-    # Plot balances and total value on the second graph
-    ax[1].plot(balances['Timestamp'], balances['Balance_USD'], label='USD Balance', color='green')
-
-    # Create a second y-axis for the BTC balance
-    ax2 = ax[1].twinx()
-    ax2.plot(balances['Timestamp'], balances['Balance_BTC'], label='BTC Balance', color='orange')
-
-    ax[1].plot(balances['Timestamp'], balances['Total_Value_USD'], label='Total Value in USD', color='blue')
-    ax[1].set(ylabel='Amount (USD)')
-    ax2.set_ylabel('Amount (BTC)')
-    ax[1].grid(True)
-
-    # Add legends for both y-axes
-    ax[1].legend(bbox_to_anchor=(0.88, 1), loc='upper left')
-    ax2.legend(bbox_to_anchor=(0.88, 0.9), loc='upper left')
-
-    plt.tight_layout()
-    plt.show()
-
-coin = 'BTC'
-coin_data2 = download_currency_data(coin, 'USD', days_to_download=60, interval='15m')
-
-total_datos = len(pd.read_csv('btceur_15m.csv'))
-coin_data = pd.read_csv('btceur_15m.csv', skiprows=range(1, total_datos - total_datos//10))
-
-coin_data_signals = calculate_strategy_2(coin_data)
-
-purchases, balances = backtest3(coin_data_signals, buy_amount=100)
-
-plot_data2(coin_data_signals, purchases, balances, debug=False, plot_mas=False)
-
+#Draw
+draw_graphs(visualization_df)
