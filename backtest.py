@@ -17,17 +17,16 @@ def calculate_total_value(visualization_df):
     return visualization_df
 
 def calculate_balance_b(visualization_df, initial_balance_b = 0):
-    # Crear una nueva columna 'coin_change' que contenga el cambio en el balance de la moneda
-    visualization_df['coin_change'] = visualization_df['amount'].fillna(0)
-    
-    # Invertir el cambio para las operaciones de venta
-    visualization_df.loc[visualization_df['type'] == 'sell_market', 'coin_change'] *= -1
-    
-    # Calcular el balance acumulativo
-    visualization_df['balance_b'] = initial_balance_b + visualization_df['coin_change'].cumsum()
-    
-    # Eliminar la columna 'coin_change' ya que no es necesaria
-    visualization_df.drop(columns=['coin_change'], inplace=True)
+
+    balance_b_values = []
+    strategy = strategies.MovingAverageStrategy()
+
+    for i in range(len(visualization_df)):
+        sub_df = visualization_df.iloc[:i+1]
+        balance_b = strategy.get_balance_b(sub_df)
+        balance_b_values.append(balance_b)
+
+    visualization_df['balance_b'] = balance_b_values
     
     return visualization_df
 

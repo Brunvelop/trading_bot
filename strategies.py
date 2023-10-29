@@ -32,7 +32,7 @@ class Strategy(ABC):
         return total_balance
 
 class MovingAverageStrategy(Strategy):
-    def __init__(self, window_size, cost = 10):
+    def __init__(self, window_size = 200, cost = 10):
         self.window_size = window_size
         self.cost = cost
 
