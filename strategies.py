@@ -18,7 +18,7 @@ class Strategy(ABC):
     def run(self, data, memory) -> List[Tuple[Action, float, float]]:
         pass # :return: [(action1, price1, quantity1), (action2, price2, quantity2), ...]
     
-    def get_balance(self, memory):
+    def get_balance_b(self, memory):
         df = pd.DataFrame(memory)
 
         if df.empty:
@@ -40,12 +40,12 @@ class MovingAverageStrategy(Strategy):
         actions = []
 
         data['moving_average'] = data['Close'].rolling(window=self.window_size).mean()
-        balance = self.get_balance(memory)
+        balance_b = self.get_balance_b(memory)
 
         if data['Close'].iloc[-1] < data['moving_average'].iloc[-1]:
             actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
 
-        elif data['Close'].iloc[-1] > data['moving_average'].iloc[-1] and balance > self.cost / data['Close'].iloc[-1]:
+        elif data['Close'].iloc[-1] > data['moving_average'].iloc[-1] and balance_b > self.cost / data['Close'].iloc[-1]:
             actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
 
         else:
