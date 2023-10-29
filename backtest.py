@@ -126,12 +126,12 @@ def draw_graphs(memory_df):
 
 
 # Cargar los datos
-data = pd.read_csv('data/BTC_EUR_1h.csv')
-# data = data.tail(1000)
+data = pd.read_csv('data/BTC_EUR_1m.csv')
+data = data.tail(1000)
 # data = data.iloc[-350:-250]
 
-window_size = 200
-strategy = strategies.MovingAverageStrategy(window_size=window_size, cost=1)
+window_size = 350
+strategy = strategies.SuperStrategyFutures(cost=10)
 backtester = Backtester(strategy)
 
 data['Datetime'] = pd.to_datetime(data['Datetime'])
@@ -139,7 +139,7 @@ data = data.drop_duplicates('Datetime', keep='first')
 # Simular la ejecución en tiempo real
 for i in tqdm(range(window_size, len(data))):
     window_data = data.iloc[i-window_size+1:i+1]
-    backtester.execute_strategy(window_data)
+    actions = backtester.execute_strategy(window_data)
 
 #Fix data
 memory_df = pd.DataFrame(backtester.memory)

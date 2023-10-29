@@ -35,3 +35,4 @@ class Backtester:
                     'executed': executed,
                     'order_info': order_info
                 })
+        return actions

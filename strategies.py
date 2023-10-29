@@ -81,3 +81,71 @@ class MultiMovingAverageStrategy(Strategy):
             actions.append((Action.WAIT, None, None))
 
         return actions
+    
+class SuperStrategyFutures(Strategy):
+    def __init__(self, windows=[10, 50, 100, 200], cost=10):
+        self.windows = windows
+        self.cost = cost
+
+    def get_open_trade(self, memory):
+        # Convertimos la lista de memoria en un DataFrame de pandas
+        df = pd.DataFrame(memory)
+
+        if df.empty:
+            return None
+
+        # Filtramos las órdenes que han sido ejecutadas
+        executed_orders = df[df['executed'] == True]
+
+        # Contamos las órdenes de compra y venta
+        buy_count = len(executed_orders[executed_orders['type'] == 'buy_market'])
+        sell_count = len(executed_orders[executed_orders['type'] == 'sell_market'])
+
+        # Si hay más compras que ventas, entonces la operación abierta es una compra
+        if buy_count > sell_count:
+            return executed_orders[executed_orders['type'] == 'buy_market'].iloc[-1].to_dict()
+        # Si hay más ventas que compras, entonces la operación abierta es una venta
+        elif sell_count > buy_count:
+            return executed_orders[executed_orders['type'] == 'sell_market'].iloc[-1].to_dict()
+        # Si no hay operaciones abiertas, devolvemos None
+        else:
+            return None
+
+    def run(self, data, memory):
+        actions = []
+        open = self.get_open_trade(memory)
+
+        # Calculate the range of the bar as a percentage of the closing price
+        bar_range = (data['High'] - data['Low']).abs() / data['Low'] * 100
+
+        # Calculate the exponential moving averages of BarRange
+        avg_ranges = [bar_range.ewm(span=window).mean() for window in self.windows]
+
+        # Calculate the maximum and minimum of the last 300 bars, excluding the current bar
+        max_300 = data['Close'][-302:-2].max()
+        min_300 = data['Close'][-302:-2].min()
+
+        # Add conditions to break the maximum or minimum of the last 300 bars
+        volatility_up = all(ar1.iloc[-1] > ar2.iloc[-1] for ar1, ar2 in zip(avg_ranges, avg_ranges[1:]))
+
+        break_max_300 = data['Close'] > max_300
+        break_min_300 = data['Close'] < min_300
+
+        if not open:
+            if break_max_300.iloc[-1] and volatility_up:
+                actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost))
+            elif break_min_300.iloc[-1] and volatility_up:
+                actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost))
+            else:
+                actions.append((Action.WAIT, None, None))
+        elif open:
+            if open.get('type') == 'sell_market':
+                if data['Close'].iloc[-1] < open.get('price') *(1-0.001) or data['Close'].iloc[-1] < open.get('price') *(1+0.001):
+                    actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1] ))
+            elif open.get('type') == 'buy_market':
+                if data['Close'].iloc[-1] > open.get('price') *(1-0.001) or data['Close'].iloc[-1] > open.get('price') *(1+0.001):
+                    actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
+            else:
+                actions.append((Action.WAIT, None, None))
+
+        return actions
