@@ -14,14 +14,20 @@ def download_currency_data(currency_a='BTC', currency_b='USD', days_to_download=
         data = data.drop_duplicates().sort_index()
         if 'Adj Close' in data.columns:
             data = data.drop(columns=['Adj Close'])
+        if 'Date' in data.columns:
+            data['Date'] = pd.to_datetime(data['Date'])
+            data = data.rename(columns={'Date': 'Datetime'})
     
     filename = f"data/{currency_a}_{currency_b}_{interval}.csv"
     
     if os.path.exists(filename):
         existing_data = pd.read_csv(filename, index_col=0, parse_dates=True)
         data = pd.concat([existing_data, data]).drop_duplicates().sort_index()
+        data = data.reset_index()
+        data = data.rename(columns={'index': 'Datetime'})
+        data = data.drop_duplicates('Datetime', keep='first')
 
-    data.to_csv(filename, index=True)
+    data.to_csv(filename, index=False)
     return data
 
 download_currency_data(days_to_download=7, interval='1m')
