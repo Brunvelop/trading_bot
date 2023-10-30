@@ -54,17 +54,18 @@ def calculate_hodl_value(visualization_df, initial_balance_a = 10000):
 
     return visualization_df
 
-def draw_graphs(visualization_df, plot_modes, extra_plots=None):
+def draw_graphs(visualization_df, plot_modes, extra_plots_price=None, extra_plot=None):
     # Establecer el estilo del gráfico
     plt.style.use('ggplot')
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 18), sharex=True)
+
 
     # Dibujar los precios de cierre con un color azul oscuro
     ax1.plot(visualization_df['Datetime'], visualization_df['Close'], label='Close Price', color='darkblue', linewidth=2)
 
-    if extra_plots is not None:
-        for plot_data, plot_kwargs in extra_plots:
+    if extra_plots_price is not None:
+        for plot_data, plot_kwargs in extra_plots_price:
             plot_type = plot_kwargs.pop('type', 'plot')
             if plot_type == 'scatter':
                 ax1.scatter(*plot_data, **plot_kwargs)
@@ -98,50 +99,68 @@ def draw_graphs(visualization_df, plot_modes, extra_plots=None):
 
 
     # Crear un segundo eje y para 'EUR Balance'
-    ax3 = ax2.twinx()
+    ax2_extra = ax2.twinx()
     if 'balance_a' in plot_modes:
-        ax3.plot(visualization_df['Datetime'], visualization_df['balance_a'], label='EUR Balance', color='orange', linewidth=2)
+        ax2_extra.plot(visualization_df['Datetime'], visualization_df['balance_a'], label='EUR Balance', color='orange', linewidth=2)
     if 'total_value' in plot_modes:
-        ax3.plot(visualization_df['Datetime'], visualization_df['total_value'], label='Total Balance', color='blue', linewidth=2)
+        ax2_extra.plot(visualization_df['Datetime'], visualization_df['total_value'], label='Total Balance', color='blue', linewidth=2)
     if 'hodl_value' in plot_modes:
-        ax3.plot(visualization_df['Datetime'], visualization_df['hodl_value'], label='HODL Value', color='cyan', linewidth=2)
+        ax2_extra.plot(visualization_df['Datetime'], visualization_df['hodl_value'], label='HODL Value', color='cyan', linewidth=2)
 
 
-    ax3.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['balance_a'].iloc[-1], color='orange', s=10)
-    ax3.text(visualization_df['Datetime'].iloc[-1], visualization_df['balance_a'].iloc[-1], f"{visualization_df['balance_a'].iloc[-1]:.2f}", color='orange')
-    ax3.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['total_value'].iloc[-1], color='blue', s=10)
-    ax3.text(visualization_df['Datetime'].iloc[-1], visualization_df['total_value'].iloc[-1], f"{visualization_df['total_value'].iloc[-1]:.2f}", color='blue')
-    ax3.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['hodl_value'].iloc[-1], color='cyan', s=10)
-    ax3.text(visualization_df['Datetime'].iloc[-1], visualization_df['hodl_value'].iloc[-1], f"{visualization_df['hodl_value'].iloc[-1]:.2f}", color='cyan')
+    ax2_extra.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['balance_a'].iloc[-1], color='orange', s=10)
+    ax2_extra.text(visualization_df['Datetime'].iloc[-1], visualization_df['balance_a'].iloc[-1], f"{visualization_df['balance_a'].iloc[-1]:.2f}", color='orange')
+    ax2_extra.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['total_value'].iloc[-1], color='blue', s=10)
+    ax2_extra.text(visualization_df['Datetime'].iloc[-1], visualization_df['total_value'].iloc[-1], f"{visualization_df['total_value'].iloc[-1]:.2f}", color='blue')
+    ax2_extra.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['hodl_value'].iloc[-1], color='cyan', s=10)
+    ax2_extra.text(visualization_df['Datetime'].iloc[-1], visualization_df['hodl_value'].iloc[-1], f"{visualization_df['hodl_value'].iloc[-1]:.2f}", color='cyan')
 
-    ax3.set_ylabel('EUR', fontsize=14)
+    ax2_extra.set_ylabel('EUR', fontsize=14)
 
     # Formatear el eje x para mostrar las fechas correctamente
     ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))
 
     # Añadir una leyenda con una fuente personalizada
     ax2.legend(loc='center left', bbox_to_anchor=(0, 0.5), fontsize='small')
-    ax3.legend(loc='center left', bbox_to_anchor=(0, 0.6), fontsize='small')
+    ax2_extra.legend(loc='center left', bbox_to_anchor=(0, 0.6), fontsize='small')
 
     # Añadir títulos a los ejes y al gráfico
     ax2.set_title('Strategy', fontsize=16)
     ax2.set_xlabel('Time', fontsize=14)
     ax2.set_ylabel('BTC balance', fontsize=14)
-    ax3.set_ylabel('Total Spend / Total Value', fontsize=14)  # Update label
+    ax2_extra.set_ylabel('Total Spend / Total Value', fontsize=14)  # Update label
 
+    # Añadir la tercera gráfica
+    if extra_plot is not None:
+        for plot_data, plot_kwargs in extra_plot:
+            plot_type = plot_kwargs.pop('type', 'plot')
+            if plot_type == 'scatter':
+                ax3.scatter(*plot_data, **plot_kwargs)
+            else:
+                ax3.plot(*plot_data, **plot_kwargs)
 
-    # Mostrar la gráfica
+        # Formatear el eje x para mostrar las fechas correctamente
+        ax3.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))
+
+        # Añadir una leyenda con una fuente personalizada
+        ax3.legend(fontsize='large')
+
+        # Añadir títulos a los ejes y al gráfico
+        ax3.set_title('Extra Plot', fontsize=16)
+        ax3.set_xlabel('Time', fontsize=14)
+        ax3.set_ylabel('Value', fontsize=14)
+
     plt.show()
 
 
 
 # Cargar los datos
 data = pd.read_csv('data/BTC_EUR_1m.csv')
-# data = data.tail(10000)
+data = data.tail(10000)
 # data = data.iloc[-2500:-1000]
 
 window_size = 350
-strategy = strategies.SuperStrategyFutures2(cost=100000)
+strategy = strategies.SuperStrategyFutures(cost=100000)
 backtester = Backtester(strategy)
 
 data['Datetime'] = pd.to_datetime(data['Datetime'])
@@ -176,8 +195,22 @@ visualization_df = calculate_total_value(visualization_df)
 visualization_df['Moving_Avg'] = visualization_df['Close'].rolling(window=10).mean()
 stop_loss_df = memory_df[memory_df['type'] == 'stop_loss']
 
-extra_plots = [
+extra_plots_price = [
     ((stop_loss_df['timestamp'], stop_loss_df['price']), {'color': 'cyan', 's': 3, 'label': 'Stop Loss', 'type': 'scatter'}),
     ((visualization_df['Datetime'], visualization_df['Moving_Avg']), {'color': 'orange', 'linewidth': 2, 'alpha':0.5, 'type': 'plot'}),
 ]
-draw_graphs(visualization_df, ['total_value', 'balance_b'], extra_plots)
+
+bar_range = (data['High'] - data['Low']).abs() / data['Low'] * 100
+avg_range = bar_range.ewm(span=10).mean()
+std_dev = avg_range.rolling(window=200).std()
+plot_3 = [
+    (
+        (data['Datetime'], avg_range), 
+        {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'Average Range', 'type': 'plot'}
+    ),
+    (
+        (data['Datetime'], std_dev), 
+        {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'Standard Deviation', 'type': 'plot'}
+    ),
+]
+draw_graphs(visualization_df, ['total_value', 'balance_b'], extra_plots_price, plot_3)
