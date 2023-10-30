@@ -102,18 +102,17 @@ def draw_graphs(visualization_df, plot_modes, extra_plots_price=None, extra_plot
     ax2_extra = ax2.twinx()
     if 'balance_a' in plot_modes:
         ax2_extra.plot(visualization_df['Datetime'], visualization_df['balance_a'], label='EUR Balance', color='orange', linewidth=2)
+        ax2_extra.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['balance_a'].iloc[-1], color='orange', s=10)
+        ax2_extra.text(visualization_df['Datetime'].iloc[-1], visualization_df['balance_a'].iloc[-1], f"{visualization_df['balance_a'].iloc[-1]:.2f}", color='orange')
     if 'total_value' in plot_modes:
         ax2_extra.plot(visualization_df['Datetime'], visualization_df['total_value'], label='Total Balance', color='blue', linewidth=2)
+        ax2_extra.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['total_value'].iloc[-1], color='blue', s=10)
+        ax2_extra.text(visualization_df['Datetime'].iloc[-1], visualization_df['total_value'].iloc[-1], f"{visualization_df['total_value'].iloc[-1]:.2f}", color='blue')
+
     if 'hodl_value' in plot_modes:
         ax2_extra.plot(visualization_df['Datetime'], visualization_df['hodl_value'], label='HODL Value', color='cyan', linewidth=2)
-
-
-    ax2_extra.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['balance_a'].iloc[-1], color='orange', s=10)
-    ax2_extra.text(visualization_df['Datetime'].iloc[-1], visualization_df['balance_a'].iloc[-1], f"{visualization_df['balance_a'].iloc[-1]:.2f}", color='orange')
-    ax2_extra.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['total_value'].iloc[-1], color='blue', s=10)
-    ax2_extra.text(visualization_df['Datetime'].iloc[-1], visualization_df['total_value'].iloc[-1], f"{visualization_df['total_value'].iloc[-1]:.2f}", color='blue')
-    ax2_extra.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['hodl_value'].iloc[-1], color='cyan', s=10)
-    ax2_extra.text(visualization_df['Datetime'].iloc[-1], visualization_df['hodl_value'].iloc[-1], f"{visualization_df['hodl_value'].iloc[-1]:.2f}", color='cyan')
+        ax2_extra.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['hodl_value'].iloc[-1], color='cyan', s=10)
+        ax2_extra.text(visualization_df['Datetime'].iloc[-1], visualization_df['hodl_value'].iloc[-1], f"{visualization_df['hodl_value'].iloc[-1]:.2f}", color='cyan')
 
     ax2_extra.set_ylabel('EUR', fontsize=14)
 
@@ -156,7 +155,7 @@ def draw_graphs(visualization_df, plot_modes, extra_plots_price=None, extra_plot
 
 # Cargar los datos
 data = pd.read_csv('data/BTC_EUR_1m.csv')
-data = data.tail(10000)
+# data = data.tail(10000)
 # data = data.iloc[-2500:-1000]
 
 window_size = 350
@@ -201,7 +200,7 @@ extra_plots_price = [
 ]
 
 bar_range = (data['High'] - data['Low']).abs() / data['Low'] * 100
-avg_range = bar_range.ewm(span=10).mean()
+avg_range = bar_range.ewm(span=50).mean()
 std_dev = avg_range.rolling(window=200).std()
 plot_3 = [
     (
