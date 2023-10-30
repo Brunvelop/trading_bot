@@ -155,19 +155,13 @@ def draw_graphs(visualization_df, plot_modes, extra_plots_price=None, extra_plot
 
 # Cargar los datos
 data = pd.read_csv('data/BTC_EUR_1m.csv')
-# data = data.tail(10000)
+data = data.tail(1000)
 # data = data.iloc[-2500:-1000]
 
 window_size = 350
 strategy = strategies.SuperStrategyFutures(cost=100000)
 backtester = Backtester(strategy)
-
-data['Datetime'] = pd.to_datetime(data['Datetime'])
-data = data.drop_duplicates('Datetime', keep='first')
-# Simular la ejecución en tiempo real
-for i in tqdm(range(window_size, len(data))):
-    window_data = data.iloc[i-window_size+1:i+1]
-    actions = backtester.execute_strategy(window_data)
+actions = backtester.simulate_real_time_execution(data, window_size)
 
 #Fix data
 memory_df = pd.DataFrame(backtester.memory)
@@ -185,15 +179,9 @@ visualization_df = calculate_hodl_value(visualization_df, initial_balance_a)
 visualization_df = calculate_balance_b(visualization_df)
 visualization_df = calculate_total_value(visualization_df)
 
-#Draw
-# draw_graphs(visualization_df, ['balance_a', 'total_value', 'hodl_value', 'balance_b'])
-# draw_graphs(visualization_df, ['balance_a', 'total_value', 'balance_b'])
-# draw_graphs(visualization_df, ['total_value', 'balance_b'])
-
 
 visualization_df['Moving_Avg'] = visualization_df['Close'].rolling(window=10).mean()
 stop_loss_df = memory_df[memory_df['type'] == 'stop_loss']
-
 extra_plots_price = [
     ((stop_loss_df['timestamp'], stop_loss_df['price']), {'color': 'cyan', 's': 3, 'label': 'Stop Loss', 'type': 'scatter'}),
     ((visualization_df['Datetime'], visualization_df['Moving_Avg']), {'color': 'orange', 'linewidth': 2, 'alpha':0.5, 'type': 'plot'}),
@@ -212,4 +200,5 @@ plot_3 = [
         {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'Standard Deviation', 'type': 'plot'}
     ),
 ]
+# draw_graphs(visualization_df, ['balance_a', 'total_value', 'hodl_value', 'balance_b'])
 draw_graphs(visualization_df, ['total_value', 'balance_b'], extra_plots_price, plot_3)

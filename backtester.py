@@ -36,3 +36,12 @@ class Backtester:
                     'order_info': order_info
                 })
         return actions
+    
+    def simulate_real_time_execution(self, data, window_size):
+        data['Datetime'] = pd.to_datetime(data['Datetime'])
+        data = data.drop_duplicates('Datetime', keep='first')
+        # Simular la ejecución en tiempo real
+        for i in tqdm(range(window_size, len(data))):
+            window_data = data.iloc[i-window_size+1:i+1]
+            actions = self.execute_strategy(window_data)
+        return actions
