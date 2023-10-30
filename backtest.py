@@ -136,12 +136,12 @@ def draw_graphs(visualization_df, plot_modes, extra_plots=None):
 
 
 # Cargar los datos
-data = pd.read_csv('data/BTC_EUR_15m.csv')
-# data = data.tail(1000)
+data = pd.read_csv('data/BTC_EUR_1m.csv')
+# data = data.tail(10000)
 # data = data.iloc[-2500:-1000]
 
 window_size = 350
-strategy = strategies.SuperStrategyFutures(cost=100000)
+strategy = strategies.SuperStrategyFutures2(cost=100000)
 backtester = Backtester(strategy)
 
 data['Datetime'] = pd.to_datetime(data['Datetime'])
