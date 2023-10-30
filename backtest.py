@@ -158,10 +158,9 @@ data = pd.read_csv('data/BTC_EUR_1m.csv')
 data = data.tail(1000)
 # data = data.iloc[-2500:-1000]
 
-window_size = 350
 strategy = strategies.SuperStrategyFutures(cost=100000)
 backtester = Backtester(strategy)
-actions = backtester.simulate_real_time_execution(data, window_size)
+actions = backtester.simulate_real_time_execution(data, window_size = 350)
 
 #Fix data
 memory_df = pd.DataFrame(backtester.memory)
@@ -169,7 +168,7 @@ memory_df['timestamp'] = pd.to_datetime(memory_df['timestamp']).dt.tz_localize(N
 memory_df['timestamp'] = pd.to_datetime(memory_df['timestamp']).dt.tz_localize(None)
 data['Datetime'] = pd.to_datetime(data['Datetime']).dt.tz_localize(None)
 
-#Calculate extra
+#Generate Visualization df
 memory_df_executed = memory_df.drop(memory_df[memory_df['executed'] == False].index)
 visualization_df = pd.merge(data, memory_df_executed, left_on='Datetime', right_on='timestamp', how='left')
 
@@ -179,7 +178,7 @@ visualization_df = calculate_hodl_value(visualization_df, initial_balance_a)
 visualization_df = calculate_balance_b(visualization_df)
 visualization_df = calculate_total_value(visualization_df)
 
-
+#Calculate and add Visualization extras
 visualization_df['Moving_Avg'] = visualization_df['Close'].rolling(window=10).mean()
 stop_loss_df = memory_df[memory_df['type'] == 'stop_loss']
 extra_plots_price = [
