@@ -86,6 +86,20 @@ class SuperStrategyFutures(Strategy):
     def __init__(self, windows=[10, 50, 100, 200], cost=10):
         self.windows = windows
         self.cost = cost
+    
+    def update_stop_loss(self, data, memory):
+        current_price = data['Close'].iloc[-1]
+        open = self.get_open_trade(memory)
+        data['moving_average'] = data['Close'].rolling(window=10).mean()
+
+        threshold = 0.0000
+        if open.get('type') == 'sell_market':
+            if current_price < data['moving_average'].iloc[-1] and open.get('price') > data['moving_average'].iloc[-1]*(1+threshold):
+                return (Action.STOP_LOSS, data['moving_average'].iloc[-1], self.cost / data['Close'].iloc[-1])
+        elif open.get('type') == 'buy_market':
+            if current_price > data['moving_average'].iloc[-1] and open.get('price') < data['moving_average'].iloc[-1]*(1-threshold):
+                return (Action.STOP_LOSS, data['moving_average'].iloc[-1], self.cost / data['Close'].iloc[-1])
+        return None
 
     def get_open_trade(self, memory):
         # Convertimos la lista de memoria en un DataFrame de pandas
@@ -116,6 +130,9 @@ class SuperStrategyFutures(Strategy):
         
         # Calculate the range of the bar as a percentage of the closing price
         bar_range = (data['High'] - data['Low']).abs() / data['Low'] * 100
+        avg_range = bar_range.ewm(span=10).mean()
+        std_dev = avg_range.rolling(window=200).std()
+        volatility_up = (avg_range > std_dev).iloc[-1]
 
         # Calculate the exponential moving averages of BarRange
         avg_ranges = [bar_range.ewm(span=window).mean() for window in self.windows]
@@ -125,8 +142,6 @@ class SuperStrategyFutures(Strategy):
         min_300 = data['Close'][-302:-2].min()
 
         # Add conditions to break the maximum or minimum of the last 300 bars
-        volatility_up = all(ar1.iloc[-1] > ar2.iloc[-1] for ar1, ar2 in zip(avg_ranges, avg_ranges[1:]))
-
         break_max_300 = data['Close'] > max_300
         break_min_300 = data['Close'] < min_300
 
@@ -145,12 +160,17 @@ class SuperStrategyFutures(Strategy):
             memory_df = pd.DataFrame(memory)
             stop_loss_price = memory_df.loc[memory_df['type'] == 'stop_loss'].iloc[-1]['price']
             if open.get('type') == 'sell_market':
-                if current_price > stop_loss_price or current_price < open.get('price') *(1-0.01):
+                if current_price > stop_loss_price:
                     actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1] ))
             elif open.get('type') == 'buy_market':
-                if current_price < stop_loss_price or current_price > open.get('price') *(1+0.01):
+                if current_price < stop_loss_price:
                     actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
             else:
                 actions.append((Action.WAIT, None, None))
+            
+            update = self.update_stop_loss(data, memory)
+            if update:
+                actions.append(update)
+
 
         return actions

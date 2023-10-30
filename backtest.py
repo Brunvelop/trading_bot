@@ -32,8 +32,6 @@ def calculate_balance_b(visualization_df, initial_balance_b = 0):
 
 def calculate_balance_a(visualization_df, initial_balance_a = 10000):
 
-    visualization_df = visualization_df.drop(visualization_df[visualization_df['executed'] == False].index)
-
     # Crear una nueva columna 'cost' que contenga el costo de cada operación
     visualization_df['cost'] = (visualization_df['price'] * visualization_df['amount']).fillna(0)
     
@@ -56,22 +54,26 @@ def calculate_hodl_value(visualization_df, initial_balance_a = 10000):
 
     return visualization_df
 
-def draw_graphs(memory_df, plot_modes):
+def draw_graphs(visualization_df, plot_modes, extra_plots=None):
     # Establecer el estilo del gráfico
     plt.style.use('ggplot')
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
 
     # Dibujar los precios de cierre con un color azul oscuro
-    ax1.plot(memory_df['Datetime'], memory_df['Close'], label='Close Price', color='darkblue', linewidth=2)
+    ax1.plot(visualization_df['Datetime'], visualization_df['Close'], label='Close Price', color='darkblue', linewidth=2)
 
-    # # Dibujar la media móvil de 200 períodos
-    # memory_df['Moving_Avg'] = memory_df['Close'].rolling(window=200).mean()
-    # ax1.plot(memory_df['Datetime'], memory_df['Moving_Avg'], label='200 Period Moving Average', color='orange', linewidth=2)
+    if extra_plots is not None:
+        for plot_data, plot_kwargs in extra_plots:
+            plot_type = plot_kwargs.pop('type', 'plot')
+            if plot_type == 'scatter':
+                ax1.scatter(*plot_data, **plot_kwargs)
+            else:
+                ax1.plot(*plot_data, **plot_kwargs)
 
     # Dibujar los puntos de compra y venta con un tamaño personalizado
-    buy_points = memory_df[memory_df['type'] == 'buy_market']
-    sell_points = memory_df[memory_df['type'] == 'sell_market']
+    buy_points = visualization_df[visualization_df['type'] == 'buy_market']
+    sell_points = visualization_df[visualization_df['type'] == 'sell_market']
     ax1.scatter(buy_points['timestamp'], buy_points['price'], color='green', label='Buy', s=50)
     ax1.scatter(sell_points['timestamp'], sell_points['price'], color='red', label='Sell', s=50)
 
@@ -88,29 +90,29 @@ def draw_graphs(memory_df, plot_modes):
 
     # Mostrar la gráfica
     if 'balance_b' in plot_modes:
-        ax2.plot(memory_df['Datetime'], memory_df['balance_b'], label='BTC Balance', color='purple', linewidth=2)
+        ax2.plot(visualization_df['Datetime'], visualization_df['balance_b'], label='BTC Balance', color='purple', linewidth=2)
         ax2.set_ylabel('BTC Balance', fontsize=14)
-        ax2.scatter(memory_df['Datetime'].iloc[-1], memory_df['balance_b'].iloc[-1], color='purple', s=10)
-        ax2.text(memory_df['Datetime'].iloc[-1], memory_df['balance_b'].iloc[-1], f"{memory_df['balance_b'].iloc[-1]:.2f}", color='purple')
+        ax2.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['balance_b'].iloc[-1], color='purple', s=10)
+        ax2.text(visualization_df['Datetime'].iloc[-1], visualization_df['balance_b'].iloc[-1], f"{visualization_df['balance_b'].iloc[-1]:.2f}", color='purple')
         ax2.yaxis.grid(False)
 
 
     # Crear un segundo eje y para 'EUR Balance'
     ax3 = ax2.twinx()
     if 'balance_a' in plot_modes:
-        ax3.plot(memory_df['Datetime'], memory_df['balance_a'], label='EUR Balance', color='orange', linewidth=2)
+        ax3.plot(visualization_df['Datetime'], visualization_df['balance_a'], label='EUR Balance', color='orange', linewidth=2)
     if 'total_value' in plot_modes:
-        ax3.plot(memory_df['Datetime'], memory_df['total_value'], label='Total Balance', color='blue', linewidth=2)
+        ax3.plot(visualization_df['Datetime'], visualization_df['total_value'], label='Total Balance', color='blue', linewidth=2)
     if 'hodl_value' in plot_modes:
-        ax3.plot(memory_df['Datetime'], memory_df['hodl_value'], label='HODL Value', color='cyan', linewidth=2)
+        ax3.plot(visualization_df['Datetime'], visualization_df['hodl_value'], label='HODL Value', color='cyan', linewidth=2)
 
 
-    ax3.scatter(memory_df['Datetime'].iloc[-1], memory_df['balance_a'].iloc[-1], color='orange', s=10)
-    ax3.text(memory_df['Datetime'].iloc[-1], memory_df['balance_a'].iloc[-1], f"{memory_df['balance_a'].iloc[-1]:.2f}", color='orange')
-    ax3.scatter(memory_df['Datetime'].iloc[-1], memory_df['total_value'].iloc[-1], color='blue', s=10)
-    ax3.text(memory_df['Datetime'].iloc[-1], memory_df['total_value'].iloc[-1], f"{memory_df['total_value'].iloc[-1]:.2f}", color='blue')
-    ax3.scatter(memory_df['Datetime'].iloc[-1], memory_df['hodl_value'].iloc[-1], color='cyan', s=10)
-    ax3.text(memory_df['Datetime'].iloc[-1], memory_df['hodl_value'].iloc[-1], f"{memory_df['hodl_value'].iloc[-1]:.2f}", color='cyan')
+    ax3.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['balance_a'].iloc[-1], color='orange', s=10)
+    ax3.text(visualization_df['Datetime'].iloc[-1], visualization_df['balance_a'].iloc[-1], f"{visualization_df['balance_a'].iloc[-1]:.2f}", color='orange')
+    ax3.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['total_value'].iloc[-1], color='blue', s=10)
+    ax3.text(visualization_df['Datetime'].iloc[-1], visualization_df['total_value'].iloc[-1], f"{visualization_df['total_value'].iloc[-1]:.2f}", color='blue')
+    ax3.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['hodl_value'].iloc[-1], color='cyan', s=10)
+    ax3.text(visualization_df['Datetime'].iloc[-1], visualization_df['hodl_value'].iloc[-1], f"{visualization_df['hodl_value'].iloc[-1]:.2f}", color='cyan')
 
     ax3.set_ylabel('EUR', fontsize=14)
 
@@ -134,7 +136,7 @@ def draw_graphs(memory_df, plot_modes):
 
 
 # Cargar los datos
-data = pd.read_csv('data/BTC_EUR_1m.csv')
+data = pd.read_csv('data/BTC_EUR_15m.csv')
 # data = data.tail(1000)
 # data = data.iloc[-2500:-1000]
 
@@ -156,7 +158,8 @@ memory_df['timestamp'] = pd.to_datetime(memory_df['timestamp']).dt.tz_localize(N
 data['Datetime'] = pd.to_datetime(data['Datetime']).dt.tz_localize(None)
 
 #Calculate extra
-visualization_df = pd.merge(data, memory_df, left_on='Datetime', right_on='timestamp', how='left')
+memory_df_executed = memory_df.drop(memory_df[memory_df['executed'] == False].index)
+visualization_df = pd.merge(data, memory_df_executed, left_on='Datetime', right_on='timestamp', how='left')
 
 initial_balance_a = 0
 visualization_df = calculate_balance_a(visualization_df, initial_balance_a)
@@ -167,4 +170,14 @@ visualization_df = calculate_total_value(visualization_df)
 #Draw
 # draw_graphs(visualization_df, ['balance_a', 'total_value', 'hodl_value', 'balance_b'])
 # draw_graphs(visualization_df, ['balance_a', 'total_value', 'balance_b'])
-draw_graphs(visualization_df, ['total_value', 'balance_b'])
+# draw_graphs(visualization_df, ['total_value', 'balance_b'])
+
+
+visualization_df['Moving_Avg'] = visualization_df['Close'].rolling(window=10).mean()
+stop_loss_df = memory_df[memory_df['type'] == 'stop_loss']
+
+extra_plots = [
+    ((stop_loss_df['timestamp'], stop_loss_df['price']), {'color': 'cyan', 's': 3, 'label': 'Stop Loss', 'type': 'scatter'}),
+    ((visualization_df['Datetime'], visualization_df['Moving_Avg']), {'color': 'orange', 'linewidth': 2, 'alpha':0.5, 'type': 'plot'}),
+]
+draw_graphs(visualization_df, ['total_value', 'balance_b'], extra_plots)
