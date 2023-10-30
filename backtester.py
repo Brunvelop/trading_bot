@@ -16,7 +16,7 @@ class Backtester:
             action_type, price, amount = action
             if action_type is not None and price is not None:
                 order_info = {}  # Aquí puedes agregar cualquier información adicional que necesites
-                executed = True  # Asumiendo que todas las acciones se ejecutan
+                executed = action_type.value in ['sell_market', 'buy_market']  # Asumiendo que todas las acciones se ejecutan
                 cost = price * amount
                 order_id = 'fake_OEU45D-6THBX-3VLOJP'  # Aquí puedes generar un ID de orden único
                 timestamp = data['Datetime'].iloc[-1]  # Aquí puedes generar un timestamp actual

@@ -113,8 +113,7 @@ class SuperStrategyFutures(Strategy):
 
     def run(self, data, memory):
         actions = []
-        open = self.get_open_trade(memory)
-
+        
         # Calculate the range of the bar as a percentage of the closing price
         bar_range = (data['High'] - data['Low']).abs() / data['Low'] * 100
 
@@ -131,19 +130,25 @@ class SuperStrategyFutures(Strategy):
         break_max_300 = data['Close'] > max_300
         break_min_300 = data['Close'] < min_300
 
+        open = self.get_open_trade(memory)
         if not open:
             if break_max_300.iloc[-1] and volatility_up:
-                actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost))
+                actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
+                actions.append((Action.STOP_LOSS, data['Low'].tail(10).min(), self.cost / data['Close'].iloc[-1]))
             elif break_min_300.iloc[-1] and volatility_up:
-                actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost))
+                actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
+                actions.append((Action.STOP_LOSS, data['High'].tail(10).max(), self.cost / data['Close'].iloc[-1]))
             else:
                 actions.append((Action.WAIT, None, None))
         elif open:
+            current_price = data['Close'].iloc[-1]
+            memory_df = pd.DataFrame(memory)
+            stop_loss_price = memory_df.loc[memory_df['type'] == 'stop_loss'].iloc[-1]['price']
             if open.get('type') == 'sell_market':
-                if data['Close'].iloc[-1] < open.get('price') *(1-0.001) or data['Close'].iloc[-1] < open.get('price') *(1+0.001):
+                if current_price > stop_loss_price or current_price < open.get('price') *(1-0.01):
                     actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1] ))
             elif open.get('type') == 'buy_market':
-                if data['Close'].iloc[-1] > open.get('price') *(1-0.001) or data['Close'].iloc[-1] > open.get('price') *(1+0.001):
+                if current_price < stop_loss_price or current_price > open.get('price') *(1+0.01):
                     actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
             else:
                 actions.append((Action.WAIT, None, None))
