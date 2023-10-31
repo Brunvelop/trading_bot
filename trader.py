@@ -16,6 +16,7 @@ class Trader:
     def execute_strategy(self, data, memory):
         #old stop loss y take profit closed? limit orders? update?
         actions = self.strategy.run(data, memory)
+        print(actions)
         for action, price, quantity in actions:
             if action == Action.BUY_MARKET:
                 self.buy_market(price, quantity)
@@ -34,7 +35,19 @@ class Trader:
 
     def buy_market(self, price, quantity):
         order = self.exange_api.create_order(self.pair, 'market', 'buy', quantity, price)
-        order_info = self.exange_api.get_order(order['id'], self.pair)
+        try:
+            order_info = self.exange_api.get_order(order['id'], self.pair)
+        except Exception as e:
+            print(f"Error al obtener la información del pedido: {e}")
+            order_info = {
+                'id': order['id'],
+                'timestamp': time.time() * 1000,  # Tiempo actual en milisegundos
+                'price': price,
+                'amount': quantity,
+                'cost': price * quantity,
+                'error': str(e),
+            }
+
         self.db.insert_order(
             order_info['id'],
             datetime.datetime.fromtimestamp(int(order_info['timestamp']/1000)).isoformat(),

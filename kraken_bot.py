@@ -18,8 +18,9 @@ def job():
     try:
         start_time = time.time()  # Inicio del tiempo de ejecución
         print("----------- RUN -----------")
-        data = trader.exange_api.get_bars(pair=trader.pair, timeframe='1m', limit=300)
+        data = trader.exange_api.get_bars(pair=trader.pair, timeframe='1m', limit=200)
         data = pd.DataFrame(data, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+        data = data.iloc[::-1] #Kraken manda invertidos los datos
         memory = trader.db.get_all_orders()
         trader.execute_strategy(data, memory)
         end_time = time.time()  # Fin del tiempo de ejecución

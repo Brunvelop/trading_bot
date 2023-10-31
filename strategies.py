@@ -58,7 +58,7 @@ class MultiMovingAverageStrategy(Strategy):
         self.windows = windows
         self.cost = cost
 
-    def can_sell(self, current_price, memory, fee=0.004):
+    def can_sell(self, current_price, memory, fee=0.002):
         # Calculamos el precio que es el porcentaje menor que el precio actual
         sell_threshold = current_price * (1 - fee)
 
@@ -87,8 +87,8 @@ class MultiMovingAverageStrategy(Strategy):
         moving_averages = [data['Close'].rolling(window=window).mean().iloc[-1] for window in self.windows]
 
         # Comprobamos si las medias móviles están alineadas
-        aligned_up = all(ma1 > ma2 for ma1, ma2 in zip(moving_averages, moving_averages[1:]))
-        aligned_down = all(ma1 < ma2 for ma1, ma2 in zip(moving_averages, moving_averages[1:]))
+        aligned_up = moving_averages[0] > moving_averages[1] > moving_averages[2] >  moving_averages[3]
+        aligned_down = moving_averages[0] < moving_averages[1] < moving_averages[2] <  moving_averages[3]
 
         # Comprobamos si el precio de cierre está por encima o por debajo de todas las medias móviles
         above_all = all(data['Close'].iloc[-1] > ma for ma in moving_averages)
