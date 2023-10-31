@@ -58,9 +58,30 @@ class MultiMovingAverageStrategy(Strategy):
         self.windows = windows
         self.cost = cost
 
+    def can_sell(self, current_price, memory, fee=0.004):
+        # Calculamos el precio que es el porcentaje menor que el precio actual
+        sell_threshold = current_price * (1 - fee)
+
+        # Convertimos la memoria en un DataFrame
+        memory_df = pd.DataFrame(memory)
+
+        # Obtenemos los trades de compra y venta
+        buy_trades = memory_df[memory_df['type'] == 'buy_market'].to_dict('records')
+        sell_trades = memory_df[memory_df['type'] == 'sell_market'].to_dict('records')
+
+        # Asociamos cada sell_trade con el primer buy_trade que tenga al menos un porcentaje de diferencia positiva
+        for sell_trade in sell_trades:
+            for buy_trade in buy_trades:
+                if sell_trade['price'] > buy_trade['price'] * (1 + fee):
+                    buy_trades.remove(buy_trade)
+                    break
+
+        # Verificamos si hay alguna compra en la memoria cuyo precio es menor que el umbral de venta
+        return any(trade['price'] < sell_threshold for trade in buy_trades)
+    
     def run(self, data, memory):
         actions = []
-        balance_b = self.get_balance_b(memory).iloc[-1]
+        balance_b = self.get_balance_b(memory)
 
         # Calculamos las medias móviles para cada ventana
         moving_averages = [data['Close'].rolling(window=window).mean() for window in self.windows]
@@ -73,7 +94,7 @@ class MultiMovingAverageStrategy(Strategy):
         above_all = all(data['Close'].iloc[-1] > ma.iloc[-1] for ma in moving_averages)
         below_all = all(data['Close'].iloc[-1] < ma.iloc[-1] for ma in moving_averages)
 
-        if above_all and aligned_up and balance_b > self.cost / data['Close'].iloc[-1]:
+        if above_all and aligned_up and balance_b > self.cost / data['Close'].iloc[-1] and self.can_sell(data['Close'].iloc[-1], memory):
             actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
         elif below_all and aligned_down:
             actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
