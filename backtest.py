@@ -61,7 +61,10 @@ def draw_graphs(visualization_df, plot_modes, extra_plots_price=None, extra_plot
     # Establecer el estilo del gráfico
     plt.style.use('ggplot')
 
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 18), sharex=True)
+    if extra_plot is None:
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
+    else:
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 18), sharex=True)
 
 
     # Dibujar los precios de cierre con un color azul oscuro
@@ -158,11 +161,11 @@ def draw_graphs(visualization_df, plot_modes, extra_plots_price=None, extra_plot
 
 # Cargar los datos
 data = pd.read_csv('data/BTC_EUR_1m.csv')
-data = data.tail(1000)
+# data = data.tail(1000)
 # data = data.iloc[-2500:-1000]
 
-strategy = strategies.SuperStrategyFutures(cost=10000)
-backtester = Backtester(strategy, fee=0.0005)
+strategy = strategies.MultiMovingAverageStrategy(cost=4)
+backtester = Backtester(strategy, fee=0.006)
 actions = backtester.simulate_real_time_execution(data, window_size = 350)
 
 #Fix data
@@ -182,25 +185,25 @@ visualization_df = calculate_balance_b(visualization_df)
 visualization_df = calculate_total_value(visualization_df)
 
 #Calculate and add Visualization extras
-visualization_df['Moving_Avg'] = visualization_df['Close'].rolling(window=10).mean()
-stop_loss_df = memory_df[memory_df['type'] == 'stop_loss']
-extra_plots_price = [
-    ((stop_loss_df['timestamp'], stop_loss_df['price']), {'color': 'cyan', 's': 3, 'label': 'Stop Loss', 'type': 'scatter'}),
-    ((visualization_df['Datetime'], visualization_df['Moving_Avg']), {'color': 'orange', 'linewidth': 2, 'alpha':0.5, 'type': 'plot'}),
-]
+# visualization_df['Moving_Avg'] = visualization_df['Close'].rolling(window=10).mean()
+# stop_loss_df = memory_df[memory_df['type'] == 'stop_loss']
+# extra_plots_price = [
+#     ((stop_loss_df['timestamp'], stop_loss_df['price']), {'color': 'cyan', 's': 3, 'label': 'Stop Loss', 'type': 'scatter'}),
+#     ((visualization_df['Datetime'], visualization_df['Moving_Avg']), {'color': 'orange', 'linewidth': 2, 'alpha':0.5, 'type': 'plot'}),
+# ]
 
-bar_range = (data['High'] - data['Low']).abs() / data['Low'] * 100
-avg_range = bar_range.ewm(span=50).mean()
-std_dev = avg_range.rolling(window=200).std()
-plot_3 = [
-    (
-        (data['Datetime'], avg_range), 
-        {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'Average Range', 'type': 'plot'}
-    ),
-    (
-        (data['Datetime'], std_dev), 
-        {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'Standard Deviation', 'type': 'plot'}
-    ),
-]
-# draw_graphs(visualization_df, ['balance_a', 'total_value', 'hodl_value', 'balance_b'])
-draw_graphs(visualization_df, ['total_value', 'balance_b'], extra_plots_price, plot_3)
+# bar_range = (data['High'] - data['Low']).abs() / data['Low'] * 100
+# avg_range = bar_range.ewm(span=50).mean()
+# std_dev = avg_range.rolling(window=200).std()
+# plot_3 = [
+#     (
+#         (data['Datetime'], avg_range), 
+#         {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'Average Range', 'type': 'plot'}
+#     ),
+#     (
+#         (data['Datetime'], std_dev), 
+#         {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'Standard Deviation', 'type': 'plot'}
+#     ),
+# ]
+draw_graphs(visualization_df, ['balance_a', 'total_value', 'hodl_value', 'balance_b'])
+# draw_graphs(visualization_df, ['total_value', 'balance_b'], extra_plots_price, plot_3)

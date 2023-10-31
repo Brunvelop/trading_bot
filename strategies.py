@@ -84,15 +84,15 @@ class MultiMovingAverageStrategy(Strategy):
         balance_b = self.get_balance_b(memory)
 
         # Calculamos las medias móviles para cada ventana
-        moving_averages = [data['Close'].rolling(window=window).mean() for window in self.windows]
+        moving_averages = [data['Close'].rolling(window=window).mean().iloc[-1] for window in self.windows]
 
         # Comprobamos si las medias móviles están alineadas
-        aligned_up = all(ma1.iloc[-1] > ma2.iloc[-1] for ma1, ma2 in zip(moving_averages, moving_averages[1:]))
-        aligned_down = all(ma1.iloc[-1] < ma2.iloc[-1] for ma1, ma2 in zip(moving_averages, moving_averages[1:]))
+        aligned_up = all(ma1 > ma2 for ma1, ma2 in zip(moving_averages, moving_averages[1:]))
+        aligned_down = all(ma1 < ma2 for ma1, ma2 in zip(moving_averages, moving_averages[1:]))
 
         # Comprobamos si el precio de cierre está por encima o por debajo de todas las medias móviles
-        above_all = all(data['Close'].iloc[-1] > ma.iloc[-1] for ma in moving_averages)
-        below_all = all(data['Close'].iloc[-1] < ma.iloc[-1] for ma in moving_averages)
+        above_all = all(data['Close'].iloc[-1] > ma for ma in moving_averages)
+        below_all = all(data['Close'].iloc[-1] < ma for ma in moving_averages)
 
         if above_all and aligned_up and balance_b > self.cost / data['Close'].iloc[-1] and self.can_sell(data['Close'].iloc[-1], memory):
             actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))

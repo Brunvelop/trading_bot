@@ -1,10 +1,9 @@
-from trader import Trader
 import time
 import schedule
 
-from okx_api import OKXAPI
 import pandas as pd
 
+from trader import Trader
 from kraken_api import KrakenAPI
 from strategies import MultiMovingAverageStrategy 
 
