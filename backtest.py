@@ -37,12 +37,15 @@ def calculate_balance_a(visualization_df, initial_balance_a = 10000):
     
     # Invertir el costo para las operaciones de venta
     visualization_df.loc[visualization_df['type'] == 'sell_market', 'cost'] *= -1
+
+    # Crear una nueva columna 'fees' que contenga las tarifas de cada operación
+    visualization_df['fees'] = visualization_df[visualization_df['order_info'].notna()].apply(lambda row: row['order_info'].get('fees'), axis=1)
+    visualization_df['fees'] = visualization_df['fees'].fillna(0)
+    # Calcular el balance acumulativo teniendo en cuenta las tarifas
+    visualization_df['balance_a'] = initial_balance_a - visualization_df['cost'].cumsum() - visualization_df['fees'].cumsum()
     
-    # Calcular el balance acumulativo
-    visualization_df['balance_a'] = initial_balance_a - visualization_df['cost'].cumsum()
-    
-    # Eliminar la columna 'cost' ya que no es necesaria
-    visualization_df.drop(columns=['cost'], inplace=True)
+    # Eliminar las columnas 'cost' y 'fees' ya que no son necesarias
+    visualization_df.drop(columns=['cost', 'fees'], inplace=True)
     
     return visualization_df
 
@@ -158,8 +161,8 @@ data = pd.read_csv('data/BTC_EUR_1m.csv')
 data = data.tail(1000)
 # data = data.iloc[-2500:-1000]
 
-strategy = strategies.SuperStrategyFutures(cost=100000)
-backtester = Backtester(strategy)
+strategy = strategies.SuperStrategyFutures(cost=10000)
+backtester = Backtester(strategy, fee=0.0005)
 actions = backtester.simulate_real_time_execution(data, window_size = 350)
 
 #Fix data

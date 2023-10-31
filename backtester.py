@@ -5,8 +5,9 @@ from tqdm import tqdm
 import strategies
 
 class Backtester:
-    def __init__(self, strategy):
+    def __init__(self, strategy, fee=0.0):
         self.strategy = strategy
+        self.fee = fee
         self.memory = []
 
     def execute_strategy(self, data):
@@ -18,6 +19,7 @@ class Backtester:
                 order_info = {}  # Aquí puedes agregar cualquier información adicional que necesites
                 executed = action_type.value in ['sell_market', 'buy_market']  # Asumiendo que todas las acciones se ejecutan
                 cost = price * amount
+                order_info['fees'] = cost * self.fee
                 order_id = 'fake_OEU45D-6THBX-3VLOJP'  # Aquí puedes generar un ID de orden único
                 timestamp = data['Datetime'].iloc[-1]  # Aquí puedes generar un timestamp actual
                 pair = 'fake_BTC/EUR'  # Aquí puedes usar el par de divisas que estás utilizando
