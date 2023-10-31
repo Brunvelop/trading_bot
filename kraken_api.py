@@ -38,7 +38,7 @@ class KrakenAPI:
         exchange = self.connect_api()
         return exchange.fetch_ohlcv(pair, timeframe=timeframe, limit=limit)[::-1]
 
-    def get_order(self, order_id):
+    def get_order(self, order_id, symbol=''):
         exchange = self.connect_api()
         return exchange.fetch_order(order_id)
 
