@@ -116,14 +116,17 @@ if __name__ == "__main__":
     )
 
     def job():
-        start_time = time.time()  # Inicio del tiempo de ejecución
-        print("----------- RUN -----------")
-        data = trader.exange_api.get_bars(pair=trader.pair, timeframe='1m', limit=300)
-        data = pd.DataFrame(data, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
-        memory = trader.db.get_all_orders()
-        trader.execute_strategy(data, memory)
-        end_time = time.time()  # Fin del tiempo de ejecución
-        print("Tiempo de ejecución: {} segundos".format(end_time - start_time))
+        try:
+            start_time = time.time()  # Inicio del tiempo de ejecución
+            print("----------- RUN -----------")
+            data = trader.exange_api.get_bars(pair=trader.pair, timeframe='1m', limit=300)
+            data = pd.DataFrame(data, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+            memory = trader.db.get_all_orders()
+            trader.execute_strategy(data, memory)
+            end_time = time.time()  # Fin del tiempo de ejecución
+            print("Tiempo de ejecución: {} segundos".format(end_time - start_time))
+        except Exception as e:
+            print("Se produjo un error: ", e)
 
     schedule.every().minute.at(":06").do(job)
 

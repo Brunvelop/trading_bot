@@ -138,8 +138,8 @@ class SuperStrategyFutures(Strategy):
         avg_ranges = [bar_range.ewm(span=window).mean() for window in self.windows]
 
         # Calculate the maximum and minimum of the last 300 bars, excluding the current bar
-        max_300 = data['Close'][-302:-2].max()
-        min_300 = data['Close'][-302:-2].min()
+        max_300 = data['Close'][-302:-3].max()
+        min_300 = data['Close'][-302:-3].min()
 
         # Add conditions to break the maximum or minimum of the last 300 bars
         break_max_300 = data['Close'] > max_300
