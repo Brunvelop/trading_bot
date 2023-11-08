@@ -161,7 +161,7 @@ def draw_graphs(visualization_df, plot_modes, extra_plots_price=None, extra_plot
 
 # Cargar los datos
 data = pd.read_csv('data/BTC_EUR_1m.csv')
-# data = data.tail(9000)
+data = data.tail(1000)
 # data = data.iloc[-2500:-1000]
 
 fee = 0.0018
@@ -184,6 +184,22 @@ visualization_df = calculate_balance_a(visualization_df, initial_balance_a)
 visualization_df = calculate_hodl_value(visualization_df, initial_balance_a)
 visualization_df = calculate_balance_b(visualization_df)
 visualization_df = calculate_total_value(visualization_df)
+
+# Agregar extra_plots_price
+upper_line, lower_line = strategy.calculate_standard_deviations(visualization_df)
+extra_plots_price = [
+    ((visualization_df['Datetime'], upper_line), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'Upper Line', 'type': 'plot'}),
+    ((visualization_df['Datetime'], lower_line), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'Lower Line', 'type': 'plot'}),
+]
+
+draw_graphs(visualization_df, ['balance_a', 'total_value', 'balance_b'], extra_plots_price)
+
+
+
+
+
+
+
 
 # #Calculate and add Visualization extras
 # visualization_df['Moving_Avg'] = visualization_df['Close'].rolling(window=10).mean()
@@ -209,17 +225,4 @@ visualization_df = calculate_total_value(visualization_df)
 # draw_graphs(visualization_df, ['total_value', 'balance_b'], extra_plots_price, plot_3)
 
 # Calcular sma_200 y std_dev
-sma_200 = visualization_df['Close'].rolling(window=200).mean()
-std_dev = visualization_df['Close'].rolling(window=200).std()
-n = 3
 
-# Calcular las líneas de sma_200 + n*std_dev y sma_200 - n*std_dev
-upper_line = sma_200 + n*std_dev
-lower_line = sma_200 - n*std_dev
-
-# Agregar las líneas a extra_plots_price
-extra_plots_price = [
-    ((visualization_df['Datetime'], upper_line), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'Upper Line', 'type': 'plot'}),
-    ((visualization_df['Datetime'], lower_line), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'Lower Line', 'type': 'plot'}),
-]
-draw_graphs(visualization_df, ['balance_a', 'total_value', 'balance_b'], extra_plots_price)

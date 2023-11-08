@@ -133,20 +133,26 @@ class StandardDeviationStrategy(Strategy):
         # Verificamos si hay alguna compra en la memoria cuyo precio es menor que el umbral de venta
         return any(trade['price'] < sell_threshold for trade in buy_trades)
     
+    def calculate_standard_deviations(self, data, n=1):
+        price = data['Close']
+        sma_200 = price.rolling(window=200).mean()
+        std_dev = price.rolling(window=200).std()
+
+        upper_std_dev = sma_200 + n*std_dev
+        lower_std_dev = sma_200 - n*std_dev
+
+        return upper_std_dev, lower_std_dev
+    
     def run(self, data, memory):
         actions = []
         balance_b = self.get_balance_b(memory)
-        price = data['Close']
 
-        sma_200 = price.rolling(window=200).mean()
-        std_dev = price.rolling(window=200).std()
-        n = 3
+        upper_std_dev, lower_std_dev = self.calculate_standard_deviations(data)
 
-        # Condiciones para colorear el fondo
-        sell_condiction = data['Close'] > sma_200 + n*std_dev
-        buy_condition = data['Close'] < sma_200 - n*std_dev
+        sell_condition = data['Close'] > upper_std_dev
+        buy_condition = data['Close'] < lower_std_dev
 
-        if sell_condiction.iloc[-1] and self.can_sell(data['Close'].iloc[-1], memory) and balance_b > self.cost / data['Close'].iloc[-1]:
+        if sell_condition.iloc[-1] and self.can_sell(data['Close'].iloc[-1], memory) and balance_b > self.cost / data['Close'].iloc[-1]:
             actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
         elif buy_condition.iloc[-1]:
             actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
