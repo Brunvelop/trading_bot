@@ -4,11 +4,12 @@ import schedule
 import pandas as pd
 
 from trader import Trader
-from kraken_api import KrakenAPI
+from exchange_apis import KrakenAPI
 from strategies import MultiMovingAverageStrategy 
 
+fee = 0.0018
 trader = Trader(
-    strategy= MultiMovingAverageStrategy(cost=4),
+    strategy= MultiMovingAverageStrategy(cost=4, fee=2*fee),
     db_name = 'kraken_btc_eur_MultiMovingAverageStrategy',
     exange_api = KrakenAPI(),
     pair = 'BTC/EUR',
