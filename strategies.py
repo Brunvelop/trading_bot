@@ -133,7 +133,7 @@ class StandardDeviationStrategy(Strategy):
         # Verificamos si hay alguna compra en la memoria cuyo precio es menor que el umbral de venta
         return any(trade['price'] < sell_threshold for trade in buy_trades)
     
-    def calculate_standard_deviations(self, data, n=1):
+    def calculate_standard_deviations(self, data, n=3):
         price = data['Close']
         sma_200 = price.rolling(window=200).mean()
         std_dev = price.rolling(window=200).std()

@@ -6,6 +6,38 @@ import matplotlib.dates as mdates
 from backtester import Backtester
 import strategies
 
+def load_data(filename, start=None, end=None):
+    data = pd.read_csv(filename)
+    
+    if start is not None and end is not None:
+        data = data.iloc[start:end]
+    elif start is not None:
+        data = data.iloc[start:]
+    elif end is not None:
+        data = data.iloc[:end]
+    
+    return data
+
+def fix_dates(data, backtester):
+    memory_df = pd.DataFrame(backtester.memory)
+    memory_df['timestamp'] = pd.to_datetime(memory_df['timestamp']).dt.tz_localize(None)
+    data['Datetime'] = pd.to_datetime(data['Datetime']).dt.tz_localize(None)
+    return memory_df, data
+
+def generate_visualization_df(data, memory_df, plot_modes, initial_balance_a=0):
+    memory_df_executed = memory_df.drop(memory_df[memory_df['executed'] == False].index)
+    visualization_df = pd.merge(data, memory_df_executed, left_on='Datetime', right_on='timestamp', how='left')
+
+    if 'hodl_value' in plot_modes:
+        visualization_df = calculate_hodl_value(visualization_df, initial_balance_a)
+    if 'balance_a' in plot_modes or 'total_value' in plot_modes:
+        visualization_df = calculate_balance_a(visualization_df, initial_balance_a)
+    if 'balance_b' in plot_modes or 'total_value' in plot_modes:
+        visualization_df = calculate_balance_b(visualization_df)
+    if 'total_value' in plot_modes:
+        visualization_df = calculate_total_value(visualization_df)
+
+    return visualization_df
 
 def calculate_total_value(visualization_df):
     # Crear una nueva columna 'total_value' en visualization_df
@@ -160,30 +192,23 @@ def draw_graphs(visualization_df, plot_modes, extra_plots_price=None, extra_plot
 
 
 # Cargar los datos
-data = pd.read_csv('data/BTC_EUR_1m.csv')
-data = data.tail(1000)
-# data = data.iloc[-2500:-1000]
+data = load_data('data/BTC_EUR_1m.csv', start=-1000, end=None)
 
+#Variables
 fee = 0.0018
+initial_balance_a = 0
+plot_modes = ['', 'total_value', ''] # plot_modes = ['balance_a', 'total_value', 'hodl_value', 'balance_b']
+
+#Run strategy
 strategy = strategies.StandardDeviationStrategy(cost=4, fee=2*fee)
 backtester = Backtester(strategy, fee=fee)
 actions = backtester.simulate_real_time_execution(data, window_size = 350)
 
-#Fix data
-memory_df = pd.DataFrame(backtester.memory)
-memory_df['timestamp'] = pd.to_datetime(memory_df['timestamp']).dt.tz_localize(None)
-memory_df['timestamp'] = pd.to_datetime(memory_df['timestamp']).dt.tz_localize(None)
-data['Datetime'] = pd.to_datetime(data['Datetime']).dt.tz_localize(None)
+#Fix dates
+memory_df, data = fix_dates(data, backtester)
 
 #Generate Visualization df
-memory_df_executed = memory_df.drop(memory_df[memory_df['executed'] == False].index)
-visualization_df = pd.merge(data, memory_df_executed, left_on='Datetime', right_on='timestamp', how='left')
-
-initial_balance_a = 0
-visualization_df = calculate_balance_a(visualization_df, initial_balance_a)
-visualization_df = calculate_hodl_value(visualization_df, initial_balance_a)
-visualization_df = calculate_balance_b(visualization_df)
-visualization_df = calculate_total_value(visualization_df)
+visualization_df = generate_visualization_df(data, memory_df, plot_modes, initial_balance_a=initial_balance_a)
 
 # Agregar extra_plots_price
 upper_line, lower_line = strategy.calculate_standard_deviations(visualization_df)
@@ -192,7 +217,12 @@ extra_plots_price = [
     ((visualization_df['Datetime'], lower_line), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'Lower Line', 'type': 'plot'}),
 ]
 
-draw_graphs(visualization_df, ['balance_a', 'total_value', 'balance_b'], extra_plots_price)
+plot_3 = [
+    ((data['Datetime'], upper_line), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'Average Range', 'type': 'plot'}),
+    ((data['Datetime'], lower_line), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'Standard Deviation', 'type': 'plot'}),
+]
+
+draw_graphs(visualization_df, plot_modes, extra_plots_price, plot_3)
 
 
 
