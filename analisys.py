@@ -216,4 +216,4 @@ plot_3 = ([
     ((data['Datetime'], moving_avg_100), {'color': 'purple', 'linewidth': 2, 'alpha':0.5, 'label': 'Moving Avg 100', 'type': 'plot'}),
     ((data['Datetime'], moving_avg_200), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'Moving Avg 200', 'type': 'plot'}),
 ])
-draw_graphs(visualization_df, ['balance_a', 'total_value', 'hodl_value', 'balance_b'], plot_3)
+draw_graphs(visualization_df, ['balance_a', 'total_value', 'balance_b'], plot_3)

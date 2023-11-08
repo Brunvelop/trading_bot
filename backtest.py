@@ -161,11 +161,12 @@ def draw_graphs(visualization_df, plot_modes, extra_plots_price=None, extra_plot
 
 # Cargar los datos
 data = pd.read_csv('data/BTC_EUR_1m.csv')
-# data = data.tail(1000)
+# data = data.tail(9000)
 # data = data.iloc[-2500:-1000]
 
-strategy = strategies.MultiMovingAverageStrategy(cost=4)
-backtester = Backtester(strategy, fee=0.006)
+fee = 0.0018
+strategy = strategies.StandardDeviationStrategy(cost=4, fee=2*fee)
+backtester = Backtester(strategy, fee=fee)
 actions = backtester.simulate_real_time_execution(data, window_size = 350)
 
 #Fix data
@@ -184,7 +185,7 @@ visualization_df = calculate_hodl_value(visualization_df, initial_balance_a)
 visualization_df = calculate_balance_b(visualization_df)
 visualization_df = calculate_total_value(visualization_df)
 
-#Calculate and add Visualization extras
+# #Calculate and add Visualization extras
 # visualization_df['Moving_Avg'] = visualization_df['Close'].rolling(window=10).mean()
 # stop_loss_df = memory_df[memory_df['type'] == 'stop_loss']
 # extra_plots_price = [
@@ -205,5 +206,20 @@ visualization_df = calculate_total_value(visualization_df)
 #         {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'Standard Deviation', 'type': 'plot'}
 #     ),
 # ]
-draw_graphs(visualization_df, ['balance_a', 'total_value', 'hodl_value', 'balance_b'])
 # draw_graphs(visualization_df, ['total_value', 'balance_b'], extra_plots_price, plot_3)
+
+# Calcular sma_200 y std_dev
+sma_200 = visualization_df['Close'].rolling(window=200).mean()
+std_dev = visualization_df['Close'].rolling(window=200).std()
+n = 3
+
+# Calcular las líneas de sma_200 + n*std_dev y sma_200 - n*std_dev
+upper_line = sma_200 + n*std_dev
+lower_line = sma_200 - n*std_dev
+
+# Agregar las líneas a extra_plots_price
+extra_plots_price = [
+    ((visualization_df['Datetime'], upper_line), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'Upper Line', 'type': 'plot'}),
+    ((visualization_df['Datetime'], lower_line), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'Lower Line', 'type': 'plot'}),
+]
+draw_graphs(visualization_df, ['balance_a', 'total_value', 'balance_b'], extra_plots_price)
