@@ -54,13 +54,14 @@ class MovingAverageStrategy(Strategy):
         return actions
     
 class MultiMovingAverageStrategy(Strategy):
-    def __init__(self, windows=[10, 50, 100, 200], cost=10):
+    def __init__(self, windows=[10, 50, 100, 200], cost=10, fee=0.004):
         self.windows = windows
         self.cost = cost
+        self.fee = fee
 
-    def can_sell(self, current_price, memory, fee=0.002):
+    def can_sell(self, current_price, memory):
         # Calculamos el precio que es el porcentaje menor que el precio actual
-        sell_threshold = current_price * (1 - fee)
+        sell_threshold = current_price * (1 - self.fee)
 
         # Convertimos la memoria en un DataFrame
         memory_df = pd.DataFrame(memory)
@@ -72,7 +73,7 @@ class MultiMovingAverageStrategy(Strategy):
         # Asociamos cada sell_trade con el primer buy_trade que tenga al menos un porcentaje de diferencia positiva
         for sell_trade in sell_trades:
             for buy_trade in buy_trades:
-                if sell_trade['price'] > buy_trade['price'] * (1 + fee):
+                if sell_trade['price'] > buy_trade['price'] * (1 + self.fee):
                     buy_trades.remove(buy_trade)
                     break
 
@@ -97,6 +98,57 @@ class MultiMovingAverageStrategy(Strategy):
         if above_all and aligned_up and balance_b > self.cost / data['Close'].iloc[-1] and self.can_sell(data['Close'].iloc[-1], memory):
             actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
         elif below_all and aligned_down:
+            actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
+        else:
+            actions.append((Action.WAIT, None, None))
+
+        return actions
+    
+class StandardDeviationStrategy(Strategy):
+    def __init__(self, cost=10, fee=0.004):
+        self.cost = cost
+        self.fee = fee
+
+    def can_sell(self, current_price, memory):
+        if not memory:
+            return False
+
+        # Calculamos el precio que es el porcentaje menor que el precio actual
+        sell_threshold = current_price * (1 - self.fee)
+
+        # Convertimos la memoria en un DataFrame
+        memory_df = pd.DataFrame(memory)
+
+        # Obtenemos los trades de compra y venta
+        buy_trades = memory_df[memory_df['type'] == 'buy_market'].to_dict('records')
+        sell_trades = memory_df[memory_df['type'] == 'sell_market'].to_dict('records')
+
+        # Asociamos cada sell_trade con el primer buy_trade que tenga al menos un porcentaje de diferencia positiva
+        for sell_trade in sell_trades:
+            for buy_trade in buy_trades:
+                if sell_trade['price'] > buy_trade['price'] * (1 + self.fee):
+                    buy_trades.remove(buy_trade)
+                    break
+
+        # Verificamos si hay alguna compra en la memoria cuyo precio es menor que el umbral de venta
+        return any(trade['price'] < sell_threshold for trade in buy_trades)
+    
+    def run(self, data, memory):
+        actions = []
+        balance_b = self.get_balance_b(memory)
+        price = data['Close']
+
+        sma_200 = price.rolling(window=200).mean()
+        std_dev = price.rolling(window=200).std()
+        n = 3
+
+        # Condiciones para colorear el fondo
+        sell_condiction = data['Close'] > sma_200 + n*std_dev
+        buy_condition = data['Close'] < sma_200 - n*std_dev
+
+        if sell_condiction.iloc[-1] and self.can_sell(data['Close'].iloc[-1], memory) and balance_b > self.cost / data['Close'].iloc[-1]:
+            actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
+        elif buy_condition.iloc[-1]:
             actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
         else:
             actions.append((Action.WAIT, None, None))
