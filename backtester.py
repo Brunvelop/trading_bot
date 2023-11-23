@@ -10,6 +10,21 @@ class Backtester:
         self.fee = fee
         self.memory = []
 
+    def check_stop_loss(self, data, action):
+        current_price = data['Close'].iloc[-1]
+        memory_df = pd.DataFrame(self.memory)
+        stop_loss_price = memory_df.loc[memory_df['type'] == 'stop_loss'].iloc[-1]['price']
+        action_type, price, amount = action
+
+        if action_type.value == 'sell_market':
+            if current_price > stop_loss_price:
+                return (action_type, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1])
+        elif action_type.value == 'buy_market':
+            if current_price < stop_loss_price:
+                return (action_type, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1])
+        else:
+            return (action_type, None, None)
+
     def execute_strategy(self, data):
         actions = self.strategy.run(data, self.memory)
         

@@ -30,6 +30,25 @@ class Strategy(ABC):
         total_balance = total_bought - total_sold
 
         return total_balance
+    
+    def get_balance_a(self, memory, initial_balance_a=0):
+        df = pd.DataFrame(memory)
+
+        if df.empty:
+            return initial_balance_a
+
+        df['cost'] = df['price'] * df['amount']
+        df.loc[df['type'] == 'sell_market', 'cost'] *= -1
+
+        df['fees'] = df[df['order_info'].notna()].apply(lambda row: row['order_info'].get('fees'), axis=1)
+        df['fees'] = df['fees'].fillna(0)
+
+        total_cost = df['cost'].sum()
+        total_fees = df['fees'].sum()
+
+        total_balance = initial_balance_a - total_cost - total_fees
+
+        return total_balance
 
 class MovingAverageStrategy(Strategy):
     def __init__(self, window_size = 200, cost = 10):
@@ -162,16 +181,15 @@ class StandardDeviationStrategy(Strategy):
         return actions
     
 class SuperStrategyFutures(Strategy):
-    def __init__(self, windows=[10, 50, 100, 200], cost=10):
-        self.windows = windows
+    def __init__(self, cost=10000, fee = 0):
         self.cost = cost
+        self.fee = fee
     
-    def update_stop_loss(self, data, memory):
+    def update_stop_loss(self, data, memory, threshold = 0):
         current_price = data['Close'].iloc[-1]
         open = self.get_open_trade(memory)
         data['moving_average'] = data['Close'].rolling(window=10).mean()
 
-        threshold = 0.0000
         if open.get('type') == 'sell_market':
             if current_price < data['moving_average'].iloc[-1] and open.get('price') > data['moving_average'].iloc[-1]*(1+threshold):
                 return (Action.STOP_LOSS, data['moving_average'].iloc[-1], self.cost / data['Close'].iloc[-1])
@@ -203,134 +221,41 @@ class SuperStrategyFutures(Strategy):
         # Si no hay operaciones abiertas, devolvemos None
         else:
             return None
-
-    def run(self, data, memory):
-        actions = []
-        
-        # Calculate the range of the bar as a percentage of the closing price
+    
+    def calculate_std_dev_and_avg_range(self, data):
         bar_range = (data['High'] - data['Low']).abs() / data['Low'] * 100
         avg_range = bar_range.ewm(span=10).mean()
         std_dev = avg_range.rolling(window=200).std()
-        volatility_up = (avg_range > std_dev).iloc[-1]
+        return std_dev, avg_range
 
-        # Calculate the exponential moving averages of BarRange
-        avg_ranges = [bar_range.ewm(span=window).mean() for window in self.windows]
-
-        # Calculate the maximum and minimum of the last 300 bars, excluding the current bar
+    def calculate_max_min_300(self, data):
         max_300 = data['Close'][-302:-3].max()
         min_300 = data['Close'][-302:-3].min()
-
-        # Add conditions to break the maximum or minimum of the last 300 bars
-        break_max_300 = data['Close'] > max_300
-        break_min_300 = data['Close'] < min_300
-
-        open = self.get_open_trade(memory)
-        if not open:
-            if break_max_300.iloc[-1] and volatility_up:
-                actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
-                actions.append((Action.STOP_LOSS, data['Low'].tail(10).min(), self.cost / data['Close'].iloc[-1]))
-            elif break_min_300.iloc[-1] and volatility_up:
-                actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
-                actions.append((Action.STOP_LOSS, data['High'].tail(10).max(), self.cost / data['Close'].iloc[-1]))
-            else:
-                actions.append((Action.WAIT, None, None))
-        elif open:
-            current_price = data['Close'].iloc[-1]
-            memory_df = pd.DataFrame(memory)
-            stop_loss_price = memory_df.loc[memory_df['type'] == 'stop_loss'].iloc[-1]['price']
-            if open.get('type') == 'sell_market':
-                if current_price > stop_loss_price:
-                    actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1] ))
-            elif open.get('type') == 'buy_market':
-                if current_price < stop_loss_price:
-                    actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
-            else:
-                actions.append((Action.WAIT, None, None))
-            
-            update = self.update_stop_loss(data, memory)
-            if update:
-                actions.append(update)
-
-
-        return actions
-    
-
-
-
-class SuperStrategyFutures2(Strategy):
-    def __init__(self, windows=[10, 50, 100, 200], cost=10):
-        self.windows = windows
-        self.cost = cost
-    
-    def update_stop_loss(self, data, memory):
-        current_price = data['Close'].iloc[-1]
-        open = self.get_open_trade(memory)
-        data['moving_average'] = data['Close'].rolling(window=10).mean()
-
-        threshold = 0.0000
-        if open.get('type') == 'sell_market':
-            if current_price < data['moving_average'].iloc[-1] and open.get('price') > data['moving_average'].iloc[-1]*(1+threshold):
-                return (Action.STOP_LOSS, data['moving_average'].iloc[-1], self.cost / data['Close'].iloc[-1])
-        elif open.get('type') == 'buy_market':
-            if current_price > data['moving_average'].iloc[-1] and open.get('price') < data['moving_average'].iloc[-1]*(1-threshold):
-                return (Action.STOP_LOSS, data['moving_average'].iloc[-1], self.cost / data['Close'].iloc[-1])
-        return None
-
-    def get_open_trade(self, memory):
-        # Convertimos la lista de memoria en un DataFrame de pandas
-        df = pd.DataFrame(memory)
-
-        if df.empty:
-            return None
-
-        # Filtramos las órdenes que han sido ejecutadas
-        executed_orders = df[df['executed'] == True]
-
-        # Contamos las órdenes de compra y venta
-        buy_count = len(executed_orders[executed_orders['type'] == 'buy_market'])
-        sell_count = len(executed_orders[executed_orders['type'] == 'sell_market'])
-
-        # Si hay más compras que ventas, entonces la operación abierta es una compra
-        if buy_count > sell_count:
-            return executed_orders[executed_orders['type'] == 'buy_market'].iloc[-1].to_dict()
-        # Si hay más ventas que compras, entonces la operación abierta es una venta
-        elif sell_count > buy_count:
-            return executed_orders[executed_orders['type'] == 'sell_market'].iloc[-1].to_dict()
-        # Si no hay operaciones abiertas, devolvemos None
-        else:
-            return None
+        return max_300, min_300
 
     def run(self, data, memory):
         actions = []
         
         # Calculate the range of the bar as a percentage of the closing price
-        bar_range = (data['High'] - data['Low']).abs() / data['Low'] * 100
-        avg_range = bar_range.ewm(span=10).mean()
-        std_dev_volatility = avg_range.rolling(window=200).std()
-        volatility_up = (avg_range > std_dev_volatility).iloc[-1]
+        std_dev, avg_range = self.calculate_std_dev_and_avg_range(data)
+        max_300, min_300 = self.calculate_max_min_300(data)
 
+        # Add conditions to break the maximum or minimum of the last 300 bars
+        volatility_up = (avg_range > 3*std_dev).iloc[-1]
+        break_max_300 = data['Close'] > max_300
+        break_min_300 = data['Close'] < min_300
 
-        max_10 = data['Close'][-12:-2].max()
-        min_10 = data['Close'][-12:-2].min()
-        sma_200 = data['Close'].rolling(window=200).mean()
-        std_dev_price = data['Close'].rolling(window=200).std()
-        space_to_expand_up = ((sma_200 + 3 * std_dev_price) - data['Close'] > data['Close'] - min_10).iloc[-1]
-        space_to_expand_down = (data['Close'] - (sma_200 - 3 * std_dev_price) > max_10 - data['Close']).iloc[-1]
-
-        # Calculate the maximum and minimum of the last 300 bars, excluding the current bar
-        max_300 = data['Close'][-302:-2].max()
-        min_300 = data['Close'][-302:-2].min()
-        break_max_300 = (data['Close'] > max_300).iloc[-1]
-        break_min_300 = (data['Close'] < min_300).iloc[-1]
+        balance_b = self.get_balance_b(memory)
+        balance_a = self.get_balance_a(memory)
 
         open = self.get_open_trade(memory)
-        if not open:
-            if break_max_300 and volatility_up and space_to_expand_up:
+        if True: #not open:
+            if break_min_300.iloc[-1] and volatility_up:
                 actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
-                actions.append((Action.STOP_LOSS, data['Low'].tail(10).min(), self.cost / data['Close'].iloc[-1]))
-            elif break_min_300 and volatility_up and space_to_expand_down:
+                # actions.append((Action.STOP_LOSS, data['Close'].iloc[-1]*(1-0.01), self.cost / data['Close'].iloc[-1]))
+            elif break_max_300.iloc[-1] and volatility_up:
                 actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
-                actions.append((Action.STOP_LOSS, data['High'].tail(10).max(), self.cost / data['Close'].iloc[-1]))
+                # actions.append((Action.STOP_LOSS, data['Close'].iloc[-1]*(1+0.01), self.cost / data['Close'].iloc[-1]))
             else:
                 actions.append((Action.WAIT, None, None))
         elif open:
@@ -346,9 +271,9 @@ class SuperStrategyFutures2(Strategy):
             else:
                 actions.append((Action.WAIT, None, None))
             
-            update = self.update_stop_loss(data, memory)
-            if update:
-                actions.append(update)
+            # update = self.update_stop_loss(data, memory)
+            # if update:
+            #     actions.append(update)
 
 
         return actions

@@ -192,15 +192,15 @@ def draw_graphs(visualization_df, plot_modes, extra_plots_price=None, extra_plot
 
 
 # Cargar los datos
-data = load_data('data/BTC_EUR_1m.csv', start=-1000, end=None)
+data = load_data('data/BTC_EUR_1m.csv', start=None, end=None)
 
 #Variables
 fee = 0.0018
 initial_balance_a = 0
-plot_modes = ['', 'total_value', ''] # plot_modes = ['balance_a', 'total_value', 'hodl_value', 'balance_b']
+plot_modes = ['balance_a', 'total_value', 'balance_b'] # plot_modes = ['balance_a', 'total_value', 'hodl_value', 'balance_b']
 
 #Run strategy
-strategy = strategies.StandardDeviationStrategy(cost=4, fee=2*fee)
+strategy = strategies.SuperStrategyFutures(cost=100, fee=2*fee)
 backtester = Backtester(strategy, fee=fee)
 actions = backtester.simulate_real_time_execution(data, window_size = 350)
 
@@ -211,15 +211,26 @@ memory_df, data = fix_dates(data, backtester)
 visualization_df = generate_visualization_df(data, memory_df, plot_modes, initial_balance_a=initial_balance_a)
 
 # Agregar extra_plots_price
-upper_line, lower_line = strategy.calculate_standard_deviations(visualization_df)
+max_300_values = []
+min_300_values = []
+
+std_dev_values, avg_range_values = strategy.calculate_std_dev_and_avg_range(visualization_df)
+for i in range(len(visualization_df)):
+    sub_df = data.iloc[:i+1]
+    max_300, min_300 = strategy.calculate_max_min_300(sub_df)
+    
+    max_300_values.append(max_300[0] if isinstance(max_300, list) else max_300)
+    min_300_values.append(min_300[0] if isinstance(min_300, list) else min_300)
+
+
 extra_plots_price = [
-    ((visualization_df['Datetime'], upper_line), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'Upper Line', 'type': 'plot'}),
-    ((visualization_df['Datetime'], lower_line), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'Lower Line', 'type': 'plot'}),
+    ((visualization_df['Datetime'], max_300_values), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'Upper Line', 'type': 'plot'}),
+    ((visualization_df['Datetime'], min_300_values), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'Lower Line', 'type': 'plot'}),
 ]
 
 plot_3 = [
-    ((data['Datetime'], upper_line), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'Average Range', 'type': 'plot'}),
-    ((data['Datetime'], lower_line), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'Standard Deviation', 'type': 'plot'}),
+    ((visualization_df['Datetime'], 3*std_dev_values), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'tandard Deviation', 'type': 'plot'}),
+    ((visualization_df['Datetime'], avg_range_values), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'Average RangeS', 'type': 'plot'}),
 ]
 
 draw_graphs(visualization_df, plot_modes, extra_plots_price, plot_3)
