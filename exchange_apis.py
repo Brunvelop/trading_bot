@@ -90,7 +90,7 @@ class OKXAPI(BaseExchangeAPI):
         exchange = self.connect_api()
         params = {
             'marginMode': 'isolated',
-            'leverage': '50'
+            'leverage': '3'
         }
         return exchange.create_order(pair, order_type, side, amount, price, params)
 
@@ -117,9 +117,10 @@ class OKXAPI(BaseExchangeAPI):
 
 # api = OKXAPI()
 # pair = 'BTC/USD:BTC'
-# pair = 'ORDI/USDT:USDT'
+# pair = 'BTC/USDT:USDT'
 # price = api.get_latest_price(pair=pair)
 # open_orders = api.fetchPosition(pair) # Este es un valor de ejemplo, debes decidir el tuyo
-# order = api.create_order_with_stop_loss(pair=pair, order_type='conditional', side='sell', amount=1, price=price*0.99, stop_loss_price=price*0.99)
+# # order = api.create_order_with_stop_loss(pair=pair, order_type='conditional', side='sell', amount=1, price=price*0.99, stop_loss_price=price*0.99)
+# order = api.create_order(pair, order_type='market', side='sell', amount=1, price=price)
 # order_info = api.get_order(order.get('info').get('ordId'), pair)
 # order_info
