@@ -102,25 +102,46 @@ class OKXAPI(BaseExchangeAPI):
         exchange = self.connect_api()
         return exchange.fetchPosition(symbols, params)
     
+class BinanceAPI(BaseExchangeAPI):
+    def __init__(self):
+        super().__init__('binance', 'BINANCE_API_KEY', 'BINANCE_API_SECRET', {
+            'enableRateLimit': True,
+            'options':{
+                'defaultType': 'spot',
+            }
+        })
 
-# api = OKXAPI()
-# pair = 'BTC/USD'
+    def get_order(self, order_id, symbol=''):
+        exchange = self.connect_api()
+        return exchange.fetch_order(order_id, symbol)
 
-# def find_btc_usd_pairs(pairs):
-#     return [pair for pair in pairs if 'BTC/USD' in pair]
+    def create_order_with_stop_loss(self, pair, order_type, side, amount, price, stop_loss_price):
+        exchange = self.connect_api()
+        order_type='conditional'
+        params = {
+            'marginMode': 'isolated',
+            'leverage': '50',
+            'reduceOnly': True,
+            'slTriggerPx': stop_loss_price,
+        }
+        return exchange.create_order(pair, order_type, side, amount, price, params)
 
-# exchange = api.connect_api()
-# pairs = exchange.load_markets()
-# btc_usd_pairs = find_btc_usd_pairs(pairs)
+    def create_order(self, pair, order_type, side, amount, price):
+        exchange = self.connect_api()
+        params = {
+            'marginMode': 'isolated',
+            'leverage': '3'
+        }
+        return exchange.create_order(pair, order_type, side, amount, price, params)
 
-#################################################
+    def fetchOpenOrders(self, symbol, since=None, limit=None, params={}):
+        exchange = self.connect_api()
+        return exchange.fetchOpenOrders(symbol, since, limit, params)
+    
+    def fetchPosition(self, symbols, params={}):
+        exchange = self.connect_api()
+        return exchange.fetchPosition(symbols, params)
 
-# api = OKXAPI()
-# pair = 'BTC/USD:BTC'
-# pair = 'BTC/USDT:USDT'
-# price = api.get_latest_price(pair=pair)
-# open_orders = api.fetchPosition(pair) # Este es un valor de ejemplo, debes decidir el tuyo
-# # order = api.create_order_with_stop_loss(pair=pair, order_type='conditional', side='sell', amount=1, price=price*0.99, stop_loss_price=price*0.99)
-# order = api.create_order(pair, order_type='market', side='sell', amount=1, price=price)
-# order_info = api.get_order(order.get('info').get('ordId'), pair)
-# order_info
+    def fetch_currencies(self):
+        exchange = self.connect_api()
+        return exchange.fetch_currencies()

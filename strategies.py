@@ -99,12 +99,16 @@ class MultiMovingAverageStrategy(Strategy):
         # Verificamos si hay alguna compra en la memoria cuyo precio es menor que el umbral de venta
         return any(trade['price'] < sell_threshold for trade in buy_trades)
     
+    def calculate_moving_averages(self, data):
+        return [data['Close'].rolling(window=window).mean().iloc[-1] for window in self.windows]
+    
     def run(self, data, memory):
         actions = []
         balance_b = self.get_balance_b(memory)
 
         # Calculamos las medias móviles para cada ventana
-        moving_averages = [data['Close'].rolling(window=window).mean().iloc[-1] for window in self.windows]
+        moving_averages = self.calculate_moving_averages(data)
+
 
         # Comprobamos si las medias móviles están alineadas
         aligned_up = moving_averages[0] > moving_averages[1] > moving_averages[2] >  moving_averages[3]
@@ -116,6 +120,61 @@ class MultiMovingAverageStrategy(Strategy):
 
         if above_all and aligned_up and balance_b > self.cost / data['Close'].iloc[-1] and self.can_sell(data['Close'].iloc[-1], memory):
             actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
+        elif below_all and aligned_down:
+            actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
+        else:
+            actions.append((Action.WAIT, None, None))
+
+        return actions
+
+class MultiMovingAverageStrategy2(Strategy):
+    def __init__(self, windows=[10, 50, 100, 200], cost=10, fee=0.004):
+        self.windows = windows
+        self.cost = cost
+        self.fee = fee
+
+    def can_sell(self, current_price, memory):
+        # Calculamos el precio que es el porcentaje menor que el precio actual
+        sell_threshold = current_price * (1 - self.fee)
+
+        # Convertimos la memoria en un DataFrame
+        memory_df = pd.DataFrame(memory)
+
+        # Obtenemos los trades de compra y venta
+        buy_trades = memory_df[memory_df['type'] == 'buy_market'].to_dict('records')
+        sell_trades = memory_df[memory_df['type'] == 'sell_market'].to_dict('records')
+
+        # Asociamos cada sell_trade con el primer buy_trade que tenga al menos un porcentaje de diferencia positiva
+        for sell_trade in sell_trades:
+            for buy_trade in buy_trades:
+                if sell_trade['price'] > buy_trade['price'] * (1 + self.fee):
+                    buy_trades.remove(buy_trade)
+                    break
+
+        # Verificamos si hay alguna compra en la memoria cuyo precio es menor que el umbral de venta
+        return any(trade['price'] < sell_threshold for trade in buy_trades)
+    
+    def calculate_moving_averages(self, data):
+        return [data['Close'].rolling(window=window).mean().iloc[-1] for window in self.windows]
+    
+    def run(self, data, memory):
+        actions = []
+        balance_b = self.get_balance_b(memory)
+
+        # Calculamos las medias móviles para cada ventana
+        moving_averages = self.calculate_moving_averages(data)
+
+
+        # Comprobamos si las medias móviles están alineadas
+        aligned_up = moving_averages[0] > moving_averages[1] > moving_averages[2] >  moving_averages[3]
+        aligned_down = moving_averages[0] < moving_averages[1] < moving_averages[2] <  moving_averages[3]
+
+        # Comprobamos si el precio de cierre está por encima o por debajo de todas las medias móviles
+        above_all = all(data['Close'].iloc[-1] > ma for ma in moving_averages)
+        below_all = all(data['Close'].iloc[-1] < ma for ma in moving_averages)
+
+        if above_all and aligned_up and balance_b > self.cost / data['Close'].iloc[-1] and self.can_sell(data['Close'].iloc[-1], memory):
+            actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], balance_b*0.01))
         elif below_all and aligned_down:
             actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
         else:
@@ -181,7 +240,7 @@ class StandardDeviationStrategy(Strategy):
         return actions
     
 class SuperStrategyFutures(Strategy):
-    def __init__(self, cost=10000, fee = 0):
+    def __init__(self, cost=100, fee = 0):
         self.cost = cost
         self.fee = fee
     
