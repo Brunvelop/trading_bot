@@ -14,4 +14,4 @@ RUN pip install -r requirements.txt
 COPY . .
 
 # Ejecutar el script de Python cuando el contenedor se inicie
-CMD ["python", "./kraken_bot.py"]
+CMD ["python", "./okx_bot.py"]

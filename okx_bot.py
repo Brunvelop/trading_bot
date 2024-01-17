@@ -5,14 +5,14 @@ import pandas as pd
 
 from trader import Trader
 from exchange_apis import OKXAPI
-from strategies import StandardDeviationStrategy 
+from strategies import MultiMovingAverageStrategySell 
 
 fee = 0.0005
 trader = Trader(
-    strategy= StandardDeviationStrategy(cost=1, fee=2*fee),
+    strategy= MultiMovingAverageStrategySell(cost=1, fee=2*fee),
     db_name = 'okx_ordi_usdt_SMASELL',
-    exange_api = OKXAPI("OKX_API_KEY_ORDI_SMA", "OKX_API_SECRET_ORDI_SMA"),
-    pair = 'ORDI/USDT:USDT',
+    exange_api = OKXAPI(api_key="OKX_API_KEY_ORDI_SMA", api_secret="OKX_API_SECRET_ORDI_SMA"),
+    pair = 'ORDI/USDT',
 )
 
 def job():

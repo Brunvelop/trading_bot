@@ -36,7 +36,10 @@ class Trader:
     def buy_market(self, price, quantity):
         order = self.exange_api.create_order(self.pair, 'market', 'buy', quantity, price)
         try:
-            order_info = self.exange_api.get_order(order['id'], self.pair)
+            if isinstance(order, tuple):
+                order_info = self.exange_api.get_order(order[0]['id'], self.pair)
+            else:
+                order_info = self.exange_api.get_order(order['id'], self.pair)
         except Exception as e:
             print(f"Error al obtener la información del pedido: {e}")
             order_info = {
@@ -62,7 +65,10 @@ class Trader:
 
     def sell_market(self, price, quantity):
         order = self.exange_api.create_order(self.pair, 'market', 'sell', quantity, price)
-        order_info = self.exange_api.get_order(order['id'], self.pair)
+        if isinstance(order, tuple):
+            order_info = self.exange_api.get_order(order[0]['id'], self.pair)
+        else:
+            order_info = self.exange_api.get_order(order['id'], self.pair)
         self.db.insert_order(
             order_info['id'],
             datetime.datetime.fromtimestamp(int(order_info['timestamp']/1000)).isoformat(),

@@ -62,12 +62,12 @@ class KrakenAPI(BaseExchangeAPI):
         })
 
 class OKXAPI(BaseExchangeAPI):
-    def __init__(self):
-        super().__init__('okex', 'OKX_API_KEY', 'OKX_API_SECRET', {
+    def __init__(self, api_key='OKX_API_KEY', api_secret='OKX_API_SECRET'):
+        super().__init__('okex',api_key, api_secret, options={
             'password' : os.getenv('OKX_PASSWORD'),
             'enableRateLimit': True,
             'options':{
-                'defaultType': 'future',
+                'defaultType': 'spot',
             }
         })
 
@@ -92,7 +92,7 @@ class OKXAPI(BaseExchangeAPI):
             'marginMode': 'isolated',
             'leverage': '3'
         }
-        return exchange.create_order(pair, order_type, side, amount, price, params)
+        return exchange.create_order(pair, order_type, side, amount, price), #params)
 
     def fetchOpenOrders(self, symbol, since=None, limit=None, params={}):
         exchange = self.connect_api()
