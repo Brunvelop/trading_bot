@@ -9,10 +9,10 @@ from strategies import StandardDeviationStrategy
 
 fee = 0.0005
 trader = Trader(
-    strategy= StandardDeviationStrategy(cost=100, fee=2*fee),
-    db_name = 'okx_btc_usdt',
+    strategy= StandardDeviationStrategy(cost=1, fee=2*fee),
+    db_name = 'okx_ordi_usdt_SMASELL',
     exange_api = OKXAPI("OKX_API_KEY_ORDI_SMA", "OKX_API_SECRET_ORDI_SMA"),
-    pair = 'SOL/USDT:USDT',
+    pair = 'ORDI/USDT:USDT',
 )
 
 def job():
