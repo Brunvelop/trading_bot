@@ -17,20 +17,7 @@ class Strategy(ABC):
     @abstractmethod
     def run(self, data, memory) -> List[Tuple[Action, float, float]]:
         pass # :return: [(action1, price1, quantity1), (action2, price2, quantity2), ...]
-    
-    def get_balance_b(self, memory):
-        df = pd.DataFrame(memory)
 
-        if df.empty:
-            return 0
-
-        total_bought = df.loc[(df['type'] == 'buy_market') & (df['executed'] == True), 'amount'].sum()
-        total_sold = df.loc[(df['type'] == 'sell_market') & (df['executed'] == True), 'amount'].sum()
-
-        total_balance = total_bought - total_sold
-
-        return total_balance
-    
     def get_balance_a(self, memory, initial_balance_a=0):
         df = pd.DataFrame(memory)
 
@@ -47,6 +34,19 @@ class Strategy(ABC):
         total_fees = df['fees'].sum()
 
         total_balance = initial_balance_a - total_cost - total_fees
+
+        return total_balance
+    
+    def get_balance_b(self, memory, initial_balance_b=0):
+        df = pd.DataFrame(memory)
+
+        if df.empty:
+            return initial_balance_b
+
+        total_bought = df.loc[(df['type'] == 'buy_market') & (df['executed'] == True), 'amount'].sum()
+        total_sold = df.loc[(df['type'] == 'sell_market') & (df['executed'] == True), 'amount'].sum()
+
+        total_balance = total_bought - total_sold
 
         return total_balance
 
