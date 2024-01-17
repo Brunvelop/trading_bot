@@ -186,10 +186,13 @@ class MultiMovingAverageStrategySell(Strategy):
         self.windows = windows
         self.cost = cost
         self.fee = fee
-
+    
+    def calculate_moving_averages(self, data):
+        return [data['Close'].rolling(window=window).mean().iloc[-1] for window in self.windows]
+    
     def can_buy(self, current_price, memory):
         # Calculamos el precio que es el porcentaje menor que el precio actual
-        buy_threshold = current_price * (1 - self.fee)
+        buy_threshold = current_price * (1 + self.fee)
 
         # Convertimos la memoria en un DataFrame
         memory_df = pd.DataFrame(memory)
@@ -199,25 +202,21 @@ class MultiMovingAverageStrategySell(Strategy):
         sell_trades = memory_df[memory_df['type'] == 'sell_market'].to_dict('records')
 
         # Asociamos cada sell_trade con el primer buy_trade que tenga al menos un porcentaje de diferencia positiva
-        for sell_trade in sell_trades:
-            for buy_trade in buy_trades:
-                if sell_trade['price'] > buy_trade['price'] * (1 + self.fee):
-                    buy_trades.remove(buy_trade)
+        for buy_trade in buy_trade:
+            for sell_trades in sell_trades:
+                if sell_trades['price'] > buy_trade['price'] * (1 + self.fee):
+                    sell_trades.remove(sell_trades)
                     break
 
-        # Verificamos si hay alguna compra en la memoria cuyo precio es menor que el umbral de venta
-        return any(trade['price'] < buy_threshold for trade in sell_trades)
-    
-    def calculate_moving_averages(self, data):
-        return [data['Close'].rolling(window=window).mean().iloc[-1] for window in self.windows]
+        # Verificamos si hay alguna venta en la memoria cuyo precio es mayor que el umbral de compra
+        return any(trade['price'] > buy_threshold for trade in sell_trades)
     
     def run(self, data, memory):
         actions = []
-        balance_b = self.get_balance_b(memory)
+        balance_a = memory['balance']
 
         # Calculamos las medias móviles para cada ventana
         moving_averages = self.calculate_moving_averages(data)
-
 
         # Comprobamos si las medias móviles están alineadas
         aligned_up = moving_averages[0] > moving_averages[1] > moving_averages[2] >  moving_averages[3]
@@ -227,10 +226,10 @@ class MultiMovingAverageStrategySell(Strategy):
         above_all = all(data['Close'].iloc[-1] > ma for ma in moving_averages)
         below_all = all(data['Close'].iloc[-1] < ma for ma in moving_averages)
 
-        if above_all and aligned_up and balance_b > self.cost / data['Close'].iloc[-1] and self.can_sell(data['Close'].iloc[-1], memory):
-            actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
-        elif below_all and aligned_down:
-            actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost / data['Close'].iloc[-1]))
+        if above_all and aligned_up and balance_a > self.cost:
+            actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost))
+        elif below_all and aligned_down and self.can_buy(data['Close'].iloc[-1], memory['orders']):
+            actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost))
         else:
             actions.append((Action.WAIT, None, None))
 

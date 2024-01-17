@@ -15,6 +15,7 @@ from supabase import create_client, Client
 # | cost        | numeric   | NULL          | No          |
 # | executed    | bool      | NULL          | No          |
 # | order_info  | jsonb     | {}            | No          |
+# | closed      | text      | NULL          | No          |
 
 class DB():
     def __init__(self, table_name='trades'):
@@ -48,6 +49,9 @@ class DB():
     def get_all_orders(self):
         return self.supabase.table(self.table_name).select('*').execute().data
 
+    def get_null_orders(self):
+        return self.supabase.table(self.table_name).select('*').is_('order_id', 'null').execute().data
+
     def update_order(self, order_id, sell_timestamp, sell_price, sell_amount, sell_cost, sell_fees):
         self.supabase.table(self.table_name).update({
             'closed': True,
@@ -69,7 +73,6 @@ class DB():
         if not result.data[0]['position']:
             return 0  # return 0 if the result is None or empty
         return result.data[0]['position']
-    
 
     def update_null_positions(self, position_number):
         return self.supabase.table(self.table_name).update(

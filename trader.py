@@ -72,7 +72,7 @@ class Trader:
             order_info['amount'],
             order_info['cost'],
             True,
-            order_info
+            order_info,
         )
     
     def buy_limit(price, quantity):
@@ -86,64 +86,3 @@ class Trader:
 
     def set_take_profit(price, quantity):
         pass
-    
-if __name__ == "__main__":
-    # import pandas as pd
-
-    # from kraken_api import KrakenAPI
-    # from strategies import MovingAverageStrategy 
-
-    # trader = Trader(
-    #     strategy= MovingAverageStrategy(window_size=10),
-    #     db_name = 'trades',
-    #     exange_api = KrakenAPI(),
-    #     pair = 'BTC/EUR',
-    # )
-
-    # data = trader.exange_api.get_bars(pair=trader.pair, timeframe='1m', limit=200)
-    # data = pd.DataFrame(data, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
-    
-    # memory = trader.db.get_all_orders()
-    # trader.execute_strategy(data, memory)
-
-
-# ##############
-
-    # price = trader.exange_api.get_latest_price(trader.pair)
-    # trader.sell_market(price=price, quantity=0.0002)
-
-# ##############
-
-    import time
-    import schedule
-
-    import strategies  
-    from okx_api import OKXAPI
-    
-    okx_api = OKXAPI()
-    trader = Trader(
-        strategy = strategies.SuperStrategyFutures(cost=1000000),
-        db_name='trades', 
-        exange_api= okx_api, 
-        pair='BTC/USD:BTC'
-    )
-
-    def job():
-        try:
-            start_time = time.time()  # Inicio del tiempo de ejecución
-            print("----------- RUN -----------")
-            data = trader.exange_api.get_bars(pair=trader.pair, timeframe='1m', limit=300)
-            data = pd.DataFrame(data, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
-            memory = trader.db.get_all_orders()
-            trader.execute_strategy(data, memory)
-            end_time = time.time()  # Fin del tiempo de ejecución
-            print("Tiempo de ejecución: {} segundos".format(end_time - start_time))
-        except Exception as e:
-            print("Se produjo un error: ", e)
-
-    schedule.every().minute.at(":06").do(job)
-
-    while True:
-        # print("Esperando el próximo trabajo...")
-        schedule.run_pending()
-        time.sleep(1)
