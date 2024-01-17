@@ -2,6 +2,7 @@ import os
 import ccxt
 from dotenv import load_dotenv
 
+load_dotenv()
 class BaseExchangeAPI:
     def __init__(self, exchange_id, api_key, api_secret, options):
         self.exchange_id = exchange_id
