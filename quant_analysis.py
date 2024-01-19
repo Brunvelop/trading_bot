@@ -36,20 +36,26 @@ def calculate_segments_and_means(data, conditions):
     for i, condition in enumerate(conditions):
         if condition != 0 and condition != current_condition:
             if current_condition is not None:
-                segment_data = data[start_index:i][conditions[start_index:i] != 0]
-                segments.append((current_condition, segment_data.mean(), start_index, i))
+                segment_data = data[start_index:i][conditions[start_index:i] == current_condition]  # Filter data based on condition
+                duration_color = len(segment_data)
+                duration_total = i - start_index
+                amplitude = ((segment_data.max() - segment_data.min()) / segment_data[0] * 100) if len(segment_data) > 0 else 0  # Amplitude calculation changed here
+                segments.append((current_condition, segment_data.mean(), start_index, i, duration_color, duration_total, amplitude))
             start_index = i
             current_condition = condition
 
     # Añadimos el último segmento
     if current_condition is not None:
-        segment_data = data[start_index:][conditions[start_index:] != 0]
-        segments.append((current_condition, segment_data.mean(), start_index, len(data)))
+        segment_data = data[start_index:][conditions[start_index:] == current_condition]  # Filter data based on condition
+        duration_color = len(segment_data)
+        duration_total = len(data) - start_index
+        amplitude = ((segment_data.max() - segment_data.min()) / segment_data[0] * 100) if len(segment_data) > 0 else 0  # Amplitude calculation changed here
+        segments.append((current_condition, segment_data.mean(), start_index, len(data), duration_color, duration_total, amplitude))
 
     return segments
 
 
-def plot(data, moving_averages):
+def plot(data, moving_averages, segments):
     fig, ax = plt.subplots(figsize=(14,7))
     
     colors = ['yellow', 'red', 'cyan', 'blue']
@@ -72,12 +78,8 @@ def plot(data, moving_averages):
     sell = aligned_down & below_all
     ax.fill_between(data.index, ax.get_ylim()[0], ax.get_ylim()[1], where=sell, color='green', alpha=0.3)
 
-    # Calculamos los segmentos y los precios medios
-    conditions = buy.astype(int) - sell.astype(int)
-    segments = calculate_segments_and_means(data['Close'], conditions)
-
     # Dibujamos las líneas horizontales para los precios medios de cada segmento
-    for condition, mean_price, start, end in segments:
+    for condition, mean_price, start, end, duration_color, duration_total, amplitude in segments:
         if condition == 1:  # Compra
             color = 'red'
         elif condition == -1:  # Venta
@@ -91,6 +93,62 @@ def plot(data, moving_averages):
 
     plt.show()
 
+def calculate_statistics(df, columns):
+    statistics = ['mean', 'median', 'std', 'max']
+    results = {column: [getattr(df[column], stat)() for stat in statistics] for column in columns}
+    
+    # Calculamos la moda de manera separada para manejar múltiples modas
+    mode_results = {column: [df[column].mode()[0] if len(df[column].mode()) > 0 else None] for column in columns}
+    
+    # Unimos los resultados en un solo DataFrame
+    results_df = pd.DataFrame(results, index=statistics)
+    mode_df = pd.DataFrame(mode_results, index=['mode'])
+    final_df = pd.concat([results_df, mode_df])
+    
+    # Reindexamos el DataFrame para cambiar el orden de las filas a 'mean', 'median', 'mode'
+    final_df = final_df.reindex(['mean', 'median', 'mode', 'std', 'max'])
+    
+    return final_df
+
 # Llamamos a las funciones
 moving_averages = calculate_moving_averages(data_1m)
-plot(data_1m, moving_averages)
+
+aligned_up, aligned_down, above_all, below_all = calculate_conditions(data_1m, moving_averages)
+conditions = (aligned_up & above_all).astype(int) - (aligned_down & below_all).astype(int)
+segments = calculate_segments_and_means(data_1m['Close'], conditions)
+
+# Convertimos los segmentos a un DataFrame de pandas para facilitar el cálculo de las estadísticas
+segments_df = pd.DataFrame(segments, columns=['Condition', 'Mean Price', 'Start', 'End', 'Duration Color', 'Duration Total', 'Amplitude'])
+
+
+# Definimos las columnas para las que queremos calcular las estadísticas
+columns = ['Duration Color', 'Duration Total', 'Amplitude']
+
+# Calculamos las estadísticas y las imprimimos
+
+
+# Dividimos los segmentos en compra y venta
+buy_segments = [segment for segment in segments if segment[0] == -1]
+sell_segments = [segment for segment in segments if segment[0] == 1]
+
+# Convertimos los segmentos a DataFrames de pandas para facilitar el cálculo de las estadísticas
+buy_segments_df = pd.DataFrame(buy_segments, columns=['Condition', 'Mean Price', 'Start', 'End', 'Duration Color', 'Duration Total', 'Amplitude'])
+sell_segments_df = pd.DataFrame(sell_segments, columns=['Condition', 'Mean Price', 'Start', 'End', 'Duration Color', 'Duration Total', 'Amplitude'])
+
+# Definimos las columnas para las que queremos calcular las estadísticas
+columns = ['Duration Color', 'Duration Total', 'Amplitude']
+
+# Calculamos las estadísticas y las imprimimos
+results = calculate_statistics(segments_df, columns)
+buy_results = calculate_statistics(buy_segments_df, columns)
+sell_results = calculate_statistics(sell_segments_df, columns)
+
+print("full statistics:")
+print(results)
+print("\nBuy segments statistics:")
+print(buy_results)
+print("\nSell segments statistics:")
+print(sell_results)
+
+
+plot(data_1m, moving_averages, segments)
