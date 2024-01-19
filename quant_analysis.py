@@ -28,6 +28,26 @@ def calculate_conditions(data, moving_averages):
 
     return aligned_up, aligned_down, above_all, below_all
 
+def calculate_segments_and_means(data, conditions):
+    segments = []
+    current_condition = None
+    start_index = None
+
+    for i, condition in enumerate(conditions):
+        if condition != 0 and condition != current_condition:
+            if current_condition is not None:
+                segment_data = data[start_index:i][conditions[start_index:i] != 0]
+                segments.append((current_condition, segment_data.mean(), start_index, i))
+            start_index = i
+            current_condition = condition
+
+    # Añadimos el último segmento
+    if current_condition is not None:
+        segment_data = data[start_index:][conditions[start_index:] != 0]
+        segments.append((current_condition, segment_data.mean(), start_index, len(data)))
+
+    return segments
+
 
 def plot(data, moving_averages):
     fig, ax = plt.subplots(figsize=(14,7))
@@ -45,10 +65,26 @@ def plot(data, moving_averages):
     aligned_up, aligned_down, above_all, below_all = calculate_conditions(data, moving_averages)
 
     # Pintamos de verde el tramo aligned_up and above_all
-    ax.fill_between(data.index, ax.get_ylim()[0], ax.get_ylim()[1], where=(aligned_up & above_all), color='red', alpha=0.3)
+    buy = aligned_up & above_all
+    ax.fill_between(data.index, ax.get_ylim()[0], ax.get_ylim()[1], where=buy, color='red', alpha=0.3)
 
     # Pintamos de rojo el tramo aligned_down and below_all
-    ax.fill_between(data.index, ax.get_ylim()[0], ax.get_ylim()[1], where=(aligned_down & below_all), color='green', alpha=0.3)
+    sell = aligned_down & below_all
+    ax.fill_between(data.index, ax.get_ylim()[0], ax.get_ylim()[1], where=sell, color='green', alpha=0.3)
+
+    # Calculamos los segmentos y los precios medios
+    conditions = buy.astype(int) - sell.astype(int)
+    segments = calculate_segments_and_means(data['Close'], conditions)
+
+    # Dibujamos las líneas horizontales para los precios medios de cada segmento
+    for condition, mean_price, start, end in segments:
+        if condition == 1:  # Compra
+            color = 'red'
+        elif condition == -1:  # Venta
+            color = 'green'
+        else:  # Sin operación
+            continue
+        ax.hlines(mean_price, data.index[start], data.index[end-1], color=color, linestyle='--')
 
     ax.legend(loc='best')
     ax.set_title('Moving Averages')
