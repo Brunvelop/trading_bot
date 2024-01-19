@@ -2,7 +2,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 data_1m = pd.read_csv('data/BTC_USD_1m.csv', index_col=0, parse_dates=True)
-data_1m
+data_1m = pd.read_csv('data/old/BTC_USDT_1m.csv', index_col=0, parse_dates=True)
+data_1m = data_1m.tail(10000000)
+
 
 def calculate_moving_averages(data):
     windows = [10, 50, 100, 200]
@@ -54,6 +56,20 @@ def calculate_segments_and_means(data, conditions):
 
     return segments
 
+def plot_histogram(df, column, ax, color):
+    df[column].hist(ax=ax, bins=300, color=color, alpha=0.5)
+    ax.set_title(f'Distribution of {column}')
+
+def plot_histograms(segments_df, buy_segments_df, sell_segments_df, columns):
+    fig, axs = plt.subplots(len(columns), figsize=(14,7*len(columns)))
+
+    for ax, column in zip(axs, columns):
+        plot_histogram(segments_df, column, ax, 'blue')
+        plot_histogram(buy_segments_df, column, ax, 'green')
+        plot_histogram(sell_segments_df, column, ax, 'red')
+
+    plt.tight_layout()
+    plt.show()
 
 def plot(data, moving_averages, segments):
     fig, ax = plt.subplots(figsize=(14,7))
@@ -150,5 +166,7 @@ print(buy_results)
 print("\nSell segments statistics:")
 print(sell_results)
 
+# Llamamos a la función para crear los histogramas
+plot_histograms(segments_df, buy_segments_df, sell_segments_df, columns)
 
 plot(data_1m, moving_averages, segments)
