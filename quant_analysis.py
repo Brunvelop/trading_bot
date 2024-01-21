@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 data_1m = pd.read_csv('data/BTC_USD_1m.csv', index_col=0, parse_dates=True)
 data_1m = pd.read_csv('data/old/BTC_USDT_1m.csv', index_col=0, parse_dates=True)
-data_1m = data_1m.tail(10000000)
+data_1m = data_1m.tail(1000000)
 
 
 def calculate_moving_averages(data):
@@ -126,6 +126,20 @@ def calculate_statistics(df, columns):
     
     return final_df
 
+def calculate_stop_loss(amplitude_df, percentile):
+    # Calcula el percentil del DataFrame de amplitud
+    stop_loss_percentile = amplitude_df.quantile(percentile)
+    print(f"Stop loss based on percentile {percentile}: {stop_loss_percentile}")
+    return stop_loss_percentile
+
+def calculate_stop_loss_std(df, column, num_std):
+    mean = df[column].mean()
+    std = df[column].std()
+    stop_loss_std = mean - num_std * std
+    print(f"Stop loss based on {num_std} standard deviations below mean of {column}: {stop_loss_std}")
+    return stop_loss_std
+
+
 # Llamamos a las funciones
 moving_averages = calculate_moving_averages(data_1m)
 
@@ -139,8 +153,6 @@ segments_df = pd.DataFrame(segments, columns=['Condition', 'Mean Price', 'Start'
 
 # Definimos las columnas para las que queremos calcular las estadísticas
 columns = ['Duration Color', 'Duration Total', 'Amplitude']
-
-# Calculamos las estadísticas y las imprimimos
 
 
 # Dividimos los segmentos en compra y venta
@@ -165,6 +177,11 @@ print("\nBuy segments statistics:")
 print(buy_results)
 print("\nSell segments statistics:")
 print(sell_results)
+# Calcula el stop loss basado en el percentil 95 de la amplitud
+stop_loss_percentile = calculate_stop_loss(segments_df['Amplitude'], 0.88)
+# Calcula el stop loss basado en 2 desviaciones estándar por debajo de la media de la amplitud
+stop_loss_std = calculate_stop_loss_std(segments_df, 'Amplitude', 2)
+
 
 # Llamamos a la función para crear los histogramas
 plot_histograms(segments_df, buy_segments_df, sell_segments_df, columns)
