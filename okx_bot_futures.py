@@ -7,11 +7,13 @@ from collections import deque
 
 from exchange_apis import OKXAPI
 from strategies import SuperStrategyFutures 
+from indicators import Indicators
 
 # Configuración inicial
 exchange_api = OKXAPI()
 bars_memory = deque(maxlen=1000)
 strategy = SuperStrategyFutures()
+indicators = Indicators()
 
 # Inicializar la aplicación Dash
 app = dash.Dash(__name__)
@@ -51,7 +53,7 @@ def update_graph_scatter(n):
     bars_df['Time'] = bars_df['Time'].dt.tz_convert('Europe/Madrid')
 
     # Calcular los máximos y mínimos con la estrategia
-    max_300, min_300 = strategy.calculate_max_min_300(bars_df)
+    max_300, min_300 = indicators.calculate_max_min(bars_df, 10)
 
     # Crear la figura con los máximos y mínimos
     fig = go.Figure(data=[go.Candlestick(x=bars_df['Time'],
@@ -63,6 +65,38 @@ def update_graph_scatter(n):
     # Agregar líneas horizontales de máximo y mínimo
     fig.add_hline(y=max_300, line=dict(color='Green', width=1, dash='dash'), annotation_text="Max 300")
     fig.add_hline(y=min_300, line=dict(color='Red', width=1, dash='dash'), annotation_text="Min 300")
+
+    last_cross = None
+    for i in range(len(bars_df) - 1, -1, -1):  # Iterar hacia atrás
+        if bars_df['Close'].iloc[i] > max_300:
+            last_cross = ('above', i)
+            break
+        elif bars_df['Close'].iloc[i] < min_300:
+            last_cross = ('below', i)
+            break
+
+    # Agregar un triángulo como señal visual para el último cruce
+    if last_cross is not None:
+        cross_type, cross_index = last_cross
+        cross_row = bars_df.iloc[cross_index]
+        y_position = cross_row['Close']  # Usar el precio de cierre de la vela para la posición y
+        if cross_type == 'above':
+            fig.add_annotation(x=cross_row['Time'], y=cross_row['Low'],
+                               text='▲',  # Triángulo apuntando hacia arriba
+                               showarrow=False,
+                               yshift=-10,  # Desplazamiento para posicionar correctamente el triángulo
+                               font=dict(family='Courier New, monospace',
+                                         size=12,
+                                         color='Green'))
+        elif cross_type == 'below':
+            fig.add_annotation(x=cross_row['Time'], y=cross_row['High'],
+                               text='▼',  # Triángulo apuntando hacia abajo
+                               showarrow=False,
+                               yshift=10,  # Desplazamiento para posicionar correctamente el triángulo
+                               font=dict(family='Courier New, monospace',
+                                         size=12,
+                                         color='Red'))
+
 
     # Actualizar los rangos de los ejes para que se ajusten a los nuevos datos
     fig.update_xaxes(range=[bars_df['Time'].iloc[0], bars_df['Time'].iloc[-1] + pd.Timedelta(minutes=15)])
