@@ -76,12 +76,12 @@ class OKXAPI(BaseExchangeAPI):
         exchange = self.connect_api()
         return exchange.fetch_order(order_id, symbol)
 
-    def create_order_with_stop_loss(self, pair, order_type, side, amount, price, stop_loss_price):
+    def create_order_with_stop_loss(self, pair, order_type, side, amount, price, stop_loss_price, leverage):
         exchange = self.connect_api()
         order_type='conditional'
         params = {
             'marginMode': 'isolated',
-            'leverage': '50',
+            'leverage': str(leverage),
             'reduceOnly': True,
             'slTriggerPx': stop_loss_price,
         }
