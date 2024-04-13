@@ -30,7 +30,7 @@ def job():
     bars_df['Time'] = bars_df['Time'].dt.tz_convert('Europe/Madrid')
 
     # Calcular los máximos y mínimos con la estrategia
-    max_300, min_300 = indicators.calculate_max_min(bars_df, 10)
+    max_300, min_300 = indicators.calculate_max_min(bars_df, 300)
 
     # Devolver los datos procesados
     print(bars_df, max_300, min_300)
@@ -88,28 +88,23 @@ if __name__ == '__main__':
             if last_cross is not None:
                 cross_type, cross_index = last_cross
                 cross_row = bars_df.iloc[cross_index]
-                y_position = cross_row['Close']  # Usar el precio de cierre de la vela para la posición y
                 if cross_type == 'above':
                     fig.add_annotation(x=cross_row['Time'], y=cross_row['Low'],
                                     text='▲',  # Triángulo apuntando hacia arriba
                                     showarrow=False,
                                     yshift=-10,  # Desplazamiento para posicionar correctamente el triángulo
-                                    font=dict(family='Courier New, monospace',
-                                                size=12,
-                                                color='Green'))
+                                    font=dict(color='Green'))
                 elif cross_type == 'below':
                     fig.add_annotation(x=cross_row['Time'], y=cross_row['High'],
                                     text='▼',  # Triángulo apuntando hacia abajo
                                     showarrow=False,
                                     yshift=10,  # Desplazamiento para posicionar correctamente el triángulo
-                                    font=dict(family='Courier New, monospace',
-                                                size=12,
-                                                color='Red'))
+                                    font=dict(color='Red'))
 
 
             # Actualizar los rangos de los ejes para que se ajusten a los nuevos datos
             fig.update_xaxes(range=[bars_df['Time'].iloc[0], bars_df['Time'].iloc[-1] + pd.Timedelta(minutes=15)])
-            fig.update_yaxes(range=[min(bars_df['Low']), max(bars_df['High'])])
+            fig.update_yaxes(range=[min(bars_df['Low'])*0.999, max(bars_df['High'])*1.001])
 
             fig.update_layout(xaxis_rangeslider_visible=False)
             return fig
