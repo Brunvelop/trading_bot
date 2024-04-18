@@ -76,24 +76,56 @@ class OKXAPI(BaseExchangeAPI):
         exchange = self.connect_api()
         return exchange.fetch_order(order_id, symbol)
 
-    def create_order_with_stop_loss(self, pair, order_type, side, amount, price, stop_loss_price, leverage):
-        exchange = self.connect_api()
-        order_type='conditional'
-        params = {
-            'marginMode': 'isolated',
-            'leverage': str(leverage),
-            'reduceOnly': True,
-            'slTriggerPx': stop_loss_price,
-        }
-        return exchange.create_order(pair, order_type, side, amount, price, params)
+    def create_order_with_tp_and_sl(self, pair, side, amount, price, sl_price, tp_price, leverage, order_type='market'):
+        "amount = contracts amount"
+        order_response = self.create_order(
+            pair=pair,
+            order_type=order_type,
+            amount=amount,# 1 contrato 0.01 btc
+            price=price,
+            side=side,
+            params={
+                'marginMode': 'isolated',
+                'leverage': str(leverage),
+                'type': order_type,
+                }
+            )
+        sl_and_tp_response = self.create_order(
+            pair=pair,
+            order_type='oco',
+            amount=amount,# 1 contrato 0.01 btc
+            price=price,
+            side='sell' if side=='buy' else 'buy',
+            params={
+                'marginMode': 'isolated',
+                'leverage': '50',
+                'type': 'market',
+                'side': 'sell' if side=='buy' else 'buy',
+                'slTriggerPxType': 'mark',
+                'tpTriggerPxType': 'mark',
+                'tpType': 'market',
+                'slType': 'market',
+                'reduceOnly': True,
+                'slTriggerPx': sl_price,
+                'tpTriggerPx': tp_price,
+                'tpOrdPx': -1,
+                'slOrdPx': -1,
+                }
+            )
+        return order_response , sl_and_tp_response
 
-    def create_order(self, pair, order_type, side, amount, price):
+    def create_order(self, pair, order_type, side, amount, price, params={}):
         exchange = self.connect_api()
-        params = {
-            'marginMode': 'isolated',
-            'leverage': '3'
-        }
-        return exchange.create_order(pair, order_type, side, amount, price), #params)
+        # params = {
+        #     'marginMode': 'isolated',
+        #     'leverage': '50'
+        # }
+
+        return exchange.create_order(pair, order_type, side, amount, price, params)
+   
+    def edit_order(self, id, symbol, type, side, amount=None, price=None, params={}):
+        exchange = self.connect_api()
+        return exchange.edit_order(id, symbol, type, side, amount, price, params)
 
     def fetchOpenOrders(self, symbol, since=None, limit=None, params={}):
         exchange = self.connect_api()
