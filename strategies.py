@@ -181,6 +181,40 @@ class MultiMovingAverageStrategyFutures(Strategy):
 
         return actions
 
+
+class MultiMovingAverageFuturesTrend(Strategy):
+    def __init__(self, windows=[10, 50, 100, 200], cost=10, fee=0.004):
+        self.windows = windows
+        self.cost = cost
+        self.fee = fee
+    
+    def calculate_moving_averages(self, data):
+        return [data['Close'].rolling(window=window).mean().iloc[-1] for window in self.windows]
+    
+    def run(self, data, memory):
+        actions = []
+        balance_a = memory['balance']
+
+        # Calculamos las medias móviles para cada ventana
+        moving_averages = self.calculate_moving_averages(data)
+
+        # Comprobamos si las medias móviles están alineadas
+        aligned_up = moving_averages[0] > moving_averages[1] > moving_averages[2] >  moving_averages[3]
+        aligned_down = moving_averages[0] < moving_averages[1] < moving_averages[2] <  moving_averages[3]
+
+        # Comprobamos si el precio de cierre está por encima o por debajo de todas las medias móviles
+        above_all = all(data['Close'].iloc[-1] > ma for ma in moving_averages)
+        below_all = all(data['Close'].iloc[-1] < ma for ma in moving_averages)
+
+        if above_all and aligned_up and balance_a > self.cost:
+            actions.append((Action.SELL_MARKET, data['Close'].iloc[-1], self.cost))
+        elif below_all and aligned_down and self.can_buy(data['Close'].iloc[-1], memory['orders']):
+            actions.append((Action.BUY_MARKET, data['Close'].iloc[-1], self.cost))
+        else:
+            actions.append((Action.WAIT, None, None))
+
+        return actions
+
 class MultiMovingAverageStrategySell(Strategy):
     def __init__(self, windows=[10, 50, 100, 200], cost=10, fee=0.004):
         self.windows = windows
