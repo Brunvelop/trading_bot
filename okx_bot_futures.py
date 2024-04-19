@@ -35,12 +35,42 @@ def get_bars():
 
 def job():
     bars_df = get_bars()
-    max_300, min_300 = indicators.calculate_max_min(bars_df, 10)
 
-    last_price = bars_df['Close'].iloc[-1]  # Precio de cierre de la última vela
+    ma_200 = indicators.calculate_ma(bars_df, 200)
 
-#######################################################
-    if last_price > max_300:
+    max_300 = indicators.calculate_max(bars_df, 300)
+    min_300 = indicators.calculate_min(bars_df, 300)
+
+    volatility = indicators.calculate_volatility(bars_df)
+    avg_vol_10 = indicators.calculate_avg_volatility(volatility, 10)
+    avg_vol_50 = indicators.calculate_avg_volatility(volatility, 50)
+    avg_vol_100 = indicators.calculate_avg_volatility(volatility, 100)
+    avg_vol_200 = indicators.calculate_avg_volatility(volatility, 200)
+
+    last_price = bars_df['Close'].iloc[-1] 
+    break_max_300 = last_price > max_300
+    break_min_300 = last_price < min_300
+    volatility_up = (avg_vol_10 > avg_vol_50) & (avg_vol_50 > avg_vol_100) & (avg_vol_100 > avg_vol_200)
+
+    indicators_data = {
+        'ma_200': ma_200,
+        'volatility': volatility,
+        'max_300': max_300, 
+        'min_300': min_300,
+        'avg_vol_10': avg_vol_10,
+        'avg_vol_50': avg_vol_50,
+        'avg_vol_100': avg_vol_100,
+        'avg_vol_200': avg_vol_200,
+        'volatility_up': volatility_up,
+        'break_max_300': break_max_300,
+        'break_min_300': break_min_300,
+    }
+
+    position = exchange_api.fetchPosition(PAIR)
+    if position.get('contracts'):
+        return bars_df, indicators_data
+        
+    if break_max_300 and volatility_up:
         exchange_api.create_order_with_tp_and_sl(
             pair=PAIR,
             side='buy',
@@ -52,7 +82,7 @@ def job():
             order_type='market'
         )
 
-    elif last_price < min_300:
+    elif break_min_300 and volatility_up:
         exchange_api.create_order_with_tp_and_sl(
             pair=PAIR,
             side='sell',
@@ -64,7 +94,7 @@ def job():
             order_type='market'
         )
                     
-    return bars_df, max_300, min_300
+    return bars_df, indicators_data
 
 
 if __name__ == '__main__':
