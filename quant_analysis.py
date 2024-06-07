@@ -178,12 +178,12 @@ print(buy_results)
 print("\nSell segments statistics:")
 print(sell_results)
 # Calcula el stop loss basado en el percentil 95 de la amplitud
-stop_loss_percentile = calculate_stop_loss(segments_df['Amplitude'], 0.88)
+stop_loss_percentile = calculate_stop_loss(segments_df['Amplitude'], 0.80)
 # Calcula el stop loss basado en 2 desviaciones estándar por debajo de la media de la amplitud
 stop_loss_std = calculate_stop_loss_std(segments_df, 'Amplitude', 2)
 
 
-# Llamamos a la función para crear los histogramas
-plot_histograms(segments_df, buy_segments_df, sell_segments_df, columns)
+# # Llamamos a la función para crear los histogramas
+# plot_histograms(segments_df, buy_segments_df, sell_segments_df, columns)
 
-plot(data_1m, moving_averages, segments)
+# plot(data_1m, moving_averages, segments)

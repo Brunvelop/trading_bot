@@ -216,9 +216,9 @@ def draw_graphs(visualization_df, plot_modes, extra_plots_price=None, extra_plot
 
 
 # Cargar los datos
-# data = load_data('data/BTC_EUR_1m.csv', start=None, end=None)
+data = load_data('data/BTC_USD_1h.csv', start=None, end=1000000)
 # data = load_data('data/BTC_USDT_15m.csv', start=None, end=10000)
-data = load_random_data('data/BTC_USDT_1m.csv', duration=432000, variation=-0.30, tolerancia=0.01)
+# data = load_random_data('data/BTC_USDT_1m.csv', duration=432000, variation=-0.30, tolerancia=0.01)
 
 #Variables
 fee = 0.003

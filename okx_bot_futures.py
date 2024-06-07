@@ -70,26 +70,27 @@ def job():
     if position.get('contracts'):
         return bars_df, indicators_data
         
-    if break_max_300 and volatility_up:
+    if break_max_300 and volatility_up.iloc[-1]:
+
         exchange_api.create_order_with_tp_and_sl(
             pair=PAIR,
             side='buy',
             amount=1,
             price=last_price,
-            sl_price=last_price*0.985,
-            tp_price = last_price*1.015,
+            sl_price=last_price*0.99,
+            tp_price = last_price*1.02,
             leverage=50,
             order_type='market'
         )
 
-    elif break_min_300 and volatility_up:
+    elif break_min_300 and volatility_up.iloc[-1]:
         exchange_api.create_order_with_tp_and_sl(
             pair=PAIR,
             side='sell',
             amount=1,
             price=last_price,
-            sl_price=last_price*0.985,
-            tp_price = last_price*1.015,
+            sl_price=last_price*0.99,
+            tp_price = last_price*1.02,
             leverage=50,
             order_type='market'
         )
