@@ -178,3 +178,30 @@ class BinanceAPI(BaseExchangeAPI):
     def fetch_currencies(self):
         exchange = self.connect_api()
         return exchange.fetch_currencies()
+    
+
+class BitgetAPI(BaseExchangeAPI):
+    def __init__(self, api_key='BITGET_API_KEY', api_secret='BITGET_API_SECRET'):
+        super().__init__('bitget', api_key, api_secret, options={
+            'password' : os.getenv('BITGET_API_PASSWORD')
+        })
+
+    def get_order(self, order_id, symbol=''):
+        exchange = self.connect_api()
+        return exchange.fetch_order(order_id, symbol)
+
+    def create_order(self, pair, order_type, side, amount, price, params={}):
+        exchange = self.connect_api()
+        return exchange.create_order(pair, order_type, side, amount, price, params)
+
+    def fetch_open_orders(self, symbol, since=None, limit=None, params={}):
+        exchange = self.connect_api()
+        return exchange.fetch_open_orders(symbol, since, limit, params)
+
+    def fetch_position(self, symbols, params={}):
+        exchange = self.connect_api()
+        return exchange.fetch_position(symbols, params)
+
+    def fetch_currencies(self):
+        exchange = self.connect_api()
+        return exchange.fetch_currencies()

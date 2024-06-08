@@ -38,6 +38,7 @@ class Strategy(ABC):
         return total_balance
     
     def get_balance_b(self, memory, initial_balance_b=0):
+
         df = pd.DataFrame(memory)
 
         if df.empty:
@@ -104,7 +105,7 @@ class MultiMovingAverageStrategy(Strategy):
     
     def run(self, data, memory):
         actions = []
-        balance_b = self.get_balance_b(memory)
+        balance_b = memory.get('balance', 0)
 
         # Calculamos las medias móviles para cada ventana
         moving_averages = self.calculate_moving_averages(data)
