@@ -1,18 +1,11 @@
-import time
-import datetime
-
-import pandas as pd
-
-from db import DB
 from strategies import Action, Strategy
 from exchange_apis import BaseExchangeAPI
 from definitions import MarketData, Memory
 
 
 class Trader:
-    def __init__(self, strategy: Strategy, db_name: str, exange_api: BaseExchangeAPI, pair: str = 'BTC/USD') -> None:
+    def __init__(self, strategy: Strategy, exange_api: BaseExchangeAPI, pair: str = 'BTC/USD') -> None:
         self.strategy = strategy
-        self.db = DB(db_name)
         self.exange_api = exange_api
         self.pair = pair
 
@@ -37,52 +30,10 @@ class Trader:
                 pass
 
     def buy_market(self, price: float, quantity: float) -> None:
-        order = self.exange_api.create_order(self.pair, 'market', 'buy', quantity, price)
-        try:
-            if isinstance(order, tuple):
-                order_info = self.exange_api.get_order(order[0]['id'], self.pair)
-            else:
-                order_info = self.exange_api.get_order(order['id'], self.pair)
-        except Exception as e:
-            print(f"Error al obtener la información del pedido: {e}")
-            order_info = {
-                'id': order['id'],
-                'timestamp': time.time() * 1000,  # Tiempo actual en milisegundos
-                'price': price,
-                'amount': quantity,
-                'cost': price * quantity,
-                'error': str(e),
-            }
-
-        self.db.insert_order(
-            order_info['id'],
-            datetime.datetime.fromtimestamp(int(order_info['timestamp']/1000)).isoformat(),
-            self.pair,
-            'buy_market',
-            order_info['price'],
-            order_info['amount'],
-            order_info['cost'],
-            True,
-            order_info
-        )
+        return self.exange_api.create_order(self.pair, 'market', 'buy', quantity, price)
 
     def sell_market(self, price: float, quantity: float) -> None:
-        order = self.exange_api.create_order(self.pair, 'market', 'sell', quantity, price)
-        if isinstance(order, tuple):
-            order_info = self.exange_api.get_order(order[0]['id'], self.pair)
-        else:
-            order_info = self.exange_api.get_order(order['id'], self.pair)
-        self.db.insert_order(
-            order_info['id'],
-            datetime.datetime.fromtimestamp(int(order_info['timestamp']/1000)).isoformat(),
-            self.pair,
-            'sell_market',
-            order_info['price'],
-            order_info['amount'],
-            order_info['cost'],
-            True,
-            order_info,
-        )
+        return self.exange_api.create_order(self.pair, 'market', 'sell', quantity, price)
     
     def buy_limit(self, price: float, quantity: float) -> None:
         pass

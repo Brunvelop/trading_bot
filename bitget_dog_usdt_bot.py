@@ -6,12 +6,11 @@ import pandas as pd
 from trader import Trader
 from definitions import Memory, MarketData
 from exchange_apis import BitgetAPI
-from strategies import MultiMovingAverageStrategySell, MultiMovingAverageStrategy
+from strategies import MultiMovingAverageStrategy
 
 fee = 0.002
 trader = Trader(
     strategy= MultiMovingAverageStrategy(ab_ratio=0.1, max_duration=341),
-    db_name = 'bitget_dog_usdt',
     exange_api = BitgetAPI(api_key="BITGET_API_KEY_DOG_USDT_BOT", api_secret="BITGET_API_SECRET_DOG_USDT_BOT"),
     pair = 'DOG/USDT',
 )
@@ -28,7 +27,6 @@ def job():
         data = MarketData(data)
 
         memory: Memory = { 'orders': [], 'balance_a': 0.0,'balance_b': 0.0}
-        memory['orders'] = trader.db.get_all_orders()
         memory['balance_a'] = trader.exange_api.get_account_balance('DOG')
         memory['balance_b'] = trader.exange_api.get_account_balance('USDT')
 
