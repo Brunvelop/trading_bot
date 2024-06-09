@@ -1,3 +1,9 @@
+from typing import Type
+
+import pandas as pd
+
+from definitions import MarketData
+
 class Indicators:
     
     def calculate_max(self, data, period=300):
@@ -24,7 +30,6 @@ class Indicators:
         avg_volatility = volatility.ewm(span=span, adjust=False).mean()
         return avg_volatility
     
-
-    def calculate_ma(self, data, window=200):
-        average = data['Close'].rolling(window=window).mean()
-        return average
+    @staticmethod
+    def calculate_moving_average(data: Type[MarketData], window: int) -> pd.Series:
+        return data['Close'].rolling(window=window).mean()

@@ -4,16 +4,19 @@ import datetime
 import pandas as pd
 
 from db import DB
-from strategies import Action
+from strategies import Action, Strategy
+from exchange_apis import BaseExchangeAPI
+from definitions import MarketData, Memory
+
 
 class Trader:
-    def __init__(self, strategy, db_name, exange_api, pair='BTC/USD'):
+    def __init__(self, strategy: Strategy, db_name: str, exange_api: BaseExchangeAPI, pair: str = 'BTC/USD') -> None:
         self.strategy = strategy
         self.db = DB(db_name)
         self.exange_api = exange_api
         self.pair = pair
 
-    def execute_strategy(self, data, memory):
+    def execute_strategy(self, data: MarketData, memory: Memory) -> None:
         #old stop loss y take profit closed? limit orders? update?
         actions = self.strategy.run(data, memory)
         print(actions)
@@ -33,7 +36,7 @@ class Trader:
             else:
                 pass
 
-    def buy_market(self, price, quantity):
+    def buy_market(self, price: float, quantity: float) -> None:
         order = self.exange_api.create_order(self.pair, 'market', 'buy', quantity, price)
         try:
             if isinstance(order, tuple):
@@ -63,7 +66,7 @@ class Trader:
             order_info
         )
 
-    def sell_market(self, price, quantity):
+    def sell_market(self, price: float, quantity: float) -> None:
         order = self.exange_api.create_order(self.pair, 'market', 'sell', quantity, price)
         if isinstance(order, tuple):
             order_info = self.exange_api.get_order(order[0]['id'], self.pair)
@@ -81,14 +84,14 @@ class Trader:
             order_info,
         )
     
-    def buy_limit(price, quantity):
+    def buy_limit(self, price: float, quantity: float) -> None:
         pass
 
-    def sell_limit(price, quantity):
+    def sell_limit(self, price: float, quantity: float) -> None:
         pass
 
-    def set_stop_loss(self, price):
+    def set_stop_loss(self, price: float) -> None:
         self.exange_api.update_stop_loss('BTC/USD', 'sell', price, 1)
 
-    def set_take_profit(price, quantity):
+    def set_take_profit(self, price: float, quantity: float) -> None:
         pass

@@ -6,3 +6,4 @@ schedule
 seaborn
 pandas
 schedule
+pandera
