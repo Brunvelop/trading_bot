@@ -70,37 +70,3 @@ class MultiMovingAverageStrategy(Strategy):
             actions.append((Action.WAIT, None, None))
 
         return actions
-    
-class MultiMovingAverageStrategySell(Strategy):
-    def __init__(self, windows=[10, 50, 100, 200], cost=10, fee=0.004):
-        self.windows = windows
-        self.cost = cost
-        self.fee = fee
-    
-    def calculate_moving_averages(self, data):
-        return [data['Close'].rolling(window=window).mean().iloc[-1] for window in self.windows]
-    
-    def can_buy(self, current_price, memory):
-
-        # Calculamos el precio que es el porcentaje menor que el precio actual
-        buy_threshold = current_price * (1 + self.fee)
-
-        # Convertimos la memoria en un DataFrame
-        memory_df = pd.DataFrame(memory)
-        if memory_df.empty:
-            return False
-
-        # Obtenemos los trades de compra y venta
-        
-        buy_trades = memory_df[memory_df['type'] == 'buy_market'].to_dict('records')
-        sell_trades = memory_df[memory_df['type'] == 'sell_market'].to_dict('records')
-
-        # Asociamos cada sell_trade con el primer buy_trade que tenga al menos un porcentaje de diferencia positiva
-        for buy_trade in buy_trades:
-            for sell_trade in sell_trades:
-                if sell_trade['price'] > buy_trade['price'] * (1 + self.fee):
-                    sell_trades.remove(sell_trade)
-                    break
-
-        # Verificamos si hay alguna venta en la memoria cuyo precio es mayor que el umbral de compra
-        return any(trade['price'] > buy_threshold for trade in sell_trades)
