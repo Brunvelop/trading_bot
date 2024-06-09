@@ -62,9 +62,9 @@ class MultiMovingAverageStrategy(Strategy):
             amount = balance_a / ( self.max_duration * self.safety_margin )
 
 
-        if aligned_up:
+        if aligned_up and balance_a > amount:
             actions.append((Action.SELL_MARKET, current_price, amount))
-        elif aligned_down:
+        elif aligned_down and balance_b > amount * current_price:
             actions.append((Action.BUY_MARKET, current_price, amount))
         else:
             actions.append((Action.WAIT, None, None))
