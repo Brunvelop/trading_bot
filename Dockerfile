@@ -14,4 +14,4 @@ RUN pip install -r requirements.txt
 COPY . .
 
 # Ejecutar el script de Python cuando el contenedor se inicie
-CMD ["python", "./okx_bot.py"]
+CMD ["python", "./bitget_dog_usdt_bot.py.py"]
