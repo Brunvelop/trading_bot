@@ -35,12 +35,15 @@ class MovingAverageStrategy(Strategy):
         return actions
     
 class MultiMovingAverageStrategy(Strategy):
-    def __init__(self, ab_ratio: float = 1, max_duration: int = 500, 
+    def __init__(self, ab_ratio: float = 1, max_duration: int = 500, min_purchase:float = 5,
                  safety_margin: float = 3, windows: List[int] = [10, 50, 100, 200] ) -> None:
         self.windows = windows
         self.ab_ratio = ab_ratio
         self.max_duration = max_duration
         self.safety_margin = safety_margin
+        self.min_purchase = min_purchase
+        self.distribution_length = 0
+        self.acumulation_length = 0
         
     def run(self, data: MarketData, memory: Memory) -> List[Action]:
         actions = []
@@ -55,17 +58,28 @@ class MultiMovingAverageStrategy(Strategy):
         aligned_up = current_price > moving_averages[0] > moving_averages[1] > moving_averages[2] >  moving_averages[3]
         aligned_down = current_price < moving_averages[0] < moving_averages[1] < moving_averages[2] <  moving_averages[3]
 
-        # Calculamos que cantidad comprar o vender
-        if balance_a == 0 or self.ab_ratio * balance_b  > current_price * balance_a:  # modo compra
-            amount = balance_b / (self.max_duration * self.safety_margin * current_price)
-        else:  # modo venta
-            amount = balance_a / ( self.max_duration * self.safety_margin )
-
-
-        if aligned_up and balance_a > amount:
-            actions.append((Action.SELL_MARKET, current_price, amount))
-        elif aligned_down and balance_b > amount * current_price:
-            actions.append((Action.BUY_MARKET, current_price, amount))
+        # Calculamos que estado y cantidades
+        acumulation = current_price * balance_a < self.ab_ratio * balance_b 
+        distribution = current_price * balance_a > self.ab_ratio * balance_b
+        acumulation_amount = balance_b / (self.max_duration * self.safety_margin * current_price)
+        distribution_amount = balance_a / ( self.max_duration * self.safety_margin )
+        enough_acumulation_amount = balance_b > acumulation_amount * current_price and acumulation_amount * current_price > self.min_purchase
+        enough_distribution_amount = balance_a > distribution_amount and distribution_amount * current_price > self.min_purchase
+        
+        if aligned_up:
+            if distribution and enough_distribution_amount:
+                self.distribution_length +=1
+                actions.append((Action.SELL_MARKET, current_price, distribution_amount))
+            elif acumulation and enough_acumulation_amount and self.acumulation_length > 0:
+                self.acumulation_length -=1
+                actions.append((Action.SELL_MARKET, current_price, acumulation_amount))
+        elif aligned_down:
+            if distribution and enough_distribution_amount and self.distribution_length > 0:
+                self.distribution_length -=1
+                actions.append((Action.BUY_MARKET, current_price, distribution_amount))
+            elif acumulation and enough_acumulation_amount:
+                self.acumulation_length +=1
+                actions.append((Action.BUY_MARKET, current_price, acumulation_amount))
         else:
             actions.append((Action.WAIT, None, None))
 

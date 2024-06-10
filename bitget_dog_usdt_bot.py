@@ -9,10 +9,18 @@ from exchange_apis import BitgetAPI
 from strategies import MultiMovingAverageStrategy
 
 fee = 0.002
+
 trader = Trader(
-    strategy= MultiMovingAverageStrategy(ab_ratio=0.1, max_duration=341),
-    exange_api = BitgetAPI(api_key="BITGET_API_KEY_DOG_USDT_BOT", api_secret="BITGET_API_SECRET_DOG_USDT_BOT"),
-    pair = 'DOG/USDT',
+    strategy=MultiMovingAverageStrategy(
+        ab_ratio=0.5, 
+        max_duration=341, 
+        min_purchase=5.1
+    ),
+    exange_api=BitgetAPI(
+        api_key="BITGET_API_KEY_DOG_USDT_BOT", 
+        api_secret="BITGET_API_SECRET_DOG_USDT_BOT"
+    ),
+    pair='DOG/USDT'
 )
 
 def job():

@@ -12,6 +12,7 @@ class Trader:
     def execute_strategy(self, data: MarketData, memory: Memory) -> None:
         #old stop loss y take profit closed? limit orders? update?
         actions = self.strategy.run(data, memory)
+        print("distribution_n:", self.strategy.distribution_length, "acumulation_n:", self.strategy.acumulation_length)
         print(actions)
         for action, price, quantity in actions:
             if action == Action.BUY_MARKET:
