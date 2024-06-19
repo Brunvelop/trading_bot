@@ -1,9 +1,12 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-data_1m = pd.read_csv('data/BTC_USD_1m.csv', index_col=0, parse_dates=True)
-data_1m = pd.read_csv('data/old/BTC_USDT_1m.csv', index_col=0, parse_dates=True)
-data_1m = data_1m.tail(1000000)
+# data_1m = pd.read_csv('data/BTC_USD_1m.csv', index_col=0, parse_dates=True)
+# data_1m = pd.read_csv('data/old/BTC_USDT_1m.csv', index_col=0, parse_dates=True)
+# data_1m = data_1m.tail(1000000)
+
+data_1m = pd.read_csv('data/DOG_USDT_1m.csv', index_col=0, parse_dates=True)
+
 
 
 def calculate_moving_averages(data):
@@ -65,8 +68,8 @@ def plot_histograms(segments_df, buy_segments_df, sell_segments_df, columns):
 
     for ax, column in zip(axs, columns):
         plot_histogram(segments_df, column, ax, 'blue')
-        plot_histogram(buy_segments_df, column, ax, 'green')
-        plot_histogram(sell_segments_df, column, ax, 'red')
+        # plot_histogram(buy_segments_df, column, ax, 'green')
+        # plot_histogram(sell_segments_df, column, ax, 'red')
 
     plt.tight_layout()
     plt.show()
@@ -183,7 +186,7 @@ stop_loss_percentile = calculate_stop_loss(segments_df['Amplitude'], 0.80)
 stop_loss_std = calculate_stop_loss_std(segments_df, 'Amplitude', 2)
 
 
-# # Llamamos a la función para crear los histogramas
-# plot_histograms(segments_df, buy_segments_df, sell_segments_df, columns)
+# Llamamos a la función para crear los histogramas
+plot_histograms(segments_df, buy_segments_df, sell_segments_df, columns)
 
-# plot(data_1m, moving_averages, segments)
+plot(data_1m, moving_averages, segments)
