@@ -52,6 +52,10 @@ class BaseExchangeAPI:
         if stop_loss_order is not None:
             self.cancel_order(stop_loss_order['id'], pair)
         return self.create_order(pair, 'stop-loss', side, amount, price)
+    
+    def fetch_trades(self, pair, since=None, limit=None, params={}):
+        exchange = self.connect_api()
+        return exchange.fetch_trades(pair, since, limit, params)
 
 class KrakenAPI(BaseExchangeAPI):
     def __init__(self):

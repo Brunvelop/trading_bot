@@ -66,14 +66,14 @@ class MultiMovingAverageStrategy(Strategy):
         enough_acumulation_amount = balance_b > acumulation_amount * current_price and acumulation_amount * current_price > self.min_purchase
         enough_distribution_amount = balance_a > distribution_amount and distribution_amount * current_price > self.min_purchase
         
-        if aligned_up:
+        if aligned_up and balance_a > 0:
             if distribution and enough_distribution_amount:
                 self.distribution_length +=1
                 actions.append((Action.SELL_MARKET, current_price, distribution_amount))
             elif acumulation and enough_acumulation_amount and self.acumulation_length > 0:
                 self.acumulation_length -=1
                 actions.append((Action.SELL_MARKET, current_price, acumulation_amount))
-        elif aligned_down:
+        elif aligned_down and balance_b > 0:
             if distribution and enough_distribution_amount and self.distribution_length > 0:
                 self.distribution_length -=1
                 actions.append((Action.BUY_MARKET, current_price, distribution_amount))
