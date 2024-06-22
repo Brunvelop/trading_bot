@@ -19,16 +19,16 @@ class Backtester:
         for action_type, price, amount in actions:
             if action_type is not None and price is not None:
                 total_value = price * amount
-                fee = total_value * self.fee if action_type == Action.BUY_MARKET else amount * self.fee if action_type == Action.SELL_MARKET else 0
+                fee = amount * self.fee if action_type == Action.BUY_MARKET else total_value * self.fee if action_type == Action.SELL_MARKET else 0
                 timestamp = data['Datetime'].iloc[-1]
                 pair = 'DOG/USDT'  
 
                 if action_type == Action.BUY_MARKET:
-                    self.memory['balance_a'] += amount
-                    self.memory['balance_b'] -= (total_value + fee)
+                    self.memory['balance_a'] += amount * (1-self.fee)
+                    self.memory['balance_b'] -= total_value
                 elif action_type == Action.SELL_MARKET:
-                    self.memory['balance_a'] -= (amount + fee)
-                    self.memory['balance_b'] += total_value
+                    self.memory['balance_a'] -= amount
+                    self.memory['balance_b'] += total_value * (1-self.fee)
 
                 self.memory.get('orders').append({
                     'timestamp': timestamp,
@@ -79,6 +79,7 @@ class Backtester:
                 
                 # Si la variación porcentual es igual a la variación deseada, devolver el segmento
                 if np.isclose(actual_variation, variation, atol=tolerancia):
+                    self.data = segment
                     return segment
         else:
             if start is not None and end is not None:
@@ -92,10 +93,12 @@ class Backtester:
         return data
 
     def fill_nan_with_bfill_ffill(self, df: pd.DataFrame, column_name: str) -> pd.DataFrame:
-        # Rellenar los valores NaN en la columna con el siguiente valor no NaN
-        df[column_name] = df[column_name].bfill()
-        # Rellenar los valores NaN restantes (al final) con el último valor no NaN
+        # Rellenar los valores NaN hacia adelante
         df[column_name] = df[column_name].ffill()
+        # Rellenar los valores NaN restantes (al principio) con el primer valor no NaN
+        first_valid_index = df[column_name].first_valid_index()
+        if first_valid_index is not None:
+            df[column_name] = df[column_name].fillna(df[column_name].iloc[first_valid_index])
 
         return df
 
