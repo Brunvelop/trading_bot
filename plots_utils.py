@@ -64,11 +64,11 @@ def plot_extra(ax, extra_plot):
     ax.set_xlabel('Time', fontsize=14)
     ax.set_ylabel('Value', fontsize=14)
 
-def draw_graphs(visualization_df, plot_modes, extra_plots_price=None, extra_plot=None):
+def draw_graphs(visualization_df, plot_modes, extra_plots_price=None, extra_plot=None, save_path=None):
     plt.style.use('ggplot')
     if 'price' in plot_modes:
         if extra_plot is None:
-            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12), sharex=True)
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 18), sharex=True)
         else:
             fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 18), sharex=True)
         plot_prices(ax1, visualization_df, extra_plots_price)
@@ -83,4 +83,8 @@ def draw_graphs(visualization_df, plot_modes, extra_plots_price=None, extra_plot
         plot_balance(ax2, ax2.twinx(), visualization_df, plot_modes)
         if extra_plot is not None:
             plot_extra(ax3, extra_plot)
-    plt.show()
+    
+    if save_path:
+        fig.savefig(save_path)
+    else:
+        plt.show()
