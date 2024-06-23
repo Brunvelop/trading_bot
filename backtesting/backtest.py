@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import matplotlib.pyplot as plt
 from definitions import Memory
 from backtester import Backtester
@@ -109,7 +113,7 @@ for duration in tqdm(durations, desc="Processing Durations", unit="duration"):
             ),
         )
 
-        prices = backtester.load_data('data/prices/ADA_USD_1m.csv', duration=43200, variation=variation, tolerancia=0.01)
+        prices = backtester.load_data('data/prices/ADA_USD_1m.csv', duration=4320, variation=variation, tolerancia=0.01)
         memory: Memory = backtester.simulate_real_time_execution(window_size = 350)
 
         # Generate Visualization df
