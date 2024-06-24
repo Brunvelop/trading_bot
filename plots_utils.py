@@ -32,7 +32,7 @@ def plot_balance(ax, ax_extra, visualization_df, plot_modes):
         ax_extra.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['balance_b'].iloc[-1], color='orange', s=10)
         ax_extra.text(visualization_df['Datetime'].iloc[-1], visualization_df['balance_b'].iloc[-1], f"{visualization_df['balance_b'].iloc[-1]:.2f}", color='orange')
     if 'total_value' in plot_modes:
-        ax_extra.plot(visualization_df['Datetime'], visualization_df['total_value'], label='Total Balance', color='blue', linewidth=2)
+        ax_extra.plot(visualization_df['Datetime'], visualization_df['total_value'], label='Total Value', color='blue', linewidth=2)
         ax_extra.scatter(visualization_df['Datetime'].iloc[-1], visualization_df['total_value'].iloc[-1], color='blue', s=10)
         ax_extra.text(visualization_df['Datetime'].iloc[-1], visualization_df['total_value'].iloc[-1], f"{visualization_df['total_value'].iloc[-1]:.2f}", color='blue')
     if 'hold_value' in plot_modes:
