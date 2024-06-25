@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, auto
 from typing import TypedDict, List, Any
 
 import pandas as pd
@@ -35,4 +35,14 @@ class OscilationAnalysis(TypedDict):
     longest_sell_duration: int
     total_sell_periods: int
     current_state: str
+
+class PlotMode(Enum):
+    PRICE = auto()
+    BALANCE_A = auto()
+    BALANCE_B = auto()
+    HOLD_VALUE = auto()
+    TOTAL_VALUE_A = auto()
+    TOTAL_VALUE_B = auto()
+    ADJUSTED_B_BALANCE = auto()
+
 

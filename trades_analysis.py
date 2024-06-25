@@ -1,7 +1,6 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 from plots_utils import draw_graphs
-from datetime import datetime
+from definitions import PlotMode
 ['Datetime', 'Open', 'Close', 'High', 'Low', 'Volume', 'timestamp',
        'pair', 'type', 'price', 'amount', 'total_value', 'fee', 'balance_a',
        'balance_b', 'hold_value']
@@ -32,9 +31,11 @@ visualization_df = pd.DataFrame({
     'type': ['sell_market' if amount < 0 else 'buy_market' for amount in dog_df['Amount']],
     'price': price,
     'amount': dog_df['Amount'].abs(),
-    'total_value': (usdt_df['Available'].abs() + dog_df['Available'].abs() * price),
+    'total_value_a': (usdt_df['Available'].abs() / price + dog_df['Available'].abs()),
+    'total_value_b': (usdt_df['Available'].abs() + dog_df['Available'].abs() * price),
     'balance_a': dog_df['Available'],
-    'balance_b': usdt_df['Available']
+    'balance_b': usdt_df['Available'],
+    'adjusted_b_balance': usdt_df['Available'] - (dog_df['Available'].iloc[0] - dog_df['Available']) * price
 })
 
 # Calcular hold_value (asumiendo que es el valor si hubiéramos mantenido DOG)
@@ -47,6 +48,13 @@ visualization_df = visualization_df.sort_values('timestamp')
 visualization_df['Datetime'] = pd.to_datetime(visualization_df['Datetime'])
 
 
-
-plot_modes = ['Close', 'balance_a', 'balance_b', 'total_value', 'hold_value', 'price']
+plot_modes = [
+    PlotMode.PRICE,
+    PlotMode.BALANCE_A,
+    PlotMode.BALANCE_B,
+    PlotMode.HOLD_VALUE,
+    PlotMode.TOTAL_VALUE_A,
+    PlotMode.TOTAL_VALUE_B,
+    PlotMode.ADJUSTED_B_BALANCE
+]
 draw_graphs(visualization_df, plot_modes)
