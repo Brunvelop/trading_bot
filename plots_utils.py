@@ -18,9 +18,10 @@ def plot_prices(ax: plt.Axes, visualization_df: pd.DataFrame,
             getattr(ax, plot_type)(*plot_data, **plot_kwargs)
     
     # Plot buy and sell points
-    for trade_type, color, label in [('buy_market', 'green', 'Buy'), ('sell_market', 'red', 'Sell')]:
-        points = visualization_df[visualization_df['type'] == trade_type]
-        ax.scatter(points['timestamp'], points['price'], color=color, label=label, s=50)
+    if 'type' in visualization_df.columns:
+        for trade_type, color, label in [('buy_market', 'green', 'Buy'), ('sell_market', 'red', 'Sell')]:
+            points = visualization_df[visualization_df['type'] == trade_type]
+            ax.scatter(points['Datetime'], points['price'], color=color, label=label, s=50)
     
     # Set up axes and labels
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))
