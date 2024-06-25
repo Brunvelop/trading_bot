@@ -8,7 +8,6 @@ import numpy as np
 from definitions import Memory
 from backtester import Backtester
 from strategies import MultiMovingAverageStrategy
-from plots_utils import draw_graphs
 from tqdm import tqdm
 import concurrent.futures
 
