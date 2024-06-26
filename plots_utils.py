@@ -36,22 +36,23 @@ def plot_balances(ax: plt.Axes, ax_extra: plt.Axes, visualization_df: pd.DataFra
     last_datetime = visualization_df['Datetime'].iloc[-1]
 
     plot_configs = {
-        PlotMode.BALANCE_A: ('balance_a', 'DOG Balance', 'darkorange', ax),
-        PlotMode.BALANCE_B: ('balance_b', 'USDT Balance', 'limegreen', ax_extra),
-        PlotMode.HOLD_VALUE: ('hold_value', 'HOLD Value', 'teal', ax_extra),
-        PlotMode.TOTAL_VALUE_A: ('total_value_a', 'Total Value (en DOG)', 'coral', ax),
-        PlotMode.TOTAL_VALUE_B: ('total_value_b', 'Total Value (en USDT)', 'darkgreen', ax_extra),
-        PlotMode.ADJUSTED_B_BALANCE: ('adjusted_b_balance', 'Profit', 'yellowgreen', ax_extra),
+        PlotMode.BALANCE_A: ('balance_a', 'DOG Balance', 'darkorange', ax, '-', 3, 1.0),
+        PlotMode.BALANCE_B: ('balance_b', 'USDT Balance', 'limegreen', ax_extra, '-', 3, 1.0),
+        PlotMode.HOLD_VALUE: ('hold_value', 'HOLD Value', 'teal', ax_extra, ':', 1, 0.5),
+        PlotMode.TOTAL_VALUE_A: ('total_value_a', 'Total Value (en DOG)', 'coral', ax, '--', 1, 0.5),
+        PlotMode.TOTAL_VALUE_B: ('total_value_b', 'Total Value (en USDT)', 'darkgreen', ax_extra, '--', 1, 0.5),
+        PlotMode.ADJUSTED_B_BALANCE: ('adjusted_b_balance', 'Profit', 'yellowgreen', ax_extra, '-', 1, 1),
     }
     
     lines = []
     labels = []
     used_axes = set()
     
-    for mode, (column, label, color, axis) in plot_configs.items():
+    for mode, (column, label, color, axis, linestyle, linewidth, alpha) in plot_configs.items():
         if mode in plot_modes:
-            line, = axis.plot(visualization_df['Datetime'], visualization_df[column], label=label, color=color, linewidth=2)
-            
+            line, = axis.plot(visualization_df['Datetime'], visualization_df[column], 
+                              label=label, color=color, linewidth=linewidth, linestyle=linestyle, alpha=alpha)
+                        
             # Valor inicial
             first_value = visualization_df[column].iloc[0]
             axis.scatter(first_datetime, first_value, color=color, s=10)
