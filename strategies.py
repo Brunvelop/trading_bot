@@ -43,7 +43,7 @@ class MultiMovingAverageStrategy(Strategy):
         self.safety_margin = safety_margin
         self.min_purchase = min_purchase
         self.distribution_length = 0
-        self.acumulation_length = 0
+        self.acumulation_length = 15
         
     def run(self, data: MarketData, memory: Memory) -> List[Action]:
         actions = []
@@ -66,7 +66,7 @@ class MultiMovingAverageStrategy(Strategy):
             amount = balance_b / (self.max_duration * self.safety_margin * current_price)
             enough_amount_to_sell = balance_a > amount and amount * current_price > self.min_purchase
             enough_amount_to_buy = balance_b > amount * current_price and amount * current_price > self.min_purchase
-            if aligned_up and enough_amount_to_sell:
+            if aligned_up and enough_amount_to_sell and self.acumulation_length > 0:
                 self.acumulation_length -=1
                 actions.append((Action.SELL_MARKET, current_price, amount))
             elif aligned_down and enough_amount_to_buy:
@@ -79,7 +79,7 @@ class MultiMovingAverageStrategy(Strategy):
             if aligned_up and enough_amount_to_sell:
                 self.distribution_length +=1
                 actions.append((Action.SELL_MARKET, current_price, amount))
-            elif aligned_down and enough_amount_to_buy:
+            elif aligned_down and enough_amount_to_buy and self.distribution_length > 0:
                 self.distribution_length -=1
                 actions.append((Action.BUY_MARKET, current_price, amount))
         else:
