@@ -1,5 +1,6 @@
 from typing import Tuple, List
 from abc import ABC, abstractmethod
+from datetime import datetime
 
 import pandas as pd
 
@@ -36,14 +37,16 @@ class MovingAverageStrategy(Strategy):
     
 class MultiMovingAverageStrategy(Strategy):
     def __init__(self, ab_ratio: float = 1, max_duration: int = 500, min_purchase:float = 5,
-                 safety_margin: float = 3, windows: List[int] = [10, 50, 100, 200] ) -> None:
+                 safety_margin: float = 3, windows: List[int] = [10, 50, 100, 200],
+                 debug: bool = True) -> None:
         self.windows = windows
         self.ab_ratio = ab_ratio
         self.max_duration = max_duration
         self.safety_margin = safety_margin
         self.min_purchase = min_purchase
         self.distribution_length = 0
-        self.acumulation_length = 15
+        self.acumulation_length = 0
+        self.debug = debug
         
     def run(self, data: MarketData, memory: Memory) -> List[Action]:
         actions = []
@@ -84,5 +87,16 @@ class MultiMovingAverageStrategy(Strategy):
                 actions.append((Action.BUY_MARKET, current_price, amount))
         else:
             actions.append((Action.WAIT, None, None))
+
+        if self.debug:
+            print("time:", datetime.fromtimestamp(int(data['Date'].iloc[-1]) / 1000).strftime('%Y-%m-%d %H:%M'))
+            print("blance_a:", balance_a,"|", "balance_b:", balance_b)
+            print("distribution_n:", self.distribution_length, "acumulation_n:", self.acumulation_length)
+            print("aligned_up:", aligned_up,"|", "aligned_down:", aligned_down)
+            print("acumulation:", acumulation,"|", "distribution:", distribution)
+            print("enough_sell:", enough_amount_to_sell,"|", "enough_buy:", enough_amount_to_buy)
+            print("amount:", amount)
+            print("amount_price:", amount * current_price)
+            print(actions)
 
         return actions

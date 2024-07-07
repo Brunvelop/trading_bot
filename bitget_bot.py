@@ -11,10 +11,10 @@ from strategies import MultiMovingAverageStrategy
 
 trader = Trader(
     strategy=MultiMovingAverageStrategy(
-        ab_ratio=0.5, 
+        ab_ratio=0.25, 
         max_duration=341, 
         min_purchase=5.1,
-        safety_margin=2
+        safety_margin=1.5
     ),
     exange_api=BitgetAPI(
         api_key="BITGET_API_KEY_DOG_USDT_BOT", 
@@ -35,8 +35,8 @@ def job():
         data = MarketData(data)
 
         memory: Memory = { 'orders': [], 'balance_a': 0.0,'balance_b': 0.0}
-        memory['balance_a'] = trader.exange_api.get_account_balance('DOG')
-        memory['balance_b'] = trader.exange_api.get_account_balance('USDT')
+        memory['balance_a'] = trader.exange_api.get_account_balance(trader.pair.split('/')[0])
+        memory['balance_b'] = trader.exange_api.get_account_balance(trader.pair.split('/')[1])
 
         trader.execute_strategy(data, memory)
 
