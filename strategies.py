@@ -58,7 +58,7 @@ class MultiMovingAverageStrategy(Strategy):
         self.debug = debug
     
     def _determine_alignment(self, data: MarketData) -> Alignment:
-        moving_averages = [Indicators.calculate_moving_average(data, window).iloc[-1] for window in self.config['windows']]
+        moving_averages = [Indicators.calculate_moving_average(data, window).iloc[-1] for window in self.windows]
         current_price = data['Close'].iloc[-1]
         
         if current_price > moving_averages[0] > moving_averages[1] > moving_averages[2] > moving_averages[3]:
@@ -75,7 +75,7 @@ class MultiMovingAverageStrategy(Strategy):
         elif self.trading_phase == TradingPhase.DISTRIBUTION:
             amount = balance_a / ( self.max_duration * self.safety_margin )
 
-        return max(amount, self.min_purchase)
+        return max(amount, self.min_purchase / current_price)
 
     def _can_sell(self, balance_a: float, amount: float) -> bool:
         enough_amount_to_sell = balance_a > amount
@@ -121,10 +121,10 @@ class MultiMovingAverageStrategy(Strategy):
 
         if self.debug:
             print("time:", datetime.fromtimestamp(int(data['Date'].iloc[-1]) / 1000).strftime('%Y-%m-%d %H:%M'))
+            print(self.trading_phase)
+            print(alignment)
             print("blance_a:", balance_a,"|", "balance_b:", balance_b)
             print("distribution_n:", self.distribution_length, "acumulation_n:", self.acumulation_length)
-            print("alignment:", alignment)
-            print("trading phase:", self.trading_phase)
             print("can_sell:", self._can_sell(balance_a, amount),"|", "can_buy:", self._can_buy(balance_a, amount, current_price))
             print("amount:", amount)
             print("amount_price:", amount * current_price)
