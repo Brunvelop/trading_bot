@@ -4,17 +4,17 @@ import schedule
 import pandas as pd
 
 from trader import Trader
-from definitions import Memory, MarketData
+from definitions import Memory, MarketData, TradingPhase
 from exchange_apis import BitgetAPI
 from strategies import MultiMovingAverageStrategy
 
 
 trader = Trader(
     strategy=MultiMovingAverageStrategy(
-        ab_ratio=0.25, 
         max_duration=341, 
         min_purchase=5.1,
-        safety_margin=1.5
+        safety_margin=1.5,
+        trading_phase = TradingPhase.DISTRIBUTION,
     ),
     exange_api=BitgetAPI(
         api_key="BITGET_API_KEY_DOG_USDT_BOT", 
