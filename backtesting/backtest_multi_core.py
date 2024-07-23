@@ -1,16 +1,17 @@
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import concurrent.futures
 
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 from definitions import Memory, TradingPhase
 from backtester import Backtester
 from strategies import MultiMovingAverageStrategy
-from tqdm import tqdm
-import concurrent.futures
+from plots_utils import calculate_moving_averages_extra_plot
 
 def run_simulation(duration, variation):
     backtester = Backtester(
@@ -31,7 +32,7 @@ def run_simulation(duration, variation):
 
     # Generate Visualization df
     visualization_df = backtester.generate_visualization_df()
-    extra_plots_price = backtester.moving_averages_extra_plot()
+    extra_plots_price = calculate_moving_averages_extra_plot(backtester.data)
 
     # Store the last total_value for the current iteration
     last_total_value = visualization_df['total_value_b'].iloc[-1]

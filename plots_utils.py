@@ -164,3 +164,18 @@ def draw_graphs(
         fig.savefig(save_path)
     if show:
         plt.show()
+
+
+def calculate_moving_averages_extra_plot(data) -> list:
+    ma_10 = data['Close'].rolling(window=10).mean()
+    ma_50 = data['Close'].rolling(window=50).mean()
+    ma_100 = data['Close'].rolling(window=100).mean()
+    ma_200 = data['Close'].rolling(window=200).mean()
+
+    extra_plots_price = [
+        ((data['Datetime'], ma_10), {'color': 'blue', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 10', 'type': 'plot'}),
+        ((data['Datetime'], ma_50), {'color': 'orange', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 50', 'type': 'plot'}),
+        ((data['Datetime'], ma_100), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 100', 'type': 'plot'}),
+        ((data['Datetime'], ma_200), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 200', 'type': 'plot'})
+    ]
+    return extra_plots_price

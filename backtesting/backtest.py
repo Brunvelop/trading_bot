@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from backtester import Backtester
 from strategies import MultiMovingAverageStrategy
 from definitions import Memory, PlotMode, TradingPhase
-from plots_utils import draw_graphs
+from plots_utils import draw_graphs, calculate_moving_averages_extra_plot
 
 def backtest_001():
     backtester = Backtester(
@@ -31,7 +31,7 @@ def backtest_001():
 
     # Generate Visualization df
     visualization_df = backtester.generate_visualization_df()
-    extra_plots_price = backtester.moving_averages_extra_plot()
+    extra_plots_price = calculate_moving_averages_extra_plot(backtester.data)
 
     # Store the last total_value for the current iteration
     last_total_value = visualization_df['total_value'].iloc[-1]
@@ -69,7 +69,7 @@ def backtest_002():
 
         # Generate Visualization df
         visualization_df = backtester.generate_visualization_df()
-        extra_plots_price = backtester.moving_averages_extra_plot()
+        extra_plots_price = calculate_moving_averages_extra_plot(backtester.data)
 
         # Store the last total_value for the current iteration
         last_total_value = visualization_df['total_value_b'].iloc[-1]
@@ -132,7 +132,7 @@ def backtest_003():
 
             # Generate Visualization df
             visualization_df = backtester.generate_visualization_df()
-            extra_plots_price = backtester.moving_averages_extra_plot()
+            extra_plots_price = calculate_moving_averages_extra_plot(backtester.data)
 
             # Store the last total_value for the current iteration
             last_total_value = visualization_df['total_value_b'].iloc[-1]
@@ -160,4 +160,6 @@ def backtest_003():
 
 
 if __name__ == "__main__":
+    backtest_001()
     backtest_002()
+    backtest_003()

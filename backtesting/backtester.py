@@ -114,17 +114,3 @@ class Backtester:
         visualization_df['adjusted_b_balance'] = visualization_df['balance_b'] - (visualization_df['balance_a'].iloc[0] - visualization_df['balance_a']) * visualization_df['Close']
 
         return visualization_df
-    
-    def moving_averages_extra_plot(self) -> list:
-        ma_10 = self.data['Close'].rolling(window=10).mean()
-        ma_50 = self.data['Close'].rolling(window=50).mean()
-        ma_100 = self.data['Close'].rolling(window=100).mean()
-        ma_200 = self.data['Close'].rolling(window=200).mean()
-
-        extra_plots_price = [
-            ((self.data['Datetime'], ma_10), {'color': 'blue', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 10', 'type': 'plot'}),
-            ((self.data['Datetime'], ma_50), {'color': 'orange', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 50', 'type': 'plot'}),
-            ((self.data['Datetime'], ma_100), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 100', 'type': 'plot'}),
-            ((self.data['Datetime'], ma_200), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 200', 'type': 'plot'})
-        ]
-        return extra_plots_price
