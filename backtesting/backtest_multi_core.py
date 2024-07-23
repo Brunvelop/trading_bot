@@ -8,50 +8,35 @@ import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from definitions import Memory, TradingPhase
 from backtester import Backtester
+from definitions import TradingPhase
+from backtest import calculate_percentage_change
 from strategies import MultiMovingAverageStrategy
-from plots_utils import calculate_moving_averages_extra_plot
 
-def run_simulation(duration, variation):
-    backtester = Backtester(
-        initial_balance_a = 100000.0, 
-        initial_balance_b = 0.0, 
-        fee = 0.001,
-        strategy = MultiMovingAverageStrategy(
-            max_duration=duration, 
-            min_purchase=0.1,
-            safety_margin=1,
-            trading_phase = TradingPhase.DISTRIBUTION,
-            debug = False
-        ),
-    )
-
-    prices = backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=variation, tolerancia=0.01)
-    memory: Memory = backtester.simulate_real_time_execution(window_size = 350)
-
-    # Generate Visualization df
-    visualization_df = backtester.generate_visualization_df()
-    extra_plots_price = calculate_moving_averages_extra_plot(backtester.data)
-
-    # Store the last total_value for the current iteration
-    last_total_value = visualization_df['total_value_b'].iloc[-1]
-    initial_total_value = visualization_df['total_value_b'].iloc[0]
-    percentage_change = ((last_total_value - initial_total_value) / initial_total_value) * 100
-
-    return (duration, percentage_change, variation)
 
 def backtest_001(run_simulation):
     results = []
     variations = np.array([])
 
     n = 5
-    durations = range(5, 251, 25)
+    durations = range(5, 201, 50)
 
     with concurrent.futures.ProcessPoolExecutor() as executor:
         for duration in tqdm(durations, desc="Processing Durations", unit="duration"):
             variations_temp = np.random.uniform(-0.005, 0.005, n)
-            futures = [executor.submit(run_simulation, duration, variation) for variation in variations_temp]
+            backtester = Backtester(
+                initial_balance_a = 100000.0, 
+                initial_balance_b = 0.0, 
+                fee = 0.001,
+                strategy = MultiMovingAverageStrategy(
+                    max_duration=duration, 
+                    min_purchase=0.1,
+                    safety_margin=1,
+                    trading_phase = TradingPhase.DISTRIBUTION,
+                    debug = False
+                ),
+            )
+            futures = [executor.submit(run_simulation, backtester, variation) for variation in variations_temp]
             for future in tqdm(concurrent.futures.as_completed(futures), total=n, desc=f"Duration {duration}"):
                 result = future.result()
                 results.append(result[:2])
@@ -88,4 +73,4 @@ def backtest_001(run_simulation):
 
 
 if __name__ == '__main__':
-    backtest_001(run_simulation)
+    backtest_001(calculate_percentage_change)

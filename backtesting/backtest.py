@@ -1,6 +1,7 @@
-import sys
 import os
+import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from typing import Tuple
 
 import numpy as np
 from tqdm import tqdm
@@ -157,6 +158,22 @@ def backtest_003():
     plt.grid(True)
     plt.savefig('./data/percentage_change_total_value_vs_duration_with_variations.png')
     plt.show()
+
+def calculate_percentage_change(backtester: Backtester, variation: float) -> Tuple[int, float, float]:
+
+    prices = backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=variation, tolerancia=0.01)
+    memory: Memory = backtester.simulate_real_time_execution(window_size = 350)
+
+    # Generate Visualization df
+    visualization_df = backtester.generate_visualization_df()
+    extra_plots_price = calculate_moving_averages_extra_plot(backtester.data)
+
+    # Store the last total_value for the current iteration
+    last_total_value = visualization_df['total_value_b'].iloc[-1]
+    initial_total_value = visualization_df['total_value_b'].iloc[0]
+    percentage_change = ((last_total_value - initial_total_value) / initial_total_value) * 100
+
+    return (backtester.strategy.max_duration, percentage_change, variation)
 
 
 if __name__ == "__main__":
