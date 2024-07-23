@@ -19,9 +19,8 @@ def backtest_percentage_change(
         max_durations: range = range(5, 201, 50),
         backtester_config: dict = None,
         strategy_config: dict = None
-    ) -> None :
+    ) -> None:
     results = []
-    variations = np.array([])
 
     with concurrent.futures.ProcessPoolExecutor() as executor:
         for duration in tqdm(max_durations, desc="Processing Durations", unit="duration"):
@@ -36,17 +35,15 @@ def backtest_percentage_change(
             futures = [executor.submit(calculate_percentage_change, backtester, variation) for variation in variations_temp]
             for future in tqdm(concurrent.futures.as_completed(futures), total=num_tests_per_strategy, desc=f"Duration {duration}"):
                 percentage_change = future.result()
-                results.append((duration, percentage_change))
-                variations = np.append(variations, percentage_change)
+                results.append((duration,percentage_change))
 
     df = pd.DataFrame(results, columns=['Duration', 'Percentage Change'])
-    df['Variation'] = variations
     df.to_csv(f'./data/change_vs_duration_n{num_tests_per_strategy}_durations{max_durations.start}-{max_durations.stop}-{max_durations.step}.csv', index=False)
 
     # Plot the results
 
     x_values, y_values = zip(*results)
-    colors = variations  # Use variations for color mapping
+    colors = y_values  # Use variations for color mapping
     # New box plot using matplotlib in the same figure
     fig, axs = plt.subplots(2, figsize=(20, 12))  # Create a new figure with 2 subplots
 
