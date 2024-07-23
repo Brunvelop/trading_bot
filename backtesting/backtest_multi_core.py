@@ -34,32 +34,18 @@ def backtest_percentage_change(
             )
             futures = [executor.submit(calculate_percentage_change, backtester, variation) for variation in variations_temp]
             for future in tqdm(concurrent.futures.as_completed(futures), total=num_tests_per_strategy, desc=f"Duration {duration}"):
-                percentage_change = future.result()
-                results.append((duration,percentage_change))
+                percentage_change, variation = future.result()
+                results.append((duration, percentage_change, variation))
 
-    df = pd.DataFrame(results, columns=['Duration', 'Percentage Change'])
+    df = pd.DataFrame(results, columns=['Duration', 'Percentage Change', 'Price Variation'])
     df.to_csv(f'./data/change_vs_duration_n{num_tests_per_strategy}_durations{max_durations.start}-{max_durations.stop}-{max_durations.step}.csv', index=False)
 
-    # Plot the results
-
-    x_values, y_values = zip(*results)
-    colors = y_values  # Use variations for color mapping
-    # New box plot using matplotlib in the same figure
-    fig, axs = plt.subplots(2, figsize=(20, 12))  # Create a new figure with 2 subplots
-
-    # Scatter plot
-    scatter = axs[0].scatter(x_values, y_values, c=colors, cmap='coolwarm', alpha=0.5)
-    fig.colorbar(scatter, ax=axs[0], label='Variation')
-    axs[0].set_xlabel('Duration')
-    axs[0].set_ylabel('Percentage Change in Total Value')
-    axs[0].set_title('Percentage Change in Total Value vs Duration with Random Variations')
-    axs[0].grid(True)
+    fig, ax = plt.subplots(figsize=(20, 12))  # Crear una nueva figura con 1 subplot
 
     # Box plot
-    df.boxplot(column='Percentage Change', by='Duration', ax=axs[1])
-    axs[1].set_title('Box plot of Percentage Change by Duration')
-    axs[1].set_xlabel('Duration')
-    axs[1].set_ylabel('Percentage Change')
+    df.boxplot(column='Percentage Change', by='Duration', ax=ax)
+    ax.set_xlabel('Duration')
+    ax.set_ylabel('Percentage Change')
 
     plt.tight_layout()
     fig.savefig(f'./data/change_vs_duration_n{num_tests_per_strategy}_durations{max_durations.start}-{max_durations.stop}-{max_durations.step}.png')
@@ -68,8 +54,8 @@ def backtest_percentage_change(
 
 if __name__ == '__main__':
     backtest_percentage_change(
-        num_tests_per_strategy = 5,
-        max_durations = range(5, 201, 50),
+        num_tests_per_strategy = 40,
+        max_durations = range(5, 151, 10),
         backtester_config={
             'initial_balance_a': 100000,
             'initial_balance_b': 0,

@@ -159,7 +159,7 @@ def backtest_003():
     plt.savefig('./data/percentage_change_total_value_vs_duration_with_variations.png')
     plt.show()
 
-def calculate_percentage_change(backtester: Backtester, variation: float) -> Tuple[int, float, float]:
+def calculate_percentage_change(backtester: Backtester, variation: float) -> Tuple[float, float]:
 
     prices = backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=variation, tolerancia=0.01)
     memory: Memory = backtester.simulate_real_time_execution(window_size = 350)
@@ -173,7 +173,7 @@ def calculate_percentage_change(backtester: Backtester, variation: float) -> Tup
     initial_total_value = visualization_df['total_value_b'].iloc[0]
     percentage_change = ((last_total_value - initial_total_value) / initial_total_value) * 100
 
-    return percentage_change
+    return percentage_change, variation
 
 
 if __name__ == "__main__":
