@@ -14,37 +14,34 @@ from backtest import calculate_percentage_change
 from strategies import MultiMovingAverageStrategy
 
 
-def backtest_001(run_simulation):
+def backtest_percentage_change(
+        num_tests_per_strategy:int = 5,
+        max_durations: range = range(5, 201, 50),
+        backtester_config: dict = None,
+        strategy_config: dict = None
+    ) -> None :
     results = []
     variations = np.array([])
 
-    n = 5
-    durations = range(5, 201, 50)
-
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        for duration in tqdm(durations, desc="Processing Durations", unit="duration"):
-            variations_temp = np.random.uniform(-0.005, 0.005, n)
+        for duration in tqdm(max_durations, desc="Processing Durations", unit="duration"):
+            variations_temp = np.random.uniform(-0.005, 0.005, num_tests_per_strategy)
             backtester = Backtester(
-                initial_balance_a = 100000.0, 
-                initial_balance_b = 0.0, 
-                fee = 0.001,
+                **backtester_config,
                 strategy = MultiMovingAverageStrategy(
-                    max_duration=duration, 
-                    min_purchase=0.1,
-                    safety_margin=1,
-                    trading_phase = TradingPhase.DISTRIBUTION,
-                    debug = False
+                    max_duration=duration,
+                    **strategy_config
                 ),
             )
-            futures = [executor.submit(run_simulation, backtester, variation) for variation in variations_temp]
-            for future in tqdm(concurrent.futures.as_completed(futures), total=n, desc=f"Duration {duration}"):
-                result = future.result()
-                results.append(result[:2])
-                variations = np.append(variations, result[2])
+            futures = [executor.submit(calculate_percentage_change, backtester, variation) for variation in variations_temp]
+            for future in tqdm(concurrent.futures.as_completed(futures), total=num_tests_per_strategy, desc=f"Duration {duration}"):
+                percentage_change = future.result()
+                results.append((duration, percentage_change))
+                variations = np.append(variations, percentage_change)
 
     df = pd.DataFrame(results, columns=['Duration', 'Percentage Change'])
     df['Variation'] = variations
-    df.to_csv(f'./data/change_vs_duration_n{n}_durations{durations.start}-{durations.stop}-{durations.step}.csv', index=False)
+    df.to_csv(f'./data/change_vs_duration_n{num_tests_per_strategy}_durations{max_durations.start}-{max_durations.stop}-{max_durations.step}.csv', index=False)
 
     # Plot the results
 
@@ -68,9 +65,23 @@ def backtest_001(run_simulation):
     axs[1].set_ylabel('Percentage Change')
 
     plt.tight_layout()
-    fig.savefig(f'./data/change_vs_duration_n{n}_durations{durations.start}-{durations.stop}-{durations.step}.png')
+    fig.savefig(f'./data/change_vs_duration_n{num_tests_per_strategy}_durations{max_durations.start}-{max_durations.stop}-{max_durations.step}.png')
     plt.show()
 
 
 if __name__ == '__main__':
-    backtest_001(calculate_percentage_change)
+    backtest_percentage_change(
+        num_tests_per_strategy = 5,
+        max_durations = range(5, 201, 50),
+        backtester_config={
+            'initial_balance_a': 100000,
+            'initial_balance_b': 0,
+            'fee': 0.001,
+        },
+        strategy_config={
+            'min_purchase': 0.1,
+            'safety_margin': 1,
+            'trading_phase': TradingPhase.DISTRIBUTION,
+            'debug': False
+        }
+    )

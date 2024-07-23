@@ -173,7 +173,7 @@ def calculate_percentage_change(backtester: Backtester, variation: float) -> Tup
     initial_total_value = visualization_df['total_value_b'].iloc[0]
     percentage_change = ((last_total_value - initial_total_value) / initial_total_value) * 100
 
-    return (backtester.strategy.max_duration, percentage_change, variation)
+    return percentage_change
 
 
 if __name__ == "__main__":
