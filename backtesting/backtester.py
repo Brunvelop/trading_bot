@@ -1,16 +1,16 @@
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-from typing import List, Dict, Any
+from typing import List
 
 from strategies import Strategy
 from definitions import Memory, MarketData, Action
 
 class Backtester:
-    def __init__(self, strategy: Strategy, initial_balance_a: float,initial_balance_b:float, fee: float = 0.001):
+    def __init__(self, strategy: Strategy, initial_balance_a: float, initial_balance_b:float, fee: float = 0.001):
         self.strategy = strategy
         self.fee = fee
-        self.memory = {'orders': [], 'balance_a': initial_balance_a, 'balance_b': initial_balance_b}
+        self.memory: Memory = {'orders': [], 'balance_a': initial_balance_a, 'balance_b': initial_balance_b}
         self.data = None
 
     def execute_strategy(self, data: MarketData):
@@ -109,7 +109,9 @@ class Backtester:
         visualization_df = self.fill_nan_with_bfill_ffill(visualization_df, 'balance_a')
         visualization_df = self.fill_nan_with_bfill_ffill(visualization_df, 'balance_b')
         visualization_df['hold_value'] = visualization_df['balance_a'] * visualization_df['Close']
-        visualization_df['total_value'] = visualization_df['balance_b'] + visualization_df['hold_value']
+        visualization_df['total_value_a'] = visualization_df['balance_a'] + visualization_df['balance_b'] / visualization_df['Close'] 
+        visualization_df['total_value_b'] = visualization_df['balance_b'] + visualization_df['hold_value']
+        visualization_df['adjusted_b_balance'] = visualization_df['balance_b'] - (visualization_df['balance_a'].iloc[0] - visualization_df['balance_a']) * visualization_df['Close']
 
         return visualization_df
     

@@ -2,10 +2,11 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
-from definitions import Memory
+from definitions import Memory, TradingPhase
 from backtester import Backtester
 from strategies import MultiMovingAverageStrategy
 from tqdm import tqdm
@@ -17,14 +18,15 @@ def run_simulation(duration, variation):
         initial_balance_b = 0.0, 
         fee = 0.001,
         strategy = MultiMovingAverageStrategy(
-            ab_ratio=0.5, 
             max_duration=duration, 
             min_purchase=0.1,
-            safety_margin=1
+            safety_margin=1,
+            trading_phase = TradingPhase.DISTRIBUTION,
+            debug = False
         ),
     )
 
-    prices = backtester.load_data('data/prices/ADA_USD_1m.csv', duration=4320, variation=variation, tolerancia=0.01)
+    prices = backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=variation, tolerancia=0.01)
     memory: Memory = backtester.simulate_real_time_execution(window_size = 350)
 
     # Generate Visualization df
@@ -32,18 +34,18 @@ def run_simulation(duration, variation):
     extra_plots_price = backtester.moving_averages_extra_plot()
 
     # Store the last total_value for the current iteration
-    last_total_value = visualization_df['total_value'].iloc[-1]
-    initial_total_value = visualization_df['total_value'].iloc[0]
+    last_total_value = visualization_df['total_value_b'].iloc[-1]
+    initial_total_value = visualization_df['total_value_b'].iloc[0]
     percentage_change = ((last_total_value - initial_total_value) / initial_total_value) * 100
 
     return (duration, percentage_change, variation)
 
-if __name__ == '__main__':
+def backtest_001(run_simulation):
     results = []
     variations = np.array([])
 
-    n = 10
-    durations = range(5, 101, 50)
+    n = 5
+    durations = range(5, 251, 25)
 
     with concurrent.futures.ProcessPoolExecutor() as executor:
         for duration in tqdm(durations, desc="Processing Durations", unit="duration"):
@@ -54,7 +56,6 @@ if __name__ == '__main__':
                 results.append(result[:2])
                 variations = np.append(variations, result[2])
 
-    import pandas as pd
     df = pd.DataFrame(results, columns=['Duration', 'Percentage Change'])
     df['Variation'] = variations
     df.to_csv(f'./data/change_vs_duration_n{n}_durations{durations.start}-{durations.stop}-{durations.step}.csv', index=False)
@@ -83,3 +84,7 @@ if __name__ == '__main__':
     plt.tight_layout()
     fig.savefig(f'./data/change_vs_duration_n{n}_durations{durations.start}-{durations.stop}-{durations.step}.png')
     plt.show()
+
+
+if __name__ == '__main__':
+    backtest_001(run_simulation)
