@@ -152,13 +152,11 @@ def backtest_003():
     plt.show()
 
 def calculate_percentage_change(backtester: Backtester, variation: float) -> float:
-
-    prices = backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=variation, tolerance=0.01)
-    memory: Memory = backtester.simulate_real_time_execution(window_size = 350)
-
+    backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=variation, tolerance=0.01)
+    backtester.simulate_real_time_execution(window_size = 350)
+ 
     # Generate Visualization df
     visualization_df = backtester.generate_visualization_df()
-    extra_plots_price = calculate_moving_averages_extra_plot(backtester.data)
 
     # Store the last total_value for the current iteration
     last_total_value = visualization_df['total_value_b'].iloc[-1]
