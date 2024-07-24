@@ -13,7 +13,75 @@ class Backtester:
         self.memory: Memory = {'orders': [], 'balance_a': initial_balance_a, 'balance_b': initial_balance_b}
         self.data = None
 
-    def execute_strategy(self, data: MarketData):
+    def simulate_real_time_execution(self, window_size: int = 350) -> List[Action]:
+        for i in tqdm(range(window_size, len(self.data))):
+            window_data = self.data.iloc[i-window_size+1:i+1]
+            self._execute_strategy(window_data)
+        return self.memory
+
+    def load_data(
+        self,
+        filename: str,
+        start: int = None,
+        end: int = None,
+        duration: int = None,
+        variation: float = None,
+        tolerance: float = 0.01
+    ) -> pd.DataFrame:
+        """
+        Ejemplos:
+            # Cargar datos desde el inicio hasta el índice 200
+            data = load_data('data.csv', end=200)
+
+            # Cargar un segmento aleatorio de 1000 filas con una variación del -5%
+            data = load_data('data.csv', duration=1000, variation=-0.05)
+        """
+        data = pd.read_csv(filename)
+        
+        if duration is not None and variation is not None:
+            n = len(data)
+            while True:
+                # Seleccionar un índice de inicio aleatorio
+                start_idx = np.random.randint(0, n - duration)
+                end_idx = start_idx + duration
+                
+                # Extraer el tramo de datos
+                segment = data.iloc[start_idx:end_idx]
+                
+                # Calcular la variación porcentual
+                start_price = segment.iloc[0]['Close']  # Asumiendo que 'Close' es la columna de precios
+                end_price = segment.iloc[-1]['Close']
+                actual_variation = (end_price - start_price) / start_price
+                
+                # Si la variación porcentual es igual a la variación deseada, devolver el segmento
+                if np.isclose(actual_variation, variation, atol=tolerance):
+                    self.data = segment
+                    return segment
+        else:
+            if start is not None and end is not None:
+                data = data.iloc[start:end]
+            elif start is not None:
+                data = data.iloc[start:]
+            elif end is not None:
+                data = data.iloc[:end]
+
+        self.data = data
+        return data
+
+    def generate_visualization_df(self) -> pd.DataFrame:
+        memory_df = pd.DataFrame(self.memory.get('orders'))
+        visualization_df = pd.merge(self.data, memory_df, left_on='Datetime', right_on='timestamp', how='left')
+
+        visualization_df = self._fill_nan_with_bfill_ffill(visualization_df, 'balance_a')
+        visualization_df = self._fill_nan_with_bfill_ffill(visualization_df, 'balance_b')
+        visualization_df['hold_value'] = visualization_df['balance_a'] * visualization_df['Close']
+        visualization_df['total_value_a'] = visualization_df['balance_a'] + visualization_df['balance_b'] / visualization_df['Close'] 
+        visualization_df['total_value_b'] = visualization_df['balance_b'] + visualization_df['hold_value']
+        visualization_df['adjusted_b_balance'] = visualization_df['balance_b'] - (visualization_df['balance_a'].iloc[0] - visualization_df['balance_a']) * visualization_df['Close']
+
+        return visualization_df
+    
+    def _execute_strategy(self, data: MarketData):
         actions = self.strategy.run(data, self.memory)
         
         for action_type, price, amount in actions:
@@ -41,58 +109,8 @@ class Backtester:
                     'balance_a': self.memory['balance_a'],
                     'balance_b': self.memory['balance_b']
                 })
-
-    def simulate_real_time_execution(self, window_size: int = 350) -> List[Action]:
-        # Simular la ejecución en tiempo real
-        for i in tqdm(range(window_size, len(self.data))):
-            window_data = self.data.iloc[i-window_size+1:i+1]
-            self.execute_strategy(window_data)
-        return self.memory
-
-    def load_data(self, filename: str, start: int = None, end: int = None, 
-                  duration: int = None, variation: float = None, 
-                  tolerancia: float = 0.01) -> pd.DataFrame:
-        """
-        Ejemplos:
-            # Cargar datos desde el inicio hasta el índice 200
-            data = load_data('data.csv', end=200)
-
-            # Cargar un segmento aleatorio de 1000 filas con una variación del -5%
-            data = load_data('data.csv', duration=1000, variation=-0.05)
-        """
-        data = pd.read_csv(filename)
-        
-        if duration is not None and variation is not None:
-            n = len(data)
-            while True:
-                # Seleccionar un índice de inicio aleatorio
-                start_idx = np.random.randint(0, n - duration)
-                end_idx = start_idx + duration
-                
-                # Extraer el tramo de datos
-                segment = data.iloc[start_idx:end_idx]
-                
-                # Calcular la variación porcentual
-                start_price = segment.iloc[0]['Close']  # Asumiendo que 'Close' es la columna de precios
-                end_price = segment.iloc[-1]['Close']
-                actual_variation = (end_price - start_price) / start_price
-                
-                # Si la variación porcentual es igual a la variación deseada, devolver el segmento
-                if np.isclose(actual_variation, variation, atol=tolerancia):
-                    self.data = segment
-                    return segment
-        else:
-            if start is not None and end is not None:
-                data = data.iloc[start:end]
-            elif start is not None:
-                data = data.iloc[start:]
-            elif end is not None:
-                data = data.iloc[:end]
-
-        self.data = data
-        return data
-
-    def fill_nan_with_bfill_ffill(self, df: pd.DataFrame, column_name: str) -> pd.DataFrame:
+    
+    def _fill_nan_with_bfill_ffill(self, df: pd.DataFrame, column_name: str) -> pd.DataFrame:
         # Rellenar los valores NaN hacia adelante
         df[column_name] = df[column_name].ffill()
         # Rellenar los valores NaN restantes (al principio) con el primer valor no NaN
@@ -101,16 +119,3 @@ class Backtester:
             df[column_name] = df[column_name].fillna(df[column_name].iloc[first_valid_index])
 
         return df
-
-    def generate_visualization_df(self) -> pd.DataFrame:
-        memory_df = pd.DataFrame(self.memory.get('orders'))
-        visualization_df = pd.merge(self.data, memory_df, left_on='Datetime', right_on='timestamp', how='left')
-
-        visualization_df = self.fill_nan_with_bfill_ffill(visualization_df, 'balance_a')
-        visualization_df = self.fill_nan_with_bfill_ffill(visualization_df, 'balance_b')
-        visualization_df['hold_value'] = visualization_df['balance_a'] * visualization_df['Close']
-        visualization_df['total_value_a'] = visualization_df['balance_a'] + visualization_df['balance_b'] / visualization_df['Close'] 
-        visualization_df['total_value_b'] = visualization_df['balance_b'] + visualization_df['hold_value']
-        visualization_df['adjusted_b_balance'] = visualization_df['balance_b'] - (visualization_df['balance_a'].iloc[0] - visualization_df['balance_a']) * visualization_df['Close']
-
-        return visualization_df
