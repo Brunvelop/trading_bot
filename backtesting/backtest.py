@@ -27,7 +27,7 @@ def backtest_001():
     )
 
     # prices = backtester.load_data('data/prices/ADA_USD_1m.csv', start=None, end=100000)
-    prices = backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=-0.05, tolerancia=0.01)
+    prices = backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=-0.05, tolerance=0.01)
     memory: Memory = backtester.simulate_real_time_execution(window_size = 350)
 
     # Generate Visualization df
@@ -37,15 +37,7 @@ def backtest_001():
     # Store the last total_value for the current iteration
     last_total_value = visualization_df['total_value'].iloc[-1]
 
-    plot_modes = [
-        PlotMode.PRICE,
-        PlotMode.BALANCE_A,
-        PlotMode.BALANCE_B,
-        PlotMode.HOLD_VALUE,
-        PlotMode.TOTAL_VALUE_A,
-        PlotMode.TOTAL_VALUE_B,
-        PlotMode.ADJUSTED_B_BALANCE
-    ]
+    plot_modes = list(PlotMode)
     draw_graphs(visualization_df, plot_modes, extra_plots_price)
 
 def backtest_002():
@@ -128,7 +120,7 @@ def backtest_003():
                 ),
             )
 
-            prices = backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=variation, tolerancia=0.01)
+            prices = backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=variation, tolerance=0.01)
             memory: Memory = backtester.simulate_real_time_execution(window_size = 350)
 
             # Generate Visualization df
@@ -159,9 +151,9 @@ def backtest_003():
     plt.savefig('./data/percentage_change_total_value_vs_duration_with_variations.png')
     plt.show()
 
-def calculate_percentage_change(backtester: Backtester, variation: float) -> Tuple[float, float]:
+def calculate_percentage_change(backtester: Backtester, variation: float) -> float:
 
-    prices = backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=variation, tolerancia=0.01)
+    prices = backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=variation, tolerance=0.01)
     memory: Memory = backtester.simulate_real_time_execution(window_size = 350)
 
     # Generate Visualization df
@@ -173,7 +165,7 @@ def calculate_percentage_change(backtester: Backtester, variation: float) -> Tup
     initial_total_value = visualization_df['total_value_b'].iloc[0]
     percentage_change = ((last_total_value - initial_total_value) / initial_total_value) * 100
 
-    return percentage_change, variation
+    return percentage_change
 
 
 if __name__ == "__main__":

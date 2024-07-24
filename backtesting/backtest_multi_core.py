@@ -1,7 +1,8 @@
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import concurrent.futures
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
 
 import numpy as np
 import pandas as pd
@@ -22,7 +23,7 @@ def backtest_percentage_change(
     ) -> None:
     results = []
 
-    with concurrent.futures.ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor() as executor:
         for duration in tqdm(max_durations, desc="Processing Durations", unit="duration"):
             variations_temp = np.random.uniform(-0.005, 0.005, num_tests_per_strategy)
             backtester = Backtester(
@@ -32,9 +33,13 @@ def backtest_percentage_change(
                     **strategy_config
                 ),
             )
-            futures = [executor.submit(calculate_percentage_change, backtester, variation) for variation in variations_temp]
-            for future in tqdm(concurrent.futures.as_completed(futures), total=num_tests_per_strategy, desc=f"Duration {duration}"):
-                percentage_change, variation = future.result()
+            future_to_variation = {
+                executor.submit(calculate_percentage_change, backtester, variation): variation
+                for variation in variations_temp
+            }            
+            for future in tqdm(as_completed(future_to_variation), total=num_tests_per_strategy, desc=f"Duration {duration}"):
+                variation = future_to_variation[future]
+                percentage_change = future.result()
                 results.append((duration, percentage_change, variation))
 
     df = pd.DataFrame(results, columns=['Duration', 'Percentage Change', 'Price Variation'])
@@ -54,8 +59,8 @@ def backtest_percentage_change(
 
 if __name__ == '__main__':
     backtest_percentage_change(
-        num_tests_per_strategy = 40,
-        max_durations = range(5, 151, 10),
+        num_tests_per_strategy = 100,
+        max_durations = range(5, 151, 50),
         backtester_config={
             'initial_balance_a': 100000,
             'initial_balance_b': 0,
