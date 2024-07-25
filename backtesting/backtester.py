@@ -1,7 +1,9 @@
+import random
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from typing import List
+from pathlib import Path
 
 from strategies import Strategy
 from definitions import Memory, MarketData, Action, VisualizationDataframe
@@ -21,7 +23,7 @@ class Backtester:
 
     def load_data(
         self,
-        file_path: str,
+        data_path: Path = Path('data/coinex_prices_raw'),
         start: int = None,
         end: int = None,
         duration: int = None,
@@ -29,7 +31,13 @@ class Backtester:
         tolerance: float = 0.01,
         normalize: bool = False
     ) -> pd.DataFrame:
-        data = pd.read_csv(file_path)
+        if data_path.is_dir():
+            csv_files = [f for f in data_path.glob('*.csv')]
+            if not csv_files:
+                raise ValueError(f"No CSV files found in directory: {data_path}")
+            data_path = random.choice(csv_files)
+        
+        data = pd.read_csv(data_path)
         
         if duration is not None and variation is not None:
             n = len(data)
