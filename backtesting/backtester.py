@@ -7,7 +7,7 @@ from strategies import Strategy
 from definitions import Memory, MarketData, Action, VisualizationDataframe
 
 class Backtester:
-    def __init__(self, strategy: Strategy, initial_balance_a: float, initial_balance_b:float, fee: float = 0.001):
+    def __init__(self, strategy: Strategy, initial_balance_a: float, initial_balance_b: float, fee: float = 0.001):
         self.strategy = strategy
         self.fee = fee
         self.memory: Memory = {'orders': [], 'balance_a': initial_balance_a, 'balance_b': initial_balance_b}
@@ -29,14 +29,6 @@ class Backtester:
         tolerance: float = 0.01,
         normalize: bool = False
     ) -> pd.DataFrame:
-        """
-        Ejemplos:
-            # Cargar datos desde el inicio hasta el índice 200
-            data = load_data('data.csv', end=200)
-
-            # Cargar un segmento aleatorio de 1000 filas con una variación del -5%
-            data = load_data('data.csv', duration=1000, variation=-0.05)
-        """
         data = pd.read_csv(file_path)
         
         if duration is not None and variation is not None:
