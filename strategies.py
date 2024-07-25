@@ -106,14 +106,14 @@ class MultiMovingAverageStrategy(Strategy):
             if alignment == self.Alignment.UP and self._can_sell(balance_a, amount):
                 self.acumulation_length -=1
                 actions.append((Action.SELL_MARKET, current_price, amount))
-            elif alignment == self.Alignment.DOWN and self._can_buy(balance_a, amount, current_price):
+            elif alignment == self.Alignment.DOWN and self._can_buy(balance_b, amount, current_price):
                 self.acumulation_length +=1
                 actions.append((Action.BUY_MARKET, current_price, amount))
         elif self.trading_phase == TradingPhase.DISTRIBUTION:
             if alignment == self.Alignment.UP and self._can_sell(balance_a, amount):
                 self.distribution_length +=1
                 actions.append((Action.SELL_MARKET, current_price, amount))
-            elif alignment == self.Alignment.DOWN and self._can_buy(balance_a, amount, current_price):
+            elif alignment == self.Alignment.DOWN and self._can_buy(balance_b, amount, current_price):
                 self.distribution_length -=1
                 actions.append((Action.BUY_MARKET, current_price, amount))
         else:
