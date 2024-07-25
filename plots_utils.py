@@ -9,7 +9,7 @@ from definitions import PlotMode
 def plot_prices(ax: plt.Axes, visualization_df: pd.DataFrame,
                 extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None) -> None:
     # Plot close price
-    ax.plot(visualization_df['Datetime'], visualization_df['Close'], label='Close Price', color='darkblue', linewidth=2)
+    ax.plot(visualization_df['Date'], visualization_df['Close'], label='Close Price', color='darkblue', linewidth=2)
     
     # Plot extra plots
     if extra_plots_price:
@@ -21,7 +21,7 @@ def plot_prices(ax: plt.Axes, visualization_df: pd.DataFrame,
     if 'type' in visualization_df.columns:
         for trade_type, color, label in [('buy_market', 'green', 'Buy'), ('sell_market', 'red', 'Sell')]:
             points = visualization_df[visualization_df['type'] == trade_type]
-            ax.scatter(points['Datetime'], points['price'], color=color, label=label, s=50)
+            ax.scatter(points['Date'], points['price'], color=color, label=label, s=50)
     
     # Set up axes and labels
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d %H:%M'))
@@ -32,8 +32,8 @@ def plot_prices(ax: plt.Axes, visualization_df: pd.DataFrame,
 
 def plot_balances(ax: plt.Axes, ax_extra: plt.Axes, visualization_df: pd.DataFrame, 
                   plot_modes: List[PlotMode]) -> None:
-    first_datetime = visualization_df['Datetime'].iloc[0]
-    last_datetime = visualization_df['Datetime'].iloc[-1]
+    first_Date = visualization_df['Date'].iloc[0]
+    last_Date = visualization_df['Date'].iloc[-1]
 
     plot_configs = {
         PlotMode.BALANCE_A: ('balance_a', 'DOG Balance', 'darkorange', ax, '-', 3, 1.0),
@@ -50,18 +50,18 @@ def plot_balances(ax: plt.Axes, ax_extra: plt.Axes, visualization_df: pd.DataFra
     
     for mode, (column, label, color, axis, linestyle, linewidth, alpha) in plot_configs.items():
         if mode in plot_modes:
-            line, = axis.plot(visualization_df['Datetime'], visualization_df[column], 
+            line, = axis.plot(visualization_df['Date'], visualization_df[column], 
                               label=label, color=color, linewidth=linewidth, linestyle=linestyle, alpha=alpha)
                         
             # Valor inicial
             first_value = visualization_df[column].iloc[0]
-            axis.scatter(first_datetime, first_value, color=color, s=10)
-            axis.text(first_datetime, first_value, f"{first_value:.0f}", color=color, ha='right', va='bottom')
+            axis.scatter(first_Date, first_value, color=color, s=10)
+            axis.text(first_Date, first_value, f"{first_value:.0f}", color=color, ha='right', va='bottom')
             
             # Valor final
             last_value = visualization_df[column].iloc[-1]
-            axis.scatter(last_datetime, last_value, color=color, s=10)
-            axis.text(last_datetime, last_value, f"{last_value:.0f}", color=color, ha='left', va='top')
+            axis.scatter(last_Date, last_value, color=color, s=10)
+            axis.text(last_Date, last_value, f"{last_value:.0f}", color=color, ha='left', va='top')
             
             lines.append(line)
             labels.append(label)
@@ -173,9 +173,9 @@ def calculate_moving_averages_extra_plot(data) -> list:
     ma_200 = data['Close'].rolling(window=200).mean()
 
     extra_plots_price = [
-        ((data['Datetime'], ma_10), {'color': 'blue', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 10', 'type': 'plot'}),
-        ((data['Datetime'], ma_50), {'color': 'orange', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 50', 'type': 'plot'}),
-        ((data['Datetime'], ma_100), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 100', 'type': 'plot'}),
-        ((data['Datetime'], ma_200), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 200', 'type': 'plot'})
+        ((data['Date'], ma_10), {'color': 'blue', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 10', 'type': 'plot'}),
+        ((data['Date'], ma_50), {'color': 'orange', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 50', 'type': 'plot'}),
+        ((data['Date'], ma_100), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 100', 'type': 'plot'}),
+        ((data['Date'], ma_200), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 200', 'type': 'plot'})
     ]
     return extra_plots_price

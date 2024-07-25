@@ -7,6 +7,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from pathlib import Path
 import matplotlib.pyplot as plt
 
 from backtester import Backtester
@@ -16,10 +17,13 @@ from strategies import MultiMovingAverageStrategy
 
 
 def backtest_percentage_change(
+        data_path: Path = Path('data/coinex_prices_raw'),
         num_tests_per_strategy:int = 5,
         max_durations: range = range(5, 201, 50),
+        price_duration: float = 5000,
+        tolerance: float = 0.01,
         backtester_config: dict = None,
-        strategy_config: dict = None
+        strategy_config: dict = None,
     ) -> None:
     results = []
 
@@ -34,8 +38,14 @@ def backtest_percentage_change(
                 ),
             )
             future_to_variation = {
-                executor.submit(calculate_percentage_change, backtester, variation): variation
-                for variation in variations_temp
+                executor.submit(
+                    calculate_percentage_change,
+                    variation,
+                    backtester,
+                    price_duration,
+                    tolerance,
+                    data_path
+                ): variation for variation in variations_temp
             }            
             for future in tqdm(as_completed(future_to_variation), total=num_tests_per_strategy, desc=f"Duration {duration}"):
                 variation = future_to_variation[future]
@@ -58,9 +68,12 @@ def backtest_percentage_change(
 
 
 if __name__ == '__main__':
-    backtest_percentage_change(
-        num_tests_per_strategy = 100,
-        max_durations = range(5, 151, 50),
+    backtest_percentage_change(        
+        data_path = Path('data/coinex_prices_raw'),
+        num_tests_per_strategy = 10,
+        max_durations = range(5, 201, 50),
+        price_duration = 5000,
+        tolerance = 0.01,
         backtester_config={
             'initial_balance_a': 100000,
             'initial_balance_b': 0,

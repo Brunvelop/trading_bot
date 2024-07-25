@@ -49,7 +49,6 @@ class CoinexManager:
         else:
             pairs = [pair for pair in pairs_to_download if pair in all_pairs]
 
-
         for pair in tqdm(pairs, desc="Processing pairs"):
             CoinexManager.download_pair(pair, download_folder)
         
@@ -73,12 +72,12 @@ class CoinexManager:
                         reader = csv.reader(io.StringIO(csv_content))
                         next(reader, None)  # Skip header
                         processed_content = "Date,Open,High,Low,Close,Volume\n" + \
-                            ''.join(f"{row[0]},{row[1]},{row[3]},{row[4]},{row[2]},{row[5]}\n" 
+                            ''.join(f"{datetime.fromtimestamp(int(row[0])).strftime('%Y-%m-%d %H:%M:%S')},{row[1]},{row[3]},{row[4]},{row[2]},{row[5]}\n" 
                                     for row in reader if len(row) >= 7)
                         
                         with final_csv_path.open('a') as final_file:
                             final_file.write(processed_content if not final_csv_path.stat().st_size 
-                                             else processed_content.split('\n', 1)[1])
+                                            else processed_content.split('\n', 1)[1])
 
                 last_month_end = last_month_end.replace(day=1) - timedelta(days=1)
 
@@ -95,5 +94,5 @@ if __name__ == "__main__":
         source = DataSource.COINEX,
         download_folder = Path('data/coinex_prices_raw'),
         base_currency = 'USDT',
-        pairs_to_download = 3
+        pairs_to_download = ['ADA/USDT']
     )

@@ -1,10 +1,11 @@
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from typing import Tuple
+import random
 
 import numpy as np
 from tqdm import tqdm
+from pathlib import Path
 import matplotlib.pyplot as plt
 
 from backtester import Backtester
@@ -12,7 +13,11 @@ from strategies import MultiMovingAverageStrategy
 from definitions import Memory, PlotMode, TradingPhase
 from plots_utils import draw_graphs, calculate_moving_averages_extra_plot
 
-def backtest_001():
+def backtest_001(
+    backtester_config: dict = None,
+    strategy_config: dict = None,
+    data_config: dict = None,
+):
     backtester = Backtester(
         initial_balance_a = 100000.0,
         initial_balance_b = 0.0, 
@@ -26,19 +31,21 @@ def backtest_001():
         ),
     )
 
-    # prices = backtester.load_data('data/prices/ADA_USD_1m.csv', start=None, end=100000)
-    prices = backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=-0.05, tolerance=0.01)
-    memory: Memory = backtester.simulate_real_time_execution(window_size = 350)
+    backtester = Backtester(
+        **backtester_config,
+        strategy=MultiMovingAverageStrategy(**strategy_config),
+    )
+
+    backtester.load_data(**data_config)
+    backtester.simulate_real_time_execution(window_size=200)
 
     # Generate Visualization df
     visualization_df = backtester.generate_visualization_df()
     extra_plots_price = calculate_moving_averages_extra_plot(backtester.data)
 
-    # Store the last total_value for the current iteration
-    last_total_value = visualization_df['total_value'].iloc[-1]
-
     plot_modes = list(PlotMode)
     draw_graphs(visualization_df, plot_modes, extra_plots_price)
+
 
 def backtest_002():
     results = []
@@ -57,7 +64,7 @@ def backtest_002():
             ),
         )
 
-        prices = backtester.load_data('data/old/DOG_USDT_1m.csv', start=None, end=4320)
+        prices = backtester.load_data('data/coinex_prices_raw/BTC_USDT_1m.csv', start=None, end=4320)
         memory: Memory = backtester.simulate_real_time_execution(window_size = 350)
 
         # Generate Visualization df
@@ -120,7 +127,7 @@ def backtest_003():
                 ),
             )
 
-            prices = backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=variation, tolerance=0.01)
+            prices = backtester.load_data('data/coinex_prices_raw/ETH_USDT_1m.csv', duration=4320, variation=variation, tolerance=0.01)
             memory: Memory = backtester.simulate_real_time_execution(window_size = 350)
 
             # Generate Visualization df
@@ -151,8 +158,17 @@ def backtest_003():
     plt.savefig('./data/percentage_change_total_value_vs_duration_with_variations.png')
     plt.show()
 
-def calculate_percentage_change(backtester: Backtester, variation: float) -> float:
-    backtester.load_data('data/prices_old/ADA_USD.csv', duration=4320, variation=variation, tolerance=0.01)
+def calculate_percentage_change(
+        variation: float,
+        backtester: Backtester,
+        duration: float,
+        tolerance: float,
+        data_path: Path = Path('data/coinex_prices_raw'),
+    ) -> float:
+    random_file = random.choice([f for f in os.listdir(data_path) if f.endswith('.csv')])
+    
+    # Cargar los datos del archivo aleatorio
+    backtester.load_data(f'{data_path}/{random_file}', duration=duration, variation=variation, tolerance=tolerance)
     backtester.simulate_real_time_execution(window_size = 350)
  
     # Generate Visualization df
@@ -167,6 +183,26 @@ def calculate_percentage_change(backtester: Backtester, variation: float) -> flo
 
 
 if __name__ == "__main__":
-    backtest_001()
-    backtest_002()
-    backtest_003()
+    backtest_001(
+        backtester_config={
+            'initial_balance_a': 5000.0,
+            'initial_balance_b': 0000.0,
+            'fee': 0.001
+        },
+        strategy_config={
+            'max_duration': 200,
+            'min_purchase': 5.1,
+            'safety_margin': 1,
+            'trading_phase': TradingPhase.DISTRIBUTION,
+            'debug': False
+        },
+        data_config={
+            'file_path': 'data/coinex_prices_raw/ADA_USDT_1m.csv',
+            'duration': 43200,
+            'variation': 0,
+            'tolerance': 0.01,
+            'normalize': True
+        },
+    )
+    # backtest_002()
+    # backtest_003()
