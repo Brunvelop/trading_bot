@@ -27,6 +27,27 @@ class MarketData(pa.DataFrameModel): #ordenado de temporalmente (ultimo el mas a
     Close: Series[float]
     Volume: Series[float]
 
+class VisualizationDataframe(pa.DataFrameModel):
+    Date: Series[pd.Timestamp]
+    Open: Series[float]
+    High: Series[float]
+    Low: Series[float]
+    Close: Series[float]
+    Volume: Series[float]
+    timestamp: Series[pd.Timestamp]
+    pair: Series[str]
+    type: Series[str]
+    price: Series[float]
+    amount: Series[float]
+    fee: Series[float]
+    total_value: Series[float]
+    balance_a: Series[float]
+    balance_b: Series[float]
+    hold_value: Series[float]
+    total_value_a: Series[float]
+    total_value_b: Series[float]
+    adjusted_b_balance: Series[float]
+
 class OscilationAnalysis(TypedDict):
     average_buy_duration: int
     longest_buy_duration: int

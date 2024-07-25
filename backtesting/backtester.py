@@ -4,7 +4,7 @@ from tqdm import tqdm
 from typing import List
 
 from strategies import Strategy
-from definitions import Memory, MarketData, Action
+from definitions import Memory, MarketData, Action, VisualizationDataframe
 
 class Backtester:
     def __init__(self, strategy: Strategy, initial_balance_a: float, initial_balance_b:float, fee: float = 0.001):
@@ -76,7 +76,7 @@ class Backtester:
         self.data = data
         return data
 
-    def generate_visualization_df(self) -> pd.DataFrame:
+    def generate_visualization_df(self) -> VisualizationDataframe:
         memory_df = pd.DataFrame(self.memory.get('orders'))
         visualization_df = pd.merge(self.data, memory_df, left_on='Date', right_on='timestamp', how='left')
 
@@ -112,8 +112,8 @@ class Backtester:
                     'type': action_type.value,
                     'price': price,
                     'amount': amount,
-                    'total_value': total_value,
                     'fee': fee,
+                    'total_value': total_value,
                     'balance_a': self.memory['balance_a'],
                     'balance_b': self.memory['balance_b']
                 })

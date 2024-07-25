@@ -3,10 +3,10 @@ import matplotlib.dates as mdates
 from typing import List, Tuple, Dict, Any, Optional
 import pandas as pd
 
-from definitions import PlotMode
+from definitions import PlotMode, VisualizationDataframe
 
 
-def plot_prices(ax: plt.Axes, visualization_df: pd.DataFrame,
+def plot_prices(ax: plt.Axes, visualization_df: VisualizationDataframe,
                 extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None) -> None:
     # Plot close price
     ax.plot(visualization_df['Date'], visualization_df['Close'], label='Close Price', color='darkblue', linewidth=2)
@@ -30,7 +30,7 @@ def plot_prices(ax: plt.Axes, visualization_df: pd.DataFrame,
     ax.set_xlabel('Time', fontsize=14)
     ax.set_ylabel('Price', fontsize=14)
 
-def plot_balances(ax: plt.Axes, ax_extra: plt.Axes, visualization_df: pd.DataFrame, 
+def plot_balances(ax: plt.Axes, ax_extra: plt.Axes, visualization_df: VisualizationDataframe, 
                   plot_modes: List[PlotMode]) -> None:
     first_Date = visualization_df['Date'].iloc[0]
     last_Date = visualization_df['Date'].iloc[-1]
@@ -121,7 +121,7 @@ def plot_extra(ax: plt.Axes, extra_plot: List[Tuple[Tuple, Dict[str, Any]]]) -> 
     plt.tight_layout()
 
 def draw_graphs(
-    visualization_df: pd.DataFrame,
+    visualization_df: VisualizationDataframe,
     plot_modes: List[PlotMode],
     extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None,
     extra_plot: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None,
