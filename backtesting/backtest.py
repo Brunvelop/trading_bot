@@ -1,7 +1,6 @@
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import random
 from pathlib import Path
 
 import strategies
@@ -14,8 +13,8 @@ def backtest_simple(
         data_config: dict = None,
         plot_config: dict = {
             'plot_modes': list(PlotMode),
-            'save_path': True,
-            'show': True
+            'save_path': None,
+            'show': False
         }
 ) -> VisualizationDataframe:
     backtester.load_data(**data_config)
@@ -24,7 +23,8 @@ def backtest_simple(
     visualization_df = backtester.generate_visualization_df()
     extra_plots_price = None
     if plot_config.get('show', None):
-        extra_plots_price = calculate_moving_averages_extra_plot(backtester.data)
+        if isinstance(backtester.strategy, strategies.MultiMovingAverageStrategy):
+            extra_plots_price = calculate_moving_averages_extra_plot(backtester.data)
         draw_graphs(
             visualization_df=visualization_df,  
             extra_plots_price=extra_plots_price,

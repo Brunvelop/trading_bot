@@ -3,33 +3,94 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-
-import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
+from typing import Optional
 import matplotlib.pyplot as plt
 
 from backtester import Backtester
-from definitions import TradingPhase
-from backtest import calculate_percentage_change
+from definitions import TradingPhase, PlotMode, VisualizationDataframe
+from backtest import backtest_simple
 from strategies import MultiMovingAverageStrategy
 
 
+
+def _calculate_metrics(visualization_df: VisualizationDataframe, metrics: list[PlotMode]):
+    results = {}
+    for metric in metrics:
+        initial_value = visualization_df[metric.value].iloc[0]
+        final_value = visualization_df[metric.value].iloc[-1]
+        
+        absolute_change = final_value - initial_value
+        percentage_change = ((final_value - initial_value) / initial_value) * 100
+        
+        results[metric] = {
+            'absolute': absolute_change,
+            'percentage': percentage_change
+        }
+    
+    return results
+
+def _prepare_dataframe(results, num_tests_per_strategy):
+    df_data = []
+    for duration, metrics, price_variation in results:
+        for metric, values in metrics.items():
+            df_data.append({
+                'Metric': metric.value,
+                'Absolute Change': values['absolute'],
+                'Percentage Change': values['percentage'],
+                'Duration': duration,
+                'Price Variation': price_variation,
+                'Tests Per Strategy': num_tests_per_strategy,
+            })
+    
+    return pd.DataFrame(df_data)
+
+def _plot_results(df: pd.DataFrame, save_path: Optional[Path] = None, show: bool = True, plot_type: str = 'percentage'):
+    metrics = df['Metric'].unique()
+    num_cols = 2 if plot_type == 'both' else 1
+    fig, axes = plt.subplots(len(metrics), num_cols, figsize=(10 * num_cols, 6 * len(metrics)))
+    
+    for i, metric in enumerate(metrics):
+        metric_data = df[df['Metric'] == metric]
+        
+        if plot_type in ['absolute', 'both']:
+            ax = axes[i, 0] if plot_type == 'both' else axes[i]
+            metric_data.boxplot(column='Absolute Change', by='Duration', ax=ax)
+            ax.set_title(f'{metric}\nAbsolute Change', fontsize=10)
+            ax.set_xlabel('')
+        
+        if plot_type in ['percentage', 'both']:
+            ax = axes[i, 1] if plot_type == 'both' else axes[i]
+            metric_data.boxplot(column='Percentage Change', by='Duration', ax=ax)
+            ax.set_title(f'{metric}\nPercentage Change', fontsize=10)
+            ax.set_xlabel('')
+
+    plt.tight_layout(h_pad=3, w_pad=3)
+    fig.suptitle('Metric Changes by Duration', fontsize=16, y=1.02)
+    
+    if save_path:
+        fig.savefig(save_path, bbox_inches='tight')
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+
 def backtest_percentage_change(
-        data_path: Path = Path('data/coinex_prices_raw'),
-        num_tests_per_strategy:int = 5,
-        max_durations: range = range(5, 201, 50),
-        price_duration: float = 5000,
-        tolerance: float = 0.01,
+        num_tests_per_strategy = 10,
+        max_durations = range(5, 201, 50), 
+        data_config: dict = None,
         backtester_config: dict = None,
         strategy_config: dict = None,
+        metrics: list[PlotMode] = None,
+        save_path: Optional[Path] = None, 
+        show: bool = True
     ) -> None:
-    results = []
 
+    results = []
     with ProcessPoolExecutor() as executor:
         for duration in tqdm(max_durations, desc="Processing Durations", unit="duration"):
-            variations_temp = np.random.uniform(-0.005, 0.005, num_tests_per_strategy)
             backtester = Backtester(
                 **backtester_config,
                 strategy = MultiMovingAverageStrategy(
@@ -37,50 +98,68 @@ def backtest_percentage_change(
                     **strategy_config
                 ),
             )
-            future_to_variation = {
-                executor.submit(
-                    calculate_percentage_change,
-                    variation,
-                    backtester,
-                    price_duration,
-                    tolerance,
-                    data_path
-                ): variation for variation in variations_temp
-            }            
-            for future in tqdm(as_completed(future_to_variation), total=num_tests_per_strategy, desc=f"Duration {duration}"):
-                variation = future_to_variation[future]
-                percentage_change = future.result()
-                results.append((duration, percentage_change, variation))
+            futures = []
+            for _ in range(num_tests_per_strategy):
+                future = executor.submit(
+                    backtest_simple,
+                    backtester=backtester,
+                    data_config={**data_config, 'variation': data_config.get('variation')},
+                    plot_config={
+                        'plot_modes': metrics ,
+                        'save_path': None,
+                        'show': False
+                    }
+                )
+                futures.append(future)
+        
+            for future in tqdm(as_completed(futures), total=num_tests_per_strategy, desc=f"Duration {duration}"):
+                visualization_df: VisualizationDataframe = future.result()
+                metrics = _calculate_metrics(visualization_df, metrics)
+                results.append((duration, metrics, data_config.get('variation')))
 
-    df = pd.DataFrame(results, columns=['Duration', 'Percentage Change', 'Price Variation'])
-    df.to_csv(f'./data/change_vs_duration_n{num_tests_per_strategy}_durations{max_durations.start}-{max_durations.stop}-{max_durations.step}.csv', index=False)
+    df = _prepare_dataframe(results, num_tests_per_strategy)
 
-    fig, ax = plt.subplots(figsize=(20, 12))  # Crear una nueva figura con 1 subplot
+    if save_path:
+        # Determine the CSV file path
+        if save_path.suffix.lower() == '.png':
+            csv_path = save_path.with_suffix('.csv')
+        else:
+            csv_path = save_path / f'change_vs_duration_n{num_tests_per_strategy}_durations{max_durations.start}-{max_durations.stop}-{max_durations.step}.csv'
+        
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        df.to_csv(csv_path, index=False)
 
-    # Box plot
-    df.boxplot(column='Percentage Change', by='Duration', ax=ax)
-    ax.set_xlabel('Duration')
-    ax.set_ylabel('Percentage Change')
-
-    plt.tight_layout()
-    fig.savefig(f'./data/change_vs_duration_n{num_tests_per_strategy}_durations{max_durations.start}-{max_durations.stop}-{max_durations.step}.png')
-    plt.show()
+    _plot_results(df, save_path, show)
 
 
 if __name__ == '__main__':
-    backtest_percentage_change(        
-        data_path = Path('data/coinex_prices_raw'),
+    backtest_percentage_change(
         num_tests_per_strategy = 10,
         max_durations = range(5, 201, 50),
-        price_duration = 5000,
-        tolerance = 0.01,
+        save_path = Path('data/prueba.png'), 
+        show = True,
+        metrics= [
+            # PlotMode.BALANCE_A,
+            # PlotMode.BALANCE_B,
+            # PlotMode.HOLD_VALUE,
+            PlotMode.TOTAL_VALUE_A,
+            PlotMode.TOTAL_VALUE_B,
+            PlotMode.ADJUSTED_B_BALANCE
+        ],
+        data_config={
+            'data_path': Path('data/coinex_prices_raw'),
+            'duration': 4320,
+            'variation': 0,
+            'tolerance': 0.01,
+            'normalize': True
+        },
         backtester_config={
             'initial_balance_a': 100000,
             'initial_balance_b': 0,
             'fee': 0.001,
         },
         strategy_config={
-            'min_purchase': 0.1,
+            'min_purchase': 5.1,
             'safety_margin': 1,
             'trading_phase': TradingPhase.DISTRIBUTION,
             'debug': False

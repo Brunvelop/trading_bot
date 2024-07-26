@@ -1,7 +1,7 @@
+from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from typing import List, Tuple, Dict, Any, Optional
-import pandas as pd
 
 from definitions import PlotMode, VisualizationDataframe
 
@@ -125,7 +125,7 @@ def draw_graphs(
     plot_modes: List[PlotMode],
     extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None,
     extra_plot: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None,
-    save_path: Optional[str] = None,
+    save_path: Optional[Path] = None,
     show: bool = True
 ) -> None:
     plt.style.use('ggplot')
@@ -161,6 +161,7 @@ def draw_graphs(
     
     # Guardar y/o mostrar el gráfico
     if save_path:
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(save_path)
     if show:
         plt.show()
