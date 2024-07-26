@@ -57,14 +57,16 @@ class OscilationAnalysis(TypedDict):
     total_sell_periods: int
     current_state: str
 
+
 class PlotMode(Enum):
-    PRICE = auto()
-    BALANCE_A = auto()
-    BALANCE_B = auto()
-    HOLD_VALUE = auto()
-    TOTAL_VALUE_A = auto()
-    TOTAL_VALUE_B = auto()
-    ADJUSTED_B_BALANCE = auto()
+    # Lowercase names match VisualizationDataframe column names
+    PRICE = 'price'
+    BALANCE_A = 'balance_a'
+    BALANCE_B = 'balance_b'
+    HOLD_VALUE = 'hold_value'
+    TOTAL_VALUE_A = 'total_value_a'
+    TOTAL_VALUE_B = 'total_value_b'
+    ADJUSTED_B_BALANCE = 'adjusted_b_balance'
 
 class TradingPhase(Enum):
     ACCUMULATION = auto()
