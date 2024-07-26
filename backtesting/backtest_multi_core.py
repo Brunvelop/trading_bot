@@ -10,10 +10,8 @@ from typing import Optional
 import matplotlib.pyplot as plt
 
 from backtester import Backtester
-from definitions import TradingPhase, PlotMode, VisualizationDataframe
-from backtest import backtest_simple
 from strategies import MultiMovingAverageStrategy
-
+from definitions import PlotMode, VisualizationDataframe
 
 
 def _calculate_metrics(visualization_df: VisualizationDataframe, metrics: list[PlotMode]):
@@ -77,7 +75,7 @@ def _plot_results(df: pd.DataFrame, save_path: Optional[Path] = None, show: bool
     else:
         plt.close(fig)
 
-def backtest_percentage_change(
+def run_multicore_backtest(
         num_tests_per_strategy = 10,
         max_durations = range(5, 201, 50), 
         data_config: dict = None,
@@ -101,8 +99,7 @@ def backtest_percentage_change(
             futures = []
             for _ in range(num_tests_per_strategy):
                 future = executor.submit(
-                    backtest_simple,
-                    backtester=backtester,
+                    backtester.run_backtest,
                     data_config={**data_config, 'variation': data_config.get('variation')},
                     plot_config={
                         'plot_modes': metrics ,
@@ -133,7 +130,9 @@ def backtest_percentage_change(
 
 
 if __name__ == '__main__':
-    backtest_percentage_change(
+    from definitions import TradingPhase
+
+    run_multicore_backtest(
         num_tests_per_strategy = 10,
         max_durations = range(5, 201, 50),
         save_path = Path('data/prueba.png'), 

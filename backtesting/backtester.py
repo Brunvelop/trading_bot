@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import random
 import pandas as pd
 import numpy as np
@@ -5,8 +9,10 @@ from tqdm import tqdm
 from typing import List
 from pathlib import Path
 
-from strategies import Strategy
-from definitions import Memory, MarketData, Action, VisualizationDataframe
+from strategies import Strategy, MultiMovingAverageStrategy
+from definitions import Memory, MarketData, Action, VisualizationDataframe, PlotMode
+from plots_utils import draw_graphs, calculate_moving_averages_extra_plot
+
 
 class Backtester:
     def __init__(self, strategy: Strategy, initial_balance_a: float, initial_balance_b: float, fee: float = 0.001):
@@ -89,6 +95,31 @@ class Backtester:
 
         return visualization_df
     
+    def run_backtest(
+            self,
+            data_config: dict = None,
+            plot_config: dict = {
+                'plot_modes': list(PlotMode),
+                'save_path': None,
+                'show': False
+            }
+    ) -> VisualizationDataframe:
+        self.load_data(**data_config)
+        self.simulate_real_time_execution()
+
+        visualization_df = self.generate_visualization_df()
+        extra_plots_price = None
+        if plot_config.get('show', None):
+            if isinstance(self.strategy, MultiMovingAverageStrategy):
+                extra_plots_price = calculate_moving_averages_extra_plot(self.data)
+            draw_graphs(
+                visualization_df=visualization_df,  
+                extra_plots_price=extra_plots_price,
+                **plot_config
+            )
+        
+        return visualization_df
+    
     def _execute_strategy(self, data: MarketData):
         actions = self.strategy.run(data, self.memory)
         
@@ -127,3 +158,34 @@ class Backtester:
             df[column_name] = df[column_name].fillna(df[column_name].iloc[first_valid_index])
 
         return df
+    
+if __name__ == "__main__":
+    import strategies
+    from definitions import TradingPhase
+
+    backtester = Backtester(
+        strategy=strategies.MultiMovingAverageStrategy(
+            max_duration = 200,
+            min_purchase = 5.1,
+            safety_margin = 1,
+            trading_phase = TradingPhase.DISTRIBUTION,
+            debug = False
+        ),
+        initial_balance_a=5000.0,
+        initial_balance_b=0000.0,
+        fee=0.001
+    )
+    backtester.run_backtest(
+        data_config={
+            'data_path': Path('data/coinex_prices_raw'),
+            'duration': 4320,
+            'variation': 0,
+            'tolerance': 0.01,
+            'normalize': True
+        },
+        plot_config= {
+            'plot_modes': list(PlotMode),
+            'save_path': None, #Path('data/prueba.png'),
+            'show': True
+        }
+    )
