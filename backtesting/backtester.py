@@ -20,6 +20,7 @@ class Backtester:
         self.fee = fee
         self.memory: Memory = {'orders': [], 'balance_a': initial_balance_a, 'balance_b': initial_balance_b}
         self.data = None
+        self.result: pd.DataFrame = None
 
     def simulate_real_time_execution(self, window_size: int = 200) -> List[Action]:
         for i in tqdm(range(window_size, len(self.data))):
@@ -95,30 +96,34 @@ class Backtester:
 
         return visualization_df
     
+    def plot_results(
+            self, plot_config: dict = {'plot_modes': list(PlotMode),
+            'save_path': None,
+            'show': False
+    }):
+        extra_plots_price = None
+        if isinstance(self.strategy, MultiMovingAverageStrategy):
+            extra_plots_price = calculate_moving_averages_extra_plot(self.data)
+        draw_graphs(
+            visualization_df=self.result,  
+            extra_plots_price=extra_plots_price,
+            **plot_config
+        )
+
     def run_backtest(
             self,
-            data_config: dict = None,
-            plot_config: dict = {
-                'plot_modes': list(PlotMode),
-                'save_path': None,
-                'show': False
-            }
+            data_config: dict = {
+                'data_path': Path('data/coinex_prices_raw'),
+                'duration': 4320,
+                'variation': 0,
+                'tolerance': 0.01,
+                'normalize': True
+            },
     ) -> VisualizationDataframe:
         self.load_data(**data_config)
         self.simulate_real_time_execution()
-
-        visualization_df = self.generate_visualization_df()
-        extra_plots_price = None
-        if plot_config.get('show', None):
-            if isinstance(self.strategy, MultiMovingAverageStrategy):
-                extra_plots_price = calculate_moving_averages_extra_plot(self.data)
-            draw_graphs(
-                visualization_df=visualization_df,  
-                extra_plots_price=extra_plots_price,
-                **plot_config
-            )
-        
-        return visualization_df
+        self.result = self.generate_visualization_df()
+        return self.result
     
     def _execute_strategy(self, data: MarketData):
         actions = self.strategy.run(data, self.memory)
@@ -182,10 +187,12 @@ if __name__ == "__main__":
             'variation': 0,
             'tolerance': 0.01,
             'normalize': True
-        },
-        plot_config= {
+        }
+    )
+    backtester.plot_results(
+        plot_config={
             'plot_modes': list(PlotMode),
-            'save_path': None, #Path('data/prueba.png'),
+            'save_path': None,  # Path('data/prueba.png'),
             'show': True
         }
     )

@@ -101,11 +101,6 @@ def run_multicore_backtest(
                 future = executor.submit(
                     backtester.run_backtest,
                     data_config={**data_config, 'variation': data_config.get('variation')},
-                    plot_config={
-                        'plot_modes': metrics ,
-                        'save_path': None,
-                        'show': False
-                    }
                 )
                 futures.append(future)
         
