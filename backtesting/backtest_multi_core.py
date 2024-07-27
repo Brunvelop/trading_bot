@@ -6,7 +6,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 import matplotlib.pyplot as plt
 
 from backtester import Backtester
@@ -20,7 +20,7 @@ def run_multicore_backtest(
         data_config: dict = None,
         backtester_config: dict = None,
         strategy_config: dict = None,
-        metrics: list[PlotMode] = None,
+        metrics: List[PlotMode] = None,
         save_path: Optional[Path] = None, 
         show: bool = True
     ) -> None:
@@ -62,7 +62,7 @@ def run_multicore_backtest(
 
     _plot_results(df, save_path, show)
 
-def _calculate_metrics(visualization_df: VisualizationDataframe, metrics: list[PlotMode]):
+def _calculate_metrics(visualization_df: VisualizationDataframe, metrics: List[PlotMode]):
     results = {}
     for metric in metrics:
         initial_value = visualization_df[metric.value].iloc[0]
