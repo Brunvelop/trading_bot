@@ -49,7 +49,9 @@ class CoinexManager:
         else:
             pairs = [pair for pair in pairs_to_download if pair in all_pairs]
 
-        for pair in tqdm(pairs, desc="Processing pairs"):
+        existing_files = set(file.stem for file in download_folder.glob('*_1m.csv'))
+        pairs_to_process = [pair for pair in pairs if f"{pair.split('/')[0].upper()}_{pair.split('/')[1]}_1m" not in existing_files]
+        for pair in tqdm(pairs_to_process, desc="Processing pairs"):
             CoinexManager.download_pair(pair, download_folder)
         
     @staticmethod
