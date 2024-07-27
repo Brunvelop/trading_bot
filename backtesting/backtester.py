@@ -22,12 +22,6 @@ class Backtester:
         self.data = None
         self.result: pd.DataFrame = None
 
-    def simulate_real_time_execution(self, window_size: int = 200) -> List[Action]:
-        for i in tqdm(range(window_size, len(self.data))):
-            window_data = self.data.iloc[i-window_size+1:i+1]
-            self._execute_strategy(window_data)
-        return self.memory
-
     def load_data(
         self,
         data_path: Path = Path('data/coinex_prices_raw'),
@@ -83,18 +77,20 @@ class Backtester:
         self.data = data
         return data
 
-    def generate_visualization_df(self) -> VisualizationDataframe:
-        memory_df = pd.DataFrame(self.memory.get('orders'))
-        visualization_df = pd.merge(self.data, memory_df, left_on='Date', right_on='timestamp', how='left')
-
-        visualization_df = self._fill_nan_with_bfill_ffill(visualization_df, 'balance_a')
-        visualization_df = self._fill_nan_with_bfill_ffill(visualization_df, 'balance_b')
-        visualization_df['hold_value'] = visualization_df['balance_a'] * visualization_df['Close']
-        visualization_df['total_value_a'] = visualization_df['balance_a'] + visualization_df['balance_b'] / visualization_df['Close'] 
-        visualization_df['total_value_b'] = visualization_df['balance_b'] + visualization_df['hold_value']
-        visualization_df['adjusted_b_balance'] = visualization_df['balance_b'] - (visualization_df['balance_a'].iloc[0] - visualization_df['balance_a']) * visualization_df['Close']
-
-        return visualization_df
+    def run_backtest(
+            self,
+            data_config: dict = {
+                'data_path': Path('data/coinex_prices_raw'),
+                'duration': 4320,
+                'variation': 0,
+                'tolerance': 0.01,
+                'normalize': True
+            },
+    ) -> VisualizationDataframe:
+        self.load_data(**data_config)
+        self._simulate_real_time_execution()
+        self.result = self._generate_visualization_df()
+        return self.result
     
     def plot_results(
             self, plot_config: dict = {'plot_modes': list(PlotMode),
@@ -110,21 +106,6 @@ class Backtester:
             **plot_config
         )
 
-    def run_backtest(
-            self,
-            data_config: dict = {
-                'data_path': Path('data/coinex_prices_raw'),
-                'duration': 4320,
-                'variation': 0,
-                'tolerance': 0.01,
-                'normalize': True
-            },
-    ) -> VisualizationDataframe:
-        self.load_data(**data_config)
-        self.simulate_real_time_execution()
-        self.result = self.generate_visualization_df()
-        return self.result
-    
     def _execute_strategy(self, data: MarketData):
         actions = self.strategy.run(data, self.memory)
         
@@ -153,6 +134,25 @@ class Backtester:
                     'balance_a': self.memory['balance_a'],
                     'balance_b': self.memory['balance_b']
                 })
+
+    def _generate_visualization_df(self) -> VisualizationDataframe:
+        memory_df = pd.DataFrame(self.memory.get('orders'))
+        visualization_df = pd.merge(self.data, memory_df, left_on='Date', right_on='timestamp', how='left')
+
+        visualization_df = self._fill_nan_with_bfill_ffill(visualization_df, 'balance_a')
+        visualization_df = self._fill_nan_with_bfill_ffill(visualization_df, 'balance_b')
+        visualization_df['hold_value'] = visualization_df['balance_a'] * visualization_df['Close']
+        visualization_df['total_value_a'] = visualization_df['balance_a'] + visualization_df['balance_b'] / visualization_df['Close'] 
+        visualization_df['total_value_b'] = visualization_df['balance_b'] + visualization_df['hold_value']
+        visualization_df['adjusted_b_balance'] = visualization_df['balance_b'] - (visualization_df['balance_a'].iloc[0] - visualization_df['balance_a']) * visualization_df['Close']
+
+        return visualization_df
+    
+    def _simulate_real_time_execution(self, window_size: int = 200) -> List[Action]:
+        for i in tqdm(range(window_size, len(self.data))):
+            window_data = self.data.iloc[i-window_size+1:i+1]
+            self._execute_strategy(window_data)
+        return self.memory
     
     def _fill_nan_with_bfill_ffill(self, df: pd.DataFrame, column_name: str) -> pd.DataFrame:
         # Rellenar los valores NaN hacia adelante
