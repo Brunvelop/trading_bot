@@ -46,6 +46,7 @@ class VisualizationDataframe(pa.DataFrameModel):
     hold_value: Series[float]
     total_value_a: Series[float]
     total_value_b: Series[float]
+    adjusted_a_balance: Series[float]
     adjusted_b_balance: Series[float]
 
 class OscilationAnalysis(TypedDict):
@@ -66,6 +67,7 @@ class PlotMode(Enum):
     HOLD_VALUE = 'hold_value'
     TOTAL_VALUE_A = 'total_value_a'
     TOTAL_VALUE_B = 'total_value_b'
+    ADJUSTED_A_BALANCE = 'adjusted_a_balance'
     ADJUSTED_B_BALANCE = 'adjusted_b_balance'
 
 class TradingPhase(Enum):

@@ -139,7 +139,7 @@ if __name__ == '__main__':
             # PlotMode.HOLD_VALUE,
             PlotMode.TOTAL_VALUE_A,
             PlotMode.TOTAL_VALUE_B,
-            PlotMode.ADJUSTED_B_BALANCE
+            PlotMode.ADJUSTED_A_BALANCE
         ],
         data_config={
             'data_path': Path('data/coinex_prices_raw'),

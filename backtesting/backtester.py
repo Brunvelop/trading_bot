@@ -144,6 +144,7 @@ class Backtester:
         visualization_df['hold_value'] = visualization_df['balance_a'] * visualization_df['Close']
         visualization_df['total_value_a'] = visualization_df['balance_a'] + visualization_df['balance_b'] / visualization_df['Close'] 
         visualization_df['total_value_b'] = visualization_df['balance_b'] + visualization_df['hold_value']
+        visualization_df['adjusted_a_balance'] = visualization_df['balance_a'] - (visualization_df['balance_b'].iloc[0] - visualization_df['balance_b']) / visualization_df['Close']
         visualization_df['adjusted_b_balance'] = visualization_df['balance_b'] - (visualization_df['balance_a'].iloc[0] - visualization_df['balance_a']) * visualization_df['Close']
 
         return visualization_df
@@ -173,18 +174,18 @@ if __name__ == "__main__":
             max_duration = 200,
             min_purchase = 5.1,
             safety_margin = 1,
-            trading_phase = TradingPhase.DISTRIBUTION,
+            trading_phase = TradingPhase.ACCUMULATION,
             debug = False
         ),
-        initial_balance_a=5000.0,
-        initial_balance_b=0000.0,
+        initial_balance_a=0000.0,
+        initial_balance_b=5000.0,
         fee=0.001
     )
     backtester.run_backtest(
         data_config={
             'data_path': Path('data/coinex_prices_raw'),
             'duration': 4320,
-            'variation': 0,
+            'variation': 0.5,
             'tolerance': 0.01,
             'normalize': True
         }

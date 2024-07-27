@@ -41,7 +41,8 @@ def plot_balances(ax: plt.Axes, ax_extra: plt.Axes, visualization_df: Visualizat
         PlotMode.HOLD_VALUE: ('hold_value', 'HOLD Value', 'teal', ax_extra, ':', 1, 0.5),
         PlotMode.TOTAL_VALUE_A: ('total_value_a', 'Total Value (en DOG)', 'coral', ax, '--', 1, 0.5),
         PlotMode.TOTAL_VALUE_B: ('total_value_b', 'Total Value (en USDT)', 'darkgreen', ax_extra, '--', 1, 0.5),
-        PlotMode.ADJUSTED_B_BALANCE: ('adjusted_b_balance', 'Profit', 'yellowgreen', ax_extra, '-', 1, 1),
+        PlotMode.ADJUSTED_A_BALANCE: ('adjusted_a_balance', 'adj_a', 'orange', ax, '-', 1, 1),
+        PlotMode.ADJUSTED_B_BALANCE: ('adjusted_b_balance', 'adj_b', 'yellowgreen', ax_extra, '-', 1, 1),
     }
     
     lines = []
