@@ -1,6 +1,6 @@
-from strategies import Action, Strategy
+from strategies import Strategy
 from exchange_apis import BaseExchangeAPI
-from definitions import MarketData, Memory
+from definitions import MarketData, Memory, Action
 
 
 class Trader:
@@ -25,8 +25,6 @@ class Trader:
                 self.set_stop_loss(price, quantity)
             elif action == Action.TAKE_PROFIT:
                 self.set_take_profit(price, quantity)
-            else:
-                pass
 
     def buy_market(self, price: float, quantity: float) -> None:
         return self.exange_api.create_order(self.pair, 'market', 'buy', quantity, price)

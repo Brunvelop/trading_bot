@@ -3,10 +3,8 @@ from datetime import datetime
 from typing import Tuple, List
 from abc import ABC, abstractmethod
 
-import pandas as pd
-
 from indicators import Indicators
-from definitions import Action, Memory, MarketData, TradingPhase, OscilationAnalysis
+from definitions import Action, Memory, MarketData, TradingPhase
 
 
 class Strategy(ABC):
@@ -42,12 +40,14 @@ class MultiMovingAverageStrategy(Strategy):
         DOWN = auto()
         NONE = auto()
 
-    def __init__(self, max_duration: int = 500, 
-                 min_purchase:float = 5.1,
-                 safety_margin: float = 3, 
-                 windows: List[int] = [10, 50, 100, 200],
-                 trading_phase: TradingPhase = TradingPhase.NEUTRAL,
-                 debug: bool = True) -> None:
+    def __init__(self, 
+            max_duration: int = 500, 
+            min_purchase: float = 5.1,
+            safety_margin: float = 3, 
+            windows: List[int] = [10, 50, 100, 200],
+            trading_phase: TradingPhase = TradingPhase.NEUTRAL,
+            debug: bool = True
+        ) -> None:
         self.max_duration = max_duration
         self.min_purchase = min_purchase
         self.safety_margin = safety_margin

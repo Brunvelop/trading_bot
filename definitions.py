@@ -3,7 +3,7 @@ from typing import TypedDict, List, Any
 
 import pandas as pd
 import pandera as pa
-from pandera.typing import DataFrame, Series
+from pandera.typing import Series
 
 class Action(Enum):
     BUY_MARKET = "buy_market"
@@ -57,7 +57,6 @@ class OscilationAnalysis(TypedDict):
     longest_sell_duration: int
     total_sell_periods: int
     current_state: str
-
 
 class PlotMode(Enum):
     # Lowercase names match VisualizationDataframe column names

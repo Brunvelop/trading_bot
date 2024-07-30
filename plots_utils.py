@@ -6,12 +6,13 @@ from typing import List, Tuple, Dict, Any, Optional
 from definitions import PlotMode, VisualizationDataframe
 
 
-def plot_prices(ax: plt.Axes, visualization_df: VisualizationDataframe,
-                extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None) -> None:
-    # Plot close price
+def plot_prices(
+        ax: plt.Axes,
+        visualization_df: VisualizationDataframe,
+        extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None
+    ) -> None:
     ax.plot(visualization_df['Date'], visualization_df['Close'], label='Close Price', color='darkblue', linewidth=2)
     
-    # Plot extra plots
     if extra_plots_price:
         for plot_data, plot_kwargs in extra_plots_price:
             plot_type = plot_kwargs.pop('type', 'plot')
@@ -30,8 +31,12 @@ def plot_prices(ax: plt.Axes, visualization_df: VisualizationDataframe,
     ax.set_xlabel('Time', fontsize=14)
     ax.set_ylabel('Price', fontsize=14)
 
-def plot_balances(ax: plt.Axes, ax_extra: plt.Axes, visualization_df: VisualizationDataframe, 
-                  plot_modes: List[PlotMode]) -> None:
+def plot_balances(
+        ax: plt.Axes,
+        ax_extra: plt.Axes,
+        visualization_df: VisualizationDataframe, 
+        plot_modes: List[PlotMode]
+    ) -> None:
     first_Date = visualization_df['Date'].iloc[0]
     last_Date = visualization_df['Date'].iloc[-1]
 
