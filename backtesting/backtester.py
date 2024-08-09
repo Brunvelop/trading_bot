@@ -15,12 +15,20 @@ from plots_utils import draw_graphs, calculate_moving_averages_extra_plot
 
 
 class Backtester:
-    def __init__(self, strategy: Strategy, initial_balance_a: float, initial_balance_b: float, fee: float = 0.001):
+    def __init__(
+        self, 
+        strategy: Strategy,
+        initial_balance_a: float, 
+        initial_balance_b: float, 
+        fee: float = 0.001,
+        verbose: bool = False,
+    ):
         self.strategy = strategy
         self.fee = fee
         self.memory: Memory = {'orders': [], 'balance_a': initial_balance_a, 'balance_b': initial_balance_b}
         self.data = None
         self.result: pd.DataFrame = None
+        self.verbose = verbose
 
     def load_data(
         self,
@@ -150,7 +158,8 @@ class Backtester:
         return visualization_df
     
     def _simulate_real_time_execution(self, window_size: int = 200) -> List[Action]:
-        for i in tqdm(range(window_size, len(self.data))):
+        iterator = tqdm(range(window_size, len(self.data))) if self.verbose else range(window_size, len(self.data))
+        for i in iterator:
             window_data = self.data.iloc[i-window_size+1:i+1]
             self._execute_strategy(window_data)
         return self.memory
@@ -174,12 +183,13 @@ if __name__ == "__main__":
             max_duration = 200,
             min_purchase = 5.1,
             safety_margin = 1,
-            trading_phase = TradingPhase.ACCUMULATION,
+            trading_phase = TradingPhase.DISTRIBUTION,
             debug = False
         ),
-        initial_balance_a=0000.0,
-        initial_balance_b=5000.0,
-        fee=0.001
+        initial_balance_a=5000.0,
+        initial_balance_b=0000.0,
+        fee=0.001,
+        verbose=True
     )
     backtester.run_backtest(
         data_config={
