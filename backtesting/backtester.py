@@ -191,7 +191,7 @@ if __name__ == "__main__":
         fee=0.001,
         verbose=True
     )
-    backtester.run_backtest(
+    visualization_df: VisualizationDataframe = backtester.run_backtest(
         data_config={
             'data_path': Path('data/coinex_prices_raw'),
             'duration': 4320,
