@@ -47,10 +47,13 @@ class Backtester:
         return self.result
     
     def plot_results(
-            self, plot_config: dict = {'plot_modes': list(PlotMode),
-            'save_path': None,
-            'show': False
-    }):
+            self, 
+            plot_config: dict = {
+                'plot_modes': list(PlotMode),
+                'save_path': None,
+                'show': False
+            }
+        ):
         extra_plots_price = None
         if isinstance(self.strategy, MultiMovingAverageStrategy):
             extra_plots_price = calculate_moving_averages_extra_plot(self.data)
@@ -88,7 +91,14 @@ class Backtester:
                     'balance_a': self.memory['balance_a'],
                     'balance_b': self.memory['balance_b']
                 })
-
+    
+    def _simulate_real_time_execution(self, window_size: int = 200) -> List[Action]:
+        iterator = tqdm(range(window_size, len(self.data))) if self.verbose else range(window_size, len(self.data))
+        for i in iterator:
+            window_data = self.data.iloc[i-window_size+1:i+1]
+            self._execute_strategy(window_data)
+        return self.memory
+    
     def _generate_visualization_df(self) -> VisualizationDataframe:
         memory_df = pd.DataFrame(self.memory.get('orders'))
         visualization_df = pd.merge(self.data, memory_df, left_on='Date', right_on='timestamp', how='left')
@@ -103,17 +113,10 @@ class Backtester:
 
         return visualization_df
     
-    def _simulate_real_time_execution(self, window_size: int = 200) -> List[Action]:
-        iterator = tqdm(range(window_size, len(self.data))) if self.verbose else range(window_size, len(self.data))
-        for i in iterator:
-            window_data = self.data.iloc[i-window_size+1:i+1]
-            self._execute_strategy(window_data)
-        return self.memory
-    
     def _fill_nan_with_bfill_ffill(self, df: pd.DataFrame, column_name: str) -> pd.DataFrame:
-        # Rellenar los valores NaN hacia adelante
+        # Fill NaN values forward
         df[column_name] = df[column_name].ffill()
-        # Rellenar los valores NaN restantes (al principio) con el primer valor no NaN
+        # Fill remaining NaN values (at the beginning) with the first non-NaN value
         first_valid_index = df[column_name].first_valid_index()
         if first_valid_index is not None:
             df[column_name] = df[column_name].fillna(df[column_name].iloc[first_valid_index])
