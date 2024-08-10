@@ -178,18 +178,9 @@ class CoinexManager:
         
 
 if __name__ == "__main__":
-    # DataManager.download_prices(
-    #     source = DataSource.COINEX,
-    #     download_folder = Path('data/coinex_prices_raw2'),
-    #     base_currency = 'USDT',
-    #     pairs_to_download = 2
-    # )
-    data_config={
-            'data_path': Path('data/coinex_prices_raw'),
-            'duration': 4320,
-            'variation': 50.05,
-            'tolerance': 0.01,
-            'normalize': True
-    }
-    data, metadata = DataManager.get_data_sample(**data_config)
-    print(data)
+    DataManager.download_prices(
+        source = DataSource.COINEX,
+        download_folder = Path('data/coinex_prices_raw2'),
+        base_currency = 'USDT',
+        pairs_to_download = 2
+    )
