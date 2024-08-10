@@ -11,7 +11,7 @@ from pathlib import Path
 
 from data_manager import DataManager
 from strategies import Strategy, MultiMovingAverageStrategy
-from definitions import Memory, MarketData, Action, VisualizationDataframe, PlotMode
+from definitions import Memory, MarketData, Action, StrategyExecResult, PlotMode
 from plots_utils import draw_graphs, calculate_moving_averages_extra_plot
 
 class Backtester:
@@ -40,10 +40,10 @@ class Backtester:
                 'tolerance': 0.01,
                 'normalize': True
             },
-    ) -> VisualizationDataframe:
+    ) -> StrategyExecResult:
         self.data, self.data_metadata = DataManager.get_data_sample(**data_config)
         self._simulate_real_time_execution()
-        self.result = self._generate_visualization_df()
+        self.result = self._calculate_metrics()
         return self.result
     
     def plot_results(
@@ -58,7 +58,7 @@ class Backtester:
         if isinstance(self.strategy, MultiMovingAverageStrategy):
             extra_plots_price = calculate_moving_averages_extra_plot(self.data)
         draw_graphs(
-            visualization_df=self.result,  
+            df=self.result,  
             extra_plots_price=extra_plots_price,
             **plot_config
         )
@@ -99,19 +99,19 @@ class Backtester:
             self._execute_strategy(window_data)
         return self.memory
     
-    def _generate_visualization_df(self) -> VisualizationDataframe:
+    def _calculate_metrics(self) -> StrategyExecResult:
         memory_df = pd.DataFrame(self.memory.get('orders'))
-        visualization_df = pd.merge(self.data, memory_df, left_on='Date', right_on='timestamp', how='left')
+        df = pd.merge(self.data, memory_df, left_on='Date', right_on='timestamp', how='left')
 
-        visualization_df = self._fill_nan_with_bfill_ffill(visualization_df, 'balance_a')
-        visualization_df = self._fill_nan_with_bfill_ffill(visualization_df, 'balance_b')
-        visualization_df['hold_value'] = visualization_df['balance_a'] * visualization_df['Close']
-        visualization_df['total_value_a'] = visualization_df['balance_a'] + visualization_df['balance_b'] / visualization_df['Close'] 
-        visualization_df['total_value_b'] = visualization_df['balance_b'] + visualization_df['hold_value']
-        visualization_df['adjusted_a_balance'] = visualization_df['balance_a'] - (visualization_df['balance_b'].iloc[0] - visualization_df['balance_b']) / visualization_df['Close']
-        visualization_df['adjusted_b_balance'] = visualization_df['balance_b'] - (visualization_df['balance_a'].iloc[0] - visualization_df['balance_a']) * visualization_df['Close']
+        df = self._fill_nan_with_bfill_ffill(df, 'balance_a')
+        df = self._fill_nan_with_bfill_ffill(df, 'balance_b')
+        df['hold_value'] = df['balance_a'] * df['Close']
+        df['total_value_a'] = df['balance_a'] + df['balance_b'] / df['Close'] 
+        df['total_value_b'] = df['balance_b'] + df['hold_value']
+        df['adjusted_a_balance'] = df['balance_a'] - (df['balance_b'].iloc[0] - df['balance_b']) / df['Close']
+        df['adjusted_b_balance'] = df['balance_b'] - (df['balance_a'].iloc[0] - df['balance_a']) * df['Close']
 
-        return visualization_df
+        return df
     
     def _fill_nan_with_bfill_ffill(self, df: pd.DataFrame, column_name: str) -> pd.DataFrame:
         # Fill NaN values forward
@@ -140,7 +140,7 @@ if __name__ == "__main__":
         fee=0.001,
         verbose=True
     )
-    visualization_df: VisualizationDataframe = backtester.run_backtest(
+    df: StrategyExecResult = backtester.run_backtest(
         data_config={
             'data_path': Path('data/coinex_prices_raw'),
             'duration': 4320,

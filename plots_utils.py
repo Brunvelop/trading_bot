@@ -3,15 +3,15 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from typing import List, Tuple, Dict, Any, Optional
 
-from definitions import PlotMode, VisualizationDataframe
+from definitions import PlotMode, StrategyExecResult
 
 
-def plot_prices(
+def _plot_prices(
         ax: plt.Axes,
-        visualization_df: VisualizationDataframe,
+        df: StrategyExecResult,
         extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None
     ) -> None:
-    ax.plot(visualization_df['Date'], visualization_df['Close'], label='Close Price', color='darkblue', linewidth=2)
+    ax.plot(df['Date'], df['Close'], label='Close Price', color='darkblue', linewidth=2)
     
     if extra_plots_price:
         for plot_data, plot_kwargs in extra_plots_price:
@@ -19,9 +19,9 @@ def plot_prices(
             getattr(ax, plot_type)(*plot_data, **plot_kwargs)
     
     # Plot buy and sell points
-    if 'type' in visualization_df.columns:
+    if 'type' in df.columns:
         for trade_type, color, label in [('buy_market', 'green', 'Buy'), ('sell_market', 'red', 'Sell')]:
-            points = visualization_df[visualization_df['type'] == trade_type]
+            points = df[df['type'] == trade_type]
             ax.scatter(points['Date'], points['price'], color=color, label=label, s=50)
     
     # Set up axes and labels
@@ -31,14 +31,14 @@ def plot_prices(
     ax.set_xlabel('Time', fontsize=14)
     ax.set_ylabel('Price', fontsize=14)
 
-def plot_balances(
+def _plot_balances(
         ax: plt.Axes,
         ax_extra: plt.Axes,
-        visualization_df: VisualizationDataframe, 
+        df: StrategyExecResult, 
         plot_modes: List[PlotMode]
     ) -> None:
-    first_Date = visualization_df['Date'].iloc[0]
-    last_Date = visualization_df['Date'].iloc[-1]
+    first_Date = df['Date'].iloc[0]
+    last_Date = df['Date'].iloc[-1]
 
     plot_configs = {
         PlotMode.BALANCE_A: ('balance_a', 'DOG Balance', 'darkorange', ax, '-', 3, 1.0),
@@ -56,16 +56,16 @@ def plot_balances(
     
     for mode, (column, label, color, axis, linestyle, linewidth, alpha) in plot_configs.items():
         if mode in plot_modes:
-            line, = axis.plot(visualization_df['Date'], visualization_df[column], 
+            line, = axis.plot(df['Date'], df[column], 
                               label=label, color=color, linewidth=linewidth, linestyle=linestyle, alpha=alpha)
                         
             # Valor inicial
-            first_value = visualization_df[column].iloc[0]
+            first_value = df[column].iloc[0]
             axis.scatter(first_Date, first_value, color=color, s=10)
             axis.text(first_Date, first_value, f"{first_value:.0f}", color=color, ha='right', va='bottom')
             
             # Valor final
-            last_value = visualization_df[column].iloc[-1]
+            last_value = df[column].iloc[-1]
             axis.scatter(last_Date, last_value, color=color, s=10)
             axis.text(last_Date, last_value, f"{last_value:.0f}", color=color, ha='left', va='top')
             
@@ -99,7 +99,7 @@ def plot_balances(
     if ax_extra not in used_axes:
         ax_extra.axis('off')
 
-def plot_extra(ax: plt.Axes, extra_plot: List[Tuple[Tuple, Dict[str, Any]]]) -> None:
+def _plot_extra(ax: plt.Axes, extra_plot: List[Tuple[Tuple, Dict[str, Any]]]) -> None:
     # Diccionario para mapear tipos de gráficos a métodos de matplotlib
     plot_methods = {
         'scatter': ax.scatter,
@@ -127,7 +127,7 @@ def plot_extra(ax: plt.Axes, extra_plot: List[Tuple[Tuple, Dict[str, Any]]]) -> 
     plt.tight_layout()
 
 def draw_graphs(
-    visualization_df: VisualizationDataframe,
+    df: StrategyExecResult,
     plot_modes: List[PlotMode],
     extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None,
     extra_plot: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None,
@@ -135,37 +135,35 @@ def draw_graphs(
     show: bool = True
 ) -> None:
     plt.style.use('ggplot')
+
+    num_subplots = (PlotMode.PRICE in plot_modes) + (extra_plots_price is not None) + (extra_plot is not None)
+    if num_subplots > 1:
+        fig, axes = plt.subplots(num_subplots, 1, figsize=(10, 6 * num_subplots), sharex=True)
+    else:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        axes = [ax]
     
-    # Determinar el número de subplots necesarios
-    num_subplots = 1 + (PlotMode.PRICE in plot_modes) + (extra_plot is not None)
-    
-    # Crear la figura y los ejes
-    fig, axes = plt.subplots(num_subplots, 1, figsize=(10, 6 * num_subplots), sharex=True)
-    
-    # Asegurarse de que axes sea siempre una lista
-    if num_subplots == 1:
-        axes = [axes]
-    
-    # Índice para llevar un seguimiento del subplot actual
     current_ax = 0
     
-    # Dibujar el gráfico de precios si es necesario
     if PlotMode.PRICE in plot_modes:
-        plot_prices(axes[current_ax], visualization_df, extra_plots_price)
+        _plot_prices(axes[current_ax], df, extra_plots_price)
         current_ax += 1
     
-    # Dibujar el gráfico de balances
-    plot_balances(axes[current_ax], axes[current_ax].twinx(), visualization_df, plot_modes)
-    current_ax += 1
+    if (PlotMode.BALANCE_A in plot_modes
+        or PlotMode.BALANCE_B in plot_modes
+        or PlotMode.HOLD_VALUE in plot_modes
+        or PlotMode.TOTAL_VALUE_A in plot_modes
+        or PlotMode.TOTAL_VALUE_B in plot_modes
+        or PlotMode.ADJUSTED_A_BALANCE in plot_modes
+        or PlotMode.ADJUSTED_B_BALANCE in plot_modes
+    ):
+        _plot_balances(axes[current_ax], axes[current_ax].twinx(), df, plot_modes)
+        current_ax += 1
     
-    # Dibujar el gráfico extra si es necesario
     if extra_plot is not None:
-        plot_extra(axes[current_ax], extra_plot)
+        _plot_extra(axes[current_ax], extra_plot)
     
-    # Ajustar el diseño
     plt.tight_layout()
-    
-    # Guardar y/o mostrar el gráfico
     if save_path:
         save_path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(save_path)

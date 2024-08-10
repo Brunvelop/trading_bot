@@ -11,18 +11,18 @@ from typing import Optional, List
 import matplotlib.pyplot as plt
 
 from backtester import Backtester
-from definitions import PlotMode, VisualizationDataframe
+from definitions import PlotMode, StrategyExecResult
 
 class BacktestAnalyzer:
     @staticmethod
     def _calculate_metric_change(
-            visualization_df: VisualizationDataframe, 
+            df: StrategyExecResult, 
             metrics: List[PlotMode]
         ):
         results = {}
         for metric in metrics:
-            initial_value = visualization_df[metric.value].iloc[0]
-            final_value = visualization_df[metric.value].iloc[-1]
+            initial_value = df[metric.value].iloc[0]
+            final_value = df[metric.value].iloc[-1]
             results[metric] = {
                 'absolute': final_value - initial_value,
                 'percentage': ((final_value - initial_value) / initial_value) * 100
@@ -91,8 +91,8 @@ class BacktestAnalyzer:
                 futures.append(future)
         
             for future in tqdm(as_completed(futures), total=num_tests_per_strategy, desc=f"Running {num_tests_per_strategy} tests"):
-                visualization_df: VisualizationDataframe = future.result()
-                metric_change = BacktestAnalyzer._calculate_metric_change(visualization_df, metrics)
+                df: StrategyExecResult = future.result()
+                metric_change = BacktestAnalyzer._calculate_metric_change(df, metrics)
                 results.append((metric_change, data_config.get('variation')))
         
         df = BacktestAnalyzer._prepare_dataframe(results, num_tests_per_strategy)

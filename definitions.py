@@ -27,7 +27,7 @@ class MarketData(pa.DataFrameModel): #ordenado de temporalmente (ultimo el mas a
     Close: Series[float]
     Volume: Series[float]
 
-class VisualizationDataframe(pa.DataFrameModel):
+class StrategyExecResult(pa.DataFrameModel):
     Date: Series[pd.Timestamp]
     Open: Series[float]
     High: Series[float]
@@ -59,7 +59,7 @@ class OscilationAnalysis(TypedDict):
     current_state: str
 
 class PlotMode(Enum):
-    # Lowercase names match VisualizationDataframe column names
+    # Lowercase names match StrategyExecResult column names
     PRICE = 'price'
     BALANCE_A = 'balance_a'
     BALANCE_B = 'balance_b'
