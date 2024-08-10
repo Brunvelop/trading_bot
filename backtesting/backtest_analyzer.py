@@ -102,14 +102,15 @@ class BacktestAnalyzer:
     def calculate_confidence_interval(df, confidence=0.95):
         intervals = {}
         for metric in df['Metric'].unique():
-            data = df.loc[df['Metric'] == metric, 'Percentage Change']
-            mean = data.mean()
-            std_err = data.sem()  # Calcular el error estándar de la media
-            n = len(data)
-            
-            # Calcular el intervalo de confianza utilizando la distribución t de Student
-            interval = stats.t.interval(confidence, df=n-1, loc=mean, scale=std_err)
-            intervals[metric] = interval
+            for change_type in ['Percentage Change', 'Absolute Change']:
+                data = df.loc[df['Metric'] == metric, change_type]
+                mean = data.mean()
+                std_err = data.sem()
+                n = len(data)
+                
+                # Calculate the confidence interval using the Student's t-distribution
+                interval = stats.t.interval(confidence, df=n-1, loc=mean, scale=std_err)
+                intervals[f"{metric} ({change_type})"] = interval
         return intervals
     
 if __name__ == '__main__':
@@ -149,7 +150,7 @@ if __name__ == '__main__':
             ),
             **backtester_static_config
         ),
-        num_tests_per_strategy=50,
+        num_tests_per_strategy=100,
         data_config=data_config,
         metrics=metrics,
     )
@@ -157,5 +158,6 @@ if __name__ == '__main__':
         df=result_df,
         confidence=0.99
     )
-    print('variacion de ', data_config['variation'], '% :')
-    print(intervals)
+    print(f"Variación de {data_config['variation']*100}%:")
+    for metric, interval in intervals.items():
+        print(f"  {metric}: [{interval[0]:.4f}, {interval[1]:.4f}] -> {abs(interval[1] - interval[0]):4f}")
