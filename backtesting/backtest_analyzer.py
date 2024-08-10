@@ -14,11 +14,8 @@ from backtester import Backtester
 from definitions import PlotMode, VisualizationDataframe
 
 class BacktestAnalyzer:
-    def __init__(self):
-        pass
-
+    @staticmethod
     def _calculate_metric_change(
-            self, 
             visualization_df: VisualizationDataframe, 
             metrics: List[PlotMode]
         ):
@@ -32,7 +29,8 @@ class BacktestAnalyzer:
             }
         return results
     
-    def _prepare_dataframe(self, results, num_tests_per_strategy):
+    @staticmethod
+    def _prepare_dataframe(results, num_tests_per_strategy):
         df_data = []
         for metrics, price_variation in results:
             for metric, values in metrics.items():
@@ -46,7 +44,8 @@ class BacktestAnalyzer:
         
         return pd.DataFrame(df_data)
     
-    def _plot_results(self, df: pd.DataFrame, save_path: Optional[Path] = None, show: bool = True, plot_type: str = 'percentage'):
+    @staticmethod
+    def _plot_results(df: pd.DataFrame, save_path: Optional[Path] = None, show: bool = True, plot_type: str = 'percentage'):
         metrics = df['Metric'].unique()
         num_cols = 2 if plot_type == 'both' else 1
         fig, axes = plt.subplots(len(metrics), num_cols, figsize=(10 * num_cols, 6 * len(metrics)))
@@ -76,8 +75,8 @@ class BacktestAnalyzer:
         else:
             plt.close(fig)
     
+    @staticmethod
     def run_multiple_backtests(
-        self,
         backtester: Backtester = None,
         num_tests_per_strategy = 10,
         data_config: dict = None,
@@ -93,13 +92,14 @@ class BacktestAnalyzer:
         
             for future in tqdm(as_completed(futures), total=num_tests_per_strategy, desc=f"Running {num_tests_per_strategy} tests"):
                 visualization_df: VisualizationDataframe = future.result()
-                metric_change = self._calculate_metric_change(visualization_df, metrics)
+                metric_change = BacktestAnalyzer._calculate_metric_change(visualization_df, metrics)
                 results.append((metric_change, data_config.get('variation')))
         
-        df = self._prepare_dataframe(results, num_tests_per_strategy)
+        df = BacktestAnalyzer._prepare_dataframe(results, num_tests_per_strategy)
         return df
     
-    def calculate_confidence_interval(self, df, confidence=0.95):
+    @staticmethod
+    def calculate_confidence_interval(df, confidence=0.95):
         intervals = {}
         for metric in df['Metric'].unique():
             data = df.loc[df['Metric'] == metric, 'Percentage Change']
@@ -141,8 +141,7 @@ if __name__ == '__main__':
         PlotMode.ADJUSTED_A_BALANCE
     ]
 
-    analyzer = BacktestAnalyzer()
-    result_df = analyzer.run_multiple_backtests(
+    result_df = BacktestAnalyzer.run_multiple_backtests(
         backtester = Backtester(
             strategy=strategies.MultiMovingAverageStrategy(
                 max_duration = 400,
@@ -154,7 +153,7 @@ if __name__ == '__main__':
         data_config=data_config,
         metrics=metrics,
     )
-    intervals = analyzer.calculate_confidence_interval(
+    intervals = BacktestAnalyzer.calculate_confidence_interval(
         df=result_df,
         confidence=0.99
     )
