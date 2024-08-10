@@ -1,5 +1,6 @@
 import io
 import csv
+import random
 import requests
 import zipfile
 from tqdm import tqdm
@@ -8,10 +9,60 @@ from enum import Enum, auto
 from typing import List, Union
 from datetime import datetime, timedelta
 
+import numpy as np
+import pandas as pd
+
+from definitions import MarketData
+
 class DataSource(Enum):
     COINEX = auto()
 
 class DataManager:
+
+    @staticmethod
+    def _chose_random_data_path(data_path: Path = Path('data/coinex_prices_raw')) -> Path:
+        if data_path.is_dir():
+            csv_files = [f for f in data_path.glob('*.csv')]
+            if not csv_files:
+                raise ValueError(f"No CSV files found in directory: {data_path}")
+            data_path = random.choice(csv_files)
+        return data_path
+    
+    @staticmethod
+    def _nomralize_data(data: MarketData):
+        max_close = data['Close'].max()
+        data['Close'] = data['Close'] / max_close
+        for col in ['Open', 'High', 'Low']:
+            if col in data.columns:
+                data[col] = data[col] / max_close
+    
+    @staticmethod
+    def _select_variation_segment(duration, variation, tolerance, data):
+        MAX_ATTEMPS = 10000
+        n = len(data)
+        for _ in range(MAX_ATTEMPS):
+            start_idx = np.random.randint(0, n - duration)
+            end_idx = start_idx + duration
+            segment = data.iloc[start_idx:end_idx]
+                
+            start_price = segment.iloc[0]['Close']
+            end_price = segment.iloc[-1]['Close']
+            actual_variation = (end_price - start_price) / start_price
+                
+            if np.isclose(actual_variation, variation, atol=tolerance):
+                return segment
+        
+        raise ValueError(f"No data segment found with duration {duration} and variation {variation} +/- {tolerance}")
+
+    @staticmethod
+    def _select_time_segment(start, end, data):
+        if start is not None and end is not None:
+            data = data.iloc[start:end]
+        elif start is not None:
+            data = data.iloc[start:]
+        elif end is not None:
+            data = data.iloc[:end]
+        return data
     
     @staticmethod
     def download_prices(
@@ -20,14 +71,49 @@ class DataManager:
         base_currency: str = 'USDT',
         pairs_to_download: Union[List[str], int, None] = None
     ) -> None:
-        """
-        Descarga los precios desde una fuente específica y los guarda en la carpeta raw.
-        """
         download_folder.mkdir(parents=True, exist_ok=True)
-
         if source == DataSource.COINEX:
             CoinexManager.download_prices(download_folder, base_currency, pairs_to_download)
         pass
+
+    @staticmethod
+    def get_data_sample(
+        data_path: Path = Path('data/coinex_prices_raw'),
+        start: int = None,
+        end: int = None,
+        duration: int = None,
+        variation: float = None,
+        tolerance: float = 0.01,
+        normalize: bool = False
+    ) -> pd.DataFrame:
+        metadata = {}
+        if data_path.is_dir():
+            data_path = DataManager._chose_random_data_path(data_path)
+        data = pd.read_csv(data_path)
+        metadata['data_path'] = str(data_path)
+        
+        if duration and variation:
+            data = DataManager._select_variation_segment(duration, variation, tolerance, data)
+        
+        if start or end:
+            data = DataManager._select_time_segment(start, end, data)
+        
+        if normalize:
+            DataManager._nomralize_data(data)
+
+        metadata = {
+            'data_path': str(data_path),
+            'start': start,
+            'end': end,
+            'duration': duration,
+            'variation': variation,
+            'tolerance': tolerance,
+            'normalize': normalize
+        }
+        metadata = {k: v for k, v in metadata.items() if v is not None}
+
+        return data, metadata
+
 
 class CoinexManager:
     @staticmethod
@@ -92,9 +178,18 @@ class CoinexManager:
         
 
 if __name__ == "__main__":
-    DataManager.download_prices(
-        source = DataSource.COINEX,
-        download_folder = Path('data/coinex_prices_raw'),
-        base_currency = 'USDT',
-        pairs_to_download = ['ADA/USDT']
-    )
+    # DataManager.download_prices(
+    #     source = DataSource.COINEX,
+    #     download_folder = Path('data/coinex_prices_raw2'),
+    #     base_currency = 'USDT',
+    #     pairs_to_download = 2
+    # )
+    data_config={
+            'data_path': Path('data/coinex_prices_raw'),
+            'duration': 4320,
+            'variation': 50.05,
+            'tolerance': 0.01,
+            'normalize': True
+    }
+    data, metadata = DataManager.get_data_sample(**data_config)
+    print(data)

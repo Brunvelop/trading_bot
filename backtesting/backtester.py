@@ -9,10 +9,10 @@ from tqdm import tqdm
 from typing import List
 from pathlib import Path
 
+from data_manager import DataManager
 from strategies import Strategy, MultiMovingAverageStrategy
 from definitions import Memory, MarketData, Action, VisualizationDataframe, PlotMode
 from plots_utils import draw_graphs, calculate_moving_averages_extra_plot
-
 
 class Backtester:
     def __init__(
@@ -27,63 +27,9 @@ class Backtester:
         self.fee = fee
         self.memory: Memory = {'orders': [], 'balance_a': initial_balance_a, 'balance_b': initial_balance_b}
         self.data = None
+        self.data_metadata = None
         self.result: pd.DataFrame = None
         self.verbose = verbose
-
-    def load_data(
-        self,
-        data_path: Path = Path('data/coinex_prices_raw'),
-        start: int = None,
-        end: int = None,
-        duration: int = None,
-        variation: float = None,
-        tolerance: float = 0.01,
-        normalize: bool = False
-    ) -> pd.DataFrame:
-        if data_path.is_dir():
-            csv_files = [f for f in data_path.glob('*.csv')]
-            if not csv_files:
-                raise ValueError(f"No CSV files found in directory: {data_path}")
-            data_path = random.choice(csv_files)
-        
-        data = pd.read_csv(data_path)
-        
-        if duration is not None and variation is not None:
-            n = len(data)
-            while True:
-                # Seleccionar un índice de inicio aleatorio
-                start_idx = np.random.randint(0, n - duration)
-                end_idx = start_idx + duration
-                
-                # Extraer el tramo de datos
-                segment = data.iloc[start_idx:end_idx]
-                
-                # Calcular la variación porcentual
-                start_price = segment.iloc[0]['Close']  # Asumiendo que 'Close' es la columna de precios
-                end_price = segment.iloc[-1]['Close']
-                actual_variation = (end_price - start_price) / start_price
-                
-                # Si la variación porcentual es igual a la variación deseada, devolver el segmento
-                if np.isclose(actual_variation, variation, atol=tolerance):
-                    data = segment
-                    break
-        else:
-            if start is not None and end is not None:
-                data = data.iloc[start:end]
-            elif start is not None:
-                data = data.iloc[start:]
-            elif end is not None:
-                data = data.iloc[:end]
-        
-        if normalize:
-            max_close = data['Close'].max()
-            data['Close'] = data['Close'] / max_close
-            for col in ['Open', 'High', 'Low']:
-                if col in data.columns:
-                    data[col] = data[col] / max_close
-
-        self.data = data
-        return data
 
     def run_backtest(
             self,
@@ -95,7 +41,7 @@ class Backtester:
                 'normalize': True
             },
     ) -> VisualizationDataframe:
-        self.load_data(**data_config)
+        self.data, self.data_metadata = DataManager.get_data_sample(**data_config)
         self._simulate_real_time_execution()
         self.result = self._generate_visualization_df()
         return self.result
@@ -195,7 +141,7 @@ if __name__ == "__main__":
         data_config={
             'data_path': Path('data/coinex_prices_raw'),
             'duration': 4320,
-            'variation': 0.5,
+            'variation': 0.05,
             'tolerance': 0.01,
             'normalize': True
         }
