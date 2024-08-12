@@ -18,52 +18,6 @@ class DataSource(Enum):
     COINEX = auto()
 
 class DataManager:
-
-    @staticmethod
-    def _chose_random_data_path(data_path: Path = Path('data/coinex_prices_raw')) -> Path:
-        if data_path.is_dir():
-            csv_files = [f for f in data_path.glob('*.csv')]
-            if not csv_files:
-                raise ValueError(f"No CSV files found in directory: {data_path}")
-            data_path = random.choice(csv_files)
-        return data_path
-    
-    @staticmethod
-    def _nomralize_data(data: MarketData):
-        max_close = data['Close'].max()
-        data['Close'] = data['Close'] / max_close
-        for col in ['Open', 'High', 'Low']:
-            if col in data.columns:
-                data[col] = data[col] / max_close
-    
-    @staticmethod
-    def _select_variation_segment(duration, variation, tolerance, data):
-        MAX_ATTEMPS = 100000
-        n = len(data)
-        for _ in range(MAX_ATTEMPS):
-            start_idx = np.random.randint(0, n - duration)
-            end_idx = start_idx + duration
-            segment = data.iloc[start_idx:end_idx]
-                
-            start_price = segment.iloc[0]['Close']
-            end_price = segment.iloc[-1]['Close']
-            actual_variation = (end_price - start_price) / start_price
-                
-            if np.isclose(actual_variation, variation, atol=tolerance):
-                return segment
-        
-        raise ValueError(f"No data segment found with duration {duration} and variation {variation} +/- {tolerance}")
-
-    @staticmethod
-    def _select_time_segment(start, end, data):
-        if start is not None and end is not None:
-            data = data.iloc[start:end]
-        elif start is not None:
-            data = data.iloc[start:]
-        elif end is not None:
-            data = data.iloc[:end]
-        return data
-    
     @staticmethod
     def download_prices(
         source: DataSource = DataSource.COINEX, 
@@ -114,6 +68,50 @@ class DataManager:
 
         return data, metadata
 
+    @staticmethod
+    def _chose_random_data_path(data_path: Path = Path('data/coinex_prices_raw')) -> Path:
+        if data_path.is_dir():
+            csv_files = [f for f in data_path.glob('*.csv')]
+            if not csv_files:
+                raise ValueError(f"No CSV files found in directory: {data_path}")
+            data_path = random.choice(csv_files)
+        return data_path
+    
+    @staticmethod
+    def _nomralize_data(data: MarketData):
+        max_close = data['Close'].max()
+        data['Close'] = data['Close'] / max_close
+        for col in ['Open', 'High', 'Low']:
+            if col in data.columns:
+                data[col] = data[col] / max_close
+    
+    @staticmethod
+    def _select_variation_segment(duration, variation, tolerance, data):
+        MAX_ATTEMPS = 100000
+        n = len(data)
+        for _ in range(MAX_ATTEMPS):
+            start_idx = np.random.randint(0, n - duration)
+            end_idx = start_idx + duration
+            segment = data.iloc[start_idx:end_idx]
+                
+            start_price = segment.iloc[0]['Close']
+            end_price = segment.iloc[-1]['Close']
+            actual_variation = (end_price - start_price) / start_price
+                
+            if np.isclose(actual_variation, variation, atol=tolerance):
+                return segment
+        
+        raise ValueError(f"No data segment found with duration {duration} and variation {variation} +/- {tolerance}")
+
+    @staticmethod
+    def _select_time_segment(start, end, data):
+        if start is not None and end is not None:
+            data = data.iloc[start:end]
+        elif start is not None:
+            data = data.iloc[start:]
+        elif end is not None:
+            data = data.iloc[:end]
+        return data
 
 class CoinexManager:
     @staticmethod
