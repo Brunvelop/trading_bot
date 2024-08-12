@@ -11,8 +11,8 @@ from pathlib import Path
 
 from data_manager import DataManager
 from strategies import Strategy, MultiMovingAverageStrategy
-from definitions import Memory, MarketData, Action, StrategyExecResult, PlotMode
-from plots_utils import draw_graphs, calculate_moving_averages_extra_plot
+from definitions import Memory, MarketData, Action, StrategyExecResult, PlotMode, StrategyExecResultFunctions
+from plots_utils import StrategyExecResultDrawer
 
 class Backtester:
     def __init__(
@@ -26,8 +26,8 @@ class Backtester:
         self.strategy = strategy
         self.fee = fee
         self.memory: Memory = {'orders': [], 'balance_a': initial_balance_a, 'balance_b': initial_balance_b}
-        self.data = None
-        self.data_metadata = None
+        self.marketdata: MarketData = None
+        self.marketdata_metadata = None
         self.result: pd.DataFrame = None
         self.verbose = verbose
 
@@ -41,9 +41,12 @@ class Backtester:
                 'normalize': True
             },
     ) -> StrategyExecResult:
-        self.data, self.data_metadata = DataManager.get_marketdata_sample(**data_config)
+        self.marketdata, self.marketdata_metadata = DataManager.get_marketdata_sample(**data_config)
         self._simulate_real_time_execution()
-        self.result = self._calculate_metrics()
+        self.result = StrategyExecResultFunctions.calculate_metrics(
+            marketdata=self.marketdata,
+            memory=self.memory
+        )
         return self.result
     
     def plot_results(
@@ -56,8 +59,8 @@ class Backtester:
         ):
         extra_plots_price = None
         if isinstance(self.strategy, MultiMovingAverageStrategy):
-            extra_plots_price = calculate_moving_averages_extra_plot(self.data)
-        draw_graphs(
+            extra_plots_price = StrategyExecResultDrawer.calculate_moving_averages_extra_plot(self.marketdata)
+        StrategyExecResultDrawer.draw_result(
             df=self.result,  
             extra_plots_price=extra_plots_price,
             **plot_config
@@ -93,35 +96,11 @@ class Backtester:
                 })
     
     def _simulate_real_time_execution(self, window_size: int = 200) -> List[Action]:
-        iterator = tqdm(range(window_size, len(self.data))) if self.verbose else range(window_size, len(self.data))
+        iterator = tqdm(range(window_size, len(self.marketdata))) if self.verbose else range(window_size, len(self.marketdata))
         for i in iterator:
-            window_data = self.data.iloc[i-window_size+1:i+1]
+            window_data = self.marketdata.iloc[i-window_size+1:i+1]
             self._execute_strategy(window_data)
         return self.memory
-    
-    def _calculate_metrics(self) -> StrategyExecResult:
-        memory_df = pd.DataFrame(self.memory.get('orders'))
-        df = pd.merge(self.data, memory_df, left_on='Date', right_on='timestamp', how='left')
-
-        df = self._fill_nan_with_bfill_ffill(df, 'balance_a')
-        df = self._fill_nan_with_bfill_ffill(df, 'balance_b')
-        df['hold_value'] = df['balance_a'] * df['Close']
-        df['total_value_a'] = df['balance_a'] + df['balance_b'] / df['Close'] 
-        df['total_value_b'] = df['balance_b'] + df['hold_value']
-        df['adjusted_a_balance'] = df['balance_a'] - (df['balance_b'].iloc[0] - df['balance_b']) / df['Close']
-        df['adjusted_b_balance'] = df['balance_b'] - (df['balance_a'].iloc[0] - df['balance_a']) * df['Close']
-
-        return df
-    
-    def _fill_nan_with_bfill_ffill(self, df: pd.DataFrame, column_name: str) -> pd.DataFrame:
-        # Fill NaN values forward
-        df[column_name] = df[column_name].ffill()
-        # Fill remaining NaN values (at the beginning) with the first non-NaN value
-        first_valid_index = df[column_name].first_valid_index()
-        if first_valid_index is not None:
-            df[column_name] = df[column_name].fillna(df[column_name].iloc[first_valid_index])
-
-        return df
     
 if __name__ == "__main__":
     import strategies

@@ -49,6 +49,33 @@ class StrategyExecResult(pa.DataFrameModel):
     adjusted_a_balance: Series[float]
     adjusted_b_balance: Series[float]
 
+class StrategyExecResultFunctions:
+    @staticmethod
+    def calculate_metrics(marketdata: MarketData, memory: Memory) -> StrategyExecResult:
+        memory_df = pd.DataFrame(memory.get('orders'))
+        df = pd.merge(marketdata, memory_df, left_on='Date', right_on='timestamp', how='left')
+
+        df = StrategyExecResultFunctions._fill_nan_with_bfill_ffill(df, 'balance_a')
+        df = StrategyExecResultFunctions._fill_nan_with_bfill_ffill(df, 'balance_b')
+        df['hold_value'] = df['balance_a'] * df['Close']
+        df['total_value_a'] = df['balance_a'] + df['balance_b'] / df['Close']
+        df['total_value_b'] = df['balance_b'] + df['hold_value']
+        df['adjusted_a_balance'] = df['balance_a'] - (df['balance_b'].iloc[0] - df['balance_b']) / df['Close']
+        df['adjusted_b_balance'] = df['balance_b'] - (df['balance_a'].iloc[0] - df['balance_a']) * df['Close']
+
+        return df
+
+    @staticmethod
+    def _fill_nan_with_bfill_ffill(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
+        # Fill NaN values forward
+        df[column_name] = df[column_name].ffill()
+        # Fill remaining NaN values (at the beginning) with the first non-NaN value
+        first_valid_index = df[column_name].first_valid_index()
+        if first_valid_index is not None:
+            df[column_name] = df[column_name].fillna(df[column_name].iloc[first_valid_index])
+
+        return df
+
 class OscilationAnalysis(TypedDict):
     average_buy_duration: int
     longest_buy_duration: int
