@@ -56,43 +56,6 @@ class MultiMovingAverageStrategy(Strategy):
         self.acumulation_length = 0
         self.trading_phase = trading_phase
         self.debug = debug
-    
-    def _determine_alignment(self, data: MarketData) -> Alignment:
-        moving_averages = [Indicators.calculate_moving_average(data, window).iloc[-1] for window in self.windows]
-        current_price = data['Close'].iloc[-1]
-        
-        if current_price > moving_averages[0] > moving_averages[1] > moving_averages[2] > moving_averages[3]:
-            return self.Alignment.UP
-        elif current_price < moving_averages[0] < moving_averages[1] < moving_averages[2] < moving_averages[3]:
-            return self.Alignment.DOWN
-        return self.Alignment.NONE
-
-    def _calculate_amount(self, balance_a: float, balance_b: float, current_price: float) -> float:
-        if self.trading_phase == TradingPhase.NEUTRAL:
-            return 0
-        elif self.trading_phase == TradingPhase.ACCUMULATION:
-            amount = balance_b / (self.max_duration * self.safety_margin * current_price)
-        elif self.trading_phase == TradingPhase.DISTRIBUTION:
-            amount = balance_a / ( self.max_duration * self.safety_margin )
-
-        return max(amount, self.min_purchase / current_price)
-
-    def _can_sell(self, balance_a: float, amount: float) -> bool:
-        enough_amount_to_sell = balance_a > amount
-        if self.trading_phase == TradingPhase.ACCUMULATION:
-            return enough_amount_to_sell and self.acumulation_length > 0
-        elif self.trading_phase == TradingPhase.DISTRIBUTION:
-            return enough_amount_to_sell 
-        return enough_amount_to_sell
-    
-    def _can_buy(self, balance_b: float, amount: float, current_price: float) -> bool:
-        enough_amount_to_buy = balance_b > amount * current_price
-        if self.trading_phase == TradingPhase.ACCUMULATION:
-            return enough_amount_to_buy 
-        elif self.trading_phase == TradingPhase.DISTRIBUTION:
-            return enough_amount_to_buy and self.distribution_length > 0
-        return enough_amount_to_buy
-
 
     def run(self, data: MarketData, memory: Memory) -> List[Action]:
         actions = []
@@ -131,3 +94,39 @@ class MultiMovingAverageStrategy(Strategy):
             print(actions)
 
         return actions
+    
+    def _determine_alignment(self, data: MarketData) -> Alignment:
+        moving_averages = [Indicators.calculate_moving_average(data, window).iloc[-1] for window in self.windows]
+        current_price = data['Close'].iloc[-1]
+        
+        if current_price > moving_averages[0] > moving_averages[1] > moving_averages[2] > moving_averages[3]:
+            return self.Alignment.UP
+        elif current_price < moving_averages[0] < moving_averages[1] < moving_averages[2] < moving_averages[3]:
+            return self.Alignment.DOWN
+        return self.Alignment.NONE
+
+    def _calculate_amount(self, balance_a: float, balance_b: float, current_price: float) -> float:
+        if self.trading_phase == TradingPhase.NEUTRAL:
+            return 0
+        elif self.trading_phase == TradingPhase.ACCUMULATION:
+            amount = balance_b / (self.max_duration * self.safety_margin * current_price)
+        elif self.trading_phase == TradingPhase.DISTRIBUTION:
+            amount = balance_a / ( self.max_duration * self.safety_margin )
+
+        return max(amount, self.min_purchase / current_price)
+
+    def _can_sell(self, balance_a: float, amount: float) -> bool:
+        enough_amount_to_sell = balance_a > amount
+        if self.trading_phase == TradingPhase.ACCUMULATION:
+            return enough_amount_to_sell and self.acumulation_length > 0
+        elif self.trading_phase == TradingPhase.DISTRIBUTION:
+            return enough_amount_to_sell 
+        return enough_amount_to_sell
+    
+    def _can_buy(self, balance_b: float, amount: float, current_price: float) -> bool:
+        enough_amount_to_buy = balance_b > amount * current_price
+        if self.trading_phase == TradingPhase.ACCUMULATION:
+            return enough_amount_to_buy 
+        elif self.trading_phase == TradingPhase.DISTRIBUTION:
+            return enough_amount_to_buy and self.distribution_length > 0
+        return enough_amount_to_buy
