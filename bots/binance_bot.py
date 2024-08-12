@@ -11,7 +11,7 @@ fee = 0.003
 trader = Trader(
     strategy= MultiMovingAverageStrategy(cost=4, fee=2*fee),
     db_name = 'kraken_btc_eur_MultiMovingAverageStrategy',
-    exange_api = KrakenAPI(),
+    exchange_api = KrakenAPI(),
     pair = 'BTC/EUR',
 )
 
@@ -19,7 +19,7 @@ def job():
     try:
         start_time = time.time()  # Inicio del tiempo de ejecución
         print("----------- RUN -----------")
-        data = trader.exange_api.get_bars(pair=trader.pair, timeframe='1m', limit=200)
+        data = trader.exchange_api.get_bars(pair=trader.pair, timeframe='1m', limit=200)
         data = pd.DataFrame(data, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
         data = data.iloc[::-1] #Kraken manda invertidos los datos
         memory = trader.db.get_all_orders()

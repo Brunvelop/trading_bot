@@ -4,9 +4,9 @@ from definitions import MarketData, Memory, Action
 
 
 class Trader:
-    def __init__(self, strategy: Strategy, exange_api: BaseExchangeAPI, pair: str = 'BTC/USD') -> None:
+    def __init__(self, strategy: Strategy, exchange_api: BaseExchangeAPI, pair: str = 'BTC/USD') -> None:
         self.strategy = strategy
-        self.exange_api = exange_api
+        self.exchange_api = exchange_api
         self.pair = pair
 
     def execute_strategy(self, data: MarketData, memory: Memory) -> None:
@@ -27,10 +27,10 @@ class Trader:
                 self.set_take_profit(price, quantity)
 
     def buy_market(self, price: float, quantity: float) -> None:
-        return self.exange_api.create_order(self.pair, 'market', 'buy', quantity, price)
+        return self.exchange_api.create_order(self.pair, 'market', 'buy', quantity, price)
 
     def sell_market(self, price: float, quantity: float) -> None:
-        return self.exange_api.create_order(self.pair, 'market', 'sell', quantity, price)
+        return self.exchange_api.create_order(self.pair, 'market', 'sell', quantity, price)
     
     def buy_limit(self, price: float, quantity: float) -> None:
         pass
@@ -39,7 +39,7 @@ class Trader:
         pass
 
     def set_stop_loss(self, price: float) -> None:
-        self.exange_api.update_stop_loss('BTC/USD', 'sell', price, 1)
+        self.exchange_api.update_stop_loss('BTC/USD', 'sell', price, 1)
 
     def set_take_profit(self, price: float, quantity: float) -> None:
         pass

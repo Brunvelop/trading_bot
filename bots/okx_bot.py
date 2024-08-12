@@ -11,7 +11,7 @@ fee = 0.0005
 trader = Trader(
     strategy= MultiMovingAverageStrategySell(cost=1, fee=2*fee),
     db_name = 'okx_ordi_usdt_SMASELL',
-    exange_api = OKXAPI(api_key="OKX_API_KEY_ORDI_SMA", api_secret="OKX_API_SECRET_ORDI_SMA"),
+    exchange_api = OKXAPI(api_key="OKX_API_KEY_ORDI_SMA", api_secret="OKX_API_SECRET_ORDI_SMA"),
     pair = 'ORDI/USDT',
 )
 
@@ -20,13 +20,13 @@ def job():
         start_time = time.time()  # Inicio del tiempo de ejecución
 
         print("----------- RUN -----------")
-        data = trader.exange_api.get_bars(pair=trader.pair, timeframe='1m', limit=200)
+        data = trader.exchange_api.get_bars(pair=trader.pair, timeframe='1m', limit=200)
         data = pd.DataFrame(data, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
         data = data.iloc[::-1]
 
         memory = {}
         memory['orders'] = trader.db.get_all_orders()
-        memory['balance'] = trader.exange_api.get_account_balance('ORDI')  # Reemplaza 'BTC' con el símbolo de tu moneda
+        memory['balance'] = trader.exchange_api.get_account_balance('ORDI')  # Reemplaza 'BTC' con el símbolo de tu moneda
 
 
         trader.execute_strategy(data, memory)

@@ -16,7 +16,7 @@ trader = Trader(
         min_purchase=5.1,
         safety_margin=2
     ),
-    exange_api=BitgetAPI(
+    exchange_api=BitgetAPI(
         api_key="BITGET_API_KEY_DOG_USDT_BOT", 
         api_secret="BITGET_API_SECRET_DOG_USDT_BOT"
     ),
@@ -29,14 +29,14 @@ def job():
 
         print("----------- RUN -----------")
 
-        data = trader.exange_api.get_bars(pair=trader.pair, timeframe='1min', limit=200)
+        data = trader.exchange_api.get_bars(pair=trader.pair, timeframe='1min', limit=200)
         data = pd.DataFrame(data, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
         data = data.iloc[::-1]
         data = MarketData(data)
 
         memory: Memory = { 'orders': [], 'balance_a': 0.0,'balance_b': 0.0}
-        memory['balance_a'] = trader.exange_api.get_account_balance('DOG')
-        memory['balance_b'] = trader.exange_api.get_account_balance('USDT')
+        memory['balance_a'] = trader.exchange_api.get_account_balance('DOG')
+        memory['balance_b'] = trader.exchange_api.get_account_balance('USDT')
 
         trader.execute_strategy(data, memory)
 
