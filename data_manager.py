@@ -38,7 +38,7 @@ class DataManager:
     
     @staticmethod
     def _select_variation_segment(duration, variation, tolerance, data):
-        MAX_ATTEMPS = 10000
+        MAX_ATTEMPS = 100000
         n = len(data)
         for _ in range(MAX_ATTEMPS):
             start_idx = np.random.randint(0, n - duration)
@@ -77,7 +77,7 @@ class DataManager:
         pass
 
     @staticmethod
-    def get_data_sample(
+    def get_marketdata_sample(
         data_path: Path = Path('data/coinex_prices_raw'),
         start: int = None,
         end: int = None,
@@ -85,14 +85,14 @@ class DataManager:
         variation: float = None,
         tolerance: float = 0.01,
         normalize: bool = False
-    ) -> pd.DataFrame:
+    ) -> (MarketData, dict):
         metadata = {}
         if data_path.is_dir():
             data_path = DataManager._chose_random_data_path(data_path)
         data = pd.read_csv(data_path)
         metadata['data_path'] = str(data_path)
         
-        if duration and variation:
+        if duration and variation is not None:
             data = DataManager._select_variation_segment(duration, variation, tolerance, data)
         
         if start or end:

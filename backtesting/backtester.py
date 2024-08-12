@@ -41,7 +41,7 @@ class Backtester:
                 'normalize': True
             },
     ) -> StrategyExecResult:
-        self.data, self.data_metadata = DataManager.get_data_sample(**data_config)
+        self.data, self.data_metadata = DataManager.get_marketdata_sample(**data_config)
         self._simulate_real_time_execution()
         self.result = self._calculate_metrics()
         return self.result
