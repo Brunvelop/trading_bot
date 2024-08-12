@@ -15,6 +15,44 @@ from definitions import PlotMode, StrategyExecResult
 
 class BacktestAnalyzer:
     @staticmethod
+    def run_multiple_backtests(
+        backtester: Backtester = None,
+        num_tests_per_strategy = 10,
+        data_config: dict = None,
+        metrics: List[PlotMode] = None,
+    ) -> pd.DataFrame:
+    
+        results = []
+        with ProcessPoolExecutor() as executor:
+            futures = []
+            for _ in range(num_tests_per_strategy):
+                future = executor.submit(backtester.run_backtest, data_config)
+                futures.append(future)
+        
+            for future in tqdm(as_completed(futures), total=num_tests_per_strategy, desc=f"Running {num_tests_per_strategy} tests"):
+                df: StrategyExecResult = future.result()
+                metric_change = BacktestAnalyzer._calculate_metric_change(df, metrics)
+                results.append((metric_change, data_config.get('variation')))
+        
+        df = BacktestAnalyzer._prepare_dataframe(results, num_tests_per_strategy)
+        return df
+    
+    @staticmethod
+    def calculate_confidence_interval(df, confidence=0.95):
+        intervals = {}
+        for metric in df['Metric'].unique():
+            for change_type in ['Percentage Change', 'Absolute Change']:
+                data = df.loc[df['Metric'] == metric, change_type]
+                mean = data.mean()
+                std_err = data.sem()
+                n = len(data)
+                
+                # Calculate the confidence interval using the Student's t-distribution
+                interval = stats.t.interval(confidence, df=n-1, loc=mean, scale=std_err)
+                intervals[f"{metric} ({change_type})"] = interval
+        return intervals
+    @staticmethod
+
     def _calculate_metric_change(
             df: StrategyExecResult, 
             metrics: List[PlotMode]
@@ -75,44 +113,6 @@ class BacktestAnalyzer:
         else:
             plt.close(fig)
     
-    @staticmethod
-    def run_multiple_backtests(
-        backtester: Backtester = None,
-        num_tests_per_strategy = 10,
-        data_config: dict = None,
-        metrics: List[PlotMode] = None,
-    ) -> pd.DataFrame:
-    
-        results = []
-        with ProcessPoolExecutor() as executor:
-            futures = []
-            for _ in range(num_tests_per_strategy):
-                future = executor.submit(backtester.run_backtest, data_config)
-                futures.append(future)
-        
-            for future in tqdm(as_completed(futures), total=num_tests_per_strategy, desc=f"Running {num_tests_per_strategy} tests"):
-                df: StrategyExecResult = future.result()
-                metric_change = BacktestAnalyzer._calculate_metric_change(df, metrics)
-                results.append((metric_change, data_config.get('variation')))
-        
-        df = BacktestAnalyzer._prepare_dataframe(results, num_tests_per_strategy)
-        return df
-    
-    @staticmethod
-    def calculate_confidence_interval(df, confidence=0.95):
-        intervals = {}
-        for metric in df['Metric'].unique():
-            for change_type in ['Percentage Change', 'Absolute Change']:
-                data = df.loc[df['Metric'] == metric, change_type]
-                mean = data.mean()
-                std_err = data.sem()
-                n = len(data)
-                
-                # Calculate the confidence interval using the Student's t-distribution
-                interval = stats.t.interval(confidence, df=n-1, loc=mean, scale=std_err)
-                intervals[f"{metric} ({change_type})"] = interval
-        return intervals
-    
 if __name__ == '__main__':
     import strategies
     from definitions import TradingPhase
@@ -120,26 +120,29 @@ if __name__ == '__main__':
     strategy_static_config = {
         'min_purchase' : 5.1,
         'safety_margin' : 1,
-        'trading_phase' : TradingPhase.DISTRIBUTION,
+        'trading_phase' : TradingPhase.ACCUMULATION,
         'debug' : False
     }
     backtester_static_config = {
-        'initial_balance_a': 5000.0,
-        'initial_balance_b': 0000.0,
+        'initial_balance_a': 0000.0,
+        'initial_balance_b': 5000.0,
         'fee': 0.001,
         'verbose': False
     }
     data_config={
         'data_path': Path('data/coinex_prices_raw'),
-        'duration': 4320,
-        'variation': 0.1,
-        'tolerance': 0.01,
+        'duration': 43200,
+        'variation': 0.0,
+        'tolerance': 1,
         'normalize': True
     }
     metrics= [
+        PlotMode.BALANCE_A,
+        PlotMode.BALANCE_B,
         PlotMode.TOTAL_VALUE_A,
         PlotMode.TOTAL_VALUE_B,
-        PlotMode.ADJUSTED_A_BALANCE
+        PlotMode.ADJUSTED_A_BALANCE,
+        PlotMode.ADJUSTED_B_BALANCE,
     ]
 
     result_df = BacktestAnalyzer.run_multiple_backtests(
@@ -150,7 +153,7 @@ if __name__ == '__main__':
             ),
             **backtester_static_config
         ),
-        num_tests_per_strategy=100,
+        num_tests_per_strategy=120,
         data_config=data_config,
         metrics=metrics,
     )
@@ -158,6 +161,8 @@ if __name__ == '__main__':
         df=result_df,
         confidence=0.99
     )
-    print(f"Variación de {data_config['variation']*100}%:")
+    print(strategy_static_config['trading_phase'])
+    print(f"Duracion: {data_config['duration']}")
+    print(f"Variación: {data_config['variation']*100}%:")
     for metric, interval in intervals.items():
         print(f"  {metric}: [{interval[0]:.4f}, {interval[1]:.4f}] -> {abs(interval[1] - interval[0]):4f}")
