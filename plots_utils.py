@@ -7,6 +7,75 @@ from definitions import PlotMode, StrategyExecResult
 
 class StrategyExecResultDrawer:
     @staticmethod
+    def draw_result(
+        df: StrategyExecResult,
+        plot_modes: List[PlotMode],
+        extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None,
+        extra_plot: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None,
+        save_path: Optional[Path] = None,
+        show: bool = True
+    ) -> None:
+        plt.style.use('ggplot')
+
+        num_subplots = (PlotMode.PRICE in plot_modes) + bool(extra_plot) + any(
+            mode in plot_modes for mode in [
+                PlotMode.BALANCE_A,
+                PlotMode.BALANCE_B,
+                PlotMode.HOLD_VALUE,
+                PlotMode.TOTAL_VALUE_A,
+                PlotMode.TOTAL_VALUE_B,
+                PlotMode.ADJUSTED_A_BALANCE,
+                PlotMode.ADJUSTED_B_BALANCE
+            ]
+        )
+        if num_subplots > 1:
+            fig, axes = plt.subplots(num_subplots, 1, figsize=(10, 6 * num_subplots), sharex=True)
+        else:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            axes = [ax]
+        
+        current_ax = 0
+        
+        if PlotMode.PRICE in plot_modes:
+            StrategyExecResultDrawer._add_prices(axes[current_ax], df, extra_plots_price)
+            current_ax += 1
+        
+        if (PlotMode.BALANCE_A in plot_modes
+            or PlotMode.BALANCE_B in plot_modes
+            or PlotMode.HOLD_VALUE in plot_modes
+            or PlotMode.TOTAL_VALUE_A in plot_modes
+            or PlotMode.TOTAL_VALUE_B in plot_modes
+            or PlotMode.ADJUSTED_A_BALANCE in plot_modes
+            or PlotMode.ADJUSTED_B_BALANCE in plot_modes
+        ):
+            StrategyExecResultDrawer._plot_balances(axes[current_ax], axes[current_ax].twinx(), df, plot_modes)
+            current_ax += 1
+        
+        if extra_plot:
+            StrategyExecResultDrawer._plot_extra(axes[current_ax], extra_plot)
+        
+        plt.tight_layout()
+        if save_path:
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(save_path)
+        if show:
+            plt.show()
+
+    def calculate_moving_averages_extra_plot(data) -> list:
+        ma_10 = data['Close'].rolling(window=10).mean()
+        ma_50 = data['Close'].rolling(window=50).mean()
+        ma_100 = data['Close'].rolling(window=100).mean()
+        ma_200 = data['Close'].rolling(window=200).mean()
+
+        extra_plots_price = [
+            ((data['Date'], ma_10), {'color': 'blue', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 10', 'type': 'plot'}),
+            ((data['Date'], ma_50), {'color': 'orange', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 50', 'type': 'plot'}),
+            ((data['Date'], ma_100), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 100', 'type': 'plot'}),
+            ((data['Date'], ma_200), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 200', 'type': 'plot'})
+        ]
+        return extra_plots_price
+
+    @staticmethod
     def _add_prices(
             ax: plt.Axes,
             df: StrategyExecResult,
@@ -126,73 +195,3 @@ class StrategyExecResultDrawer:
         
         # Ajustar diseño
         plt.tight_layout()
-
-    @staticmethod
-    def draw_result(
-        df: StrategyExecResult,
-        plot_modes: List[PlotMode],
-        extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None,
-        extra_plot: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None,
-        save_path: Optional[Path] = None,
-        show: bool = True
-    ) -> None:
-        plt.style.use('ggplot')
-
-        num_subplots = (PlotMode.PRICE in plot_modes) + bool(extra_plot) + any(
-            mode in plot_modes for mode in [
-                PlotMode.BALANCE_A,
-                PlotMode.BALANCE_B,
-                PlotMode.HOLD_VALUE,
-                PlotMode.TOTAL_VALUE_A,
-                PlotMode.TOTAL_VALUE_B,
-                PlotMode.ADJUSTED_A_BALANCE,
-                PlotMode.ADJUSTED_B_BALANCE
-            ]
-        )
-        if num_subplots > 1:
-            fig, axes = plt.subplots(num_subplots, 1, figsize=(10, 6 * num_subplots), sharex=True)
-        else:
-            fig, ax = plt.subplots(figsize=(10, 6))
-            axes = [ax]
-        
-        current_ax = 0
-        
-        if PlotMode.PRICE in plot_modes:
-            StrategyExecResultDrawer._add_prices(axes[current_ax], df, extra_plots_price)
-            current_ax += 1
-        
-        if (PlotMode.BALANCE_A in plot_modes
-            or PlotMode.BALANCE_B in plot_modes
-            or PlotMode.HOLD_VALUE in plot_modes
-            or PlotMode.TOTAL_VALUE_A in plot_modes
-            or PlotMode.TOTAL_VALUE_B in plot_modes
-            or PlotMode.ADJUSTED_A_BALANCE in plot_modes
-            or PlotMode.ADJUSTED_B_BALANCE in plot_modes
-        ):
-            StrategyExecResultDrawer._plot_balances(axes[current_ax], axes[current_ax].twinx(), df, plot_modes)
-            current_ax += 1
-        
-        if extra_plot:
-            StrategyExecResultDrawer._plot_extra(axes[current_ax], extra_plot)
-        
-        plt.tight_layout()
-        if save_path:
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-            fig.savefig(save_path)
-        if show:
-            plt.show()
-
-
-    def calculate_moving_averages_extra_plot(data) -> list:
-        ma_10 = data['Close'].rolling(window=10).mean()
-        ma_50 = data['Close'].rolling(window=50).mean()
-        ma_100 = data['Close'].rolling(window=100).mean()
-        ma_200 = data['Close'].rolling(window=200).mean()
-
-        extra_plots_price = [
-            ((data['Date'], ma_10), {'color': 'blue', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 10', 'type': 'plot'}),
-            ((data['Date'], ma_50), {'color': 'orange', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 50', 'type': 'plot'}),
-            ((data['Date'], ma_100), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 100', 'type': 'plot'}),
-            ((data['Date'], ma_200), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 200', 'type': 'plot'})
-        ]
-        return extra_plots_price
