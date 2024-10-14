@@ -25,7 +25,7 @@ trader = Trader(
 
 def job():
     try:
-        start_time = time.time()  # Inicio del tiempo de ejecución
+        start_time = time.time()
 
         print("----------- RUN -----------")
 
@@ -40,14 +40,17 @@ def job():
 
         trader.execute_strategy(data, memory)
 
-        end_time = time.time()  # Fin del tiempo de ejecución
+        end_time = time.time()
         print("Tiempo de ejecución: {} segundos".format(end_time - start_time))
     except Exception as e:
         print("Se produjo un error: ", e)
 
-schedule.every().minute.at(":06").do(job)
+def main():
+    schedule.every().minute.at(":06").do(job)
 
-while True:
-    # print("Esperando el próximo trabajo...")
-    schedule.run_pending()
-    time.sleep(1)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+if __name__ == "__main__":
+    main()

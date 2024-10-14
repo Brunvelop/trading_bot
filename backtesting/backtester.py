@@ -2,9 +2,7 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import random
 import pandas as pd
-import numpy as np
 from tqdm import tqdm
 from typing import List
 from pathlib import Path
@@ -60,6 +58,7 @@ class Backtester:
         extra_plots_price = None
         if isinstance(self.strategy, MultiMovingAverageStrategy):
             extra_plots_price = StrategyExecResultDrawer.calculate_moving_averages_extra_plot(self.marketdata)
+        
         StrategyExecResultDrawer.draw(
             df=self.result,  
             extra_plots_price=extra_plots_price,

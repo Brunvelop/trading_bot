@@ -14,13 +14,11 @@ class Indicators:
         min_value = data['close'][-(period+1):-2].min()
         return min_value
 
-
     def calculate_std_dev_and_avg_range(self, data, window=200):
         volatility = self.calculate_volatility(data)
         avg_range = volatility.ewm(span=window).mean()
         std_dev = avg_range.rolling(window=window).std()
         return volatility, std_dev, avg_range
-
 
     def calculate_volatility(self, data):
         volatility = (data['high'] - data['low']).abs() / data['low'] * 100
