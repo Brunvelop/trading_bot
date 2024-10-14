@@ -7,11 +7,11 @@ from definitions import MarketData
 class Indicators:
     
     def calculate_max(self, data, period=300):
-        max_value = data['Close'][-(period+1):-2].max()
+        max_value = data['close'][-(period+1):-2].max()
         return max_value
 
     def calculate_min(self, data, period=300):
-        min_value = data['Close'][-(period+1):-2].min()
+        min_value = data['close'][-(period+1):-2].min()
         return min_value
 
 
@@ -23,7 +23,7 @@ class Indicators:
 
 
     def calculate_volatility(self, data):
-        volatility = (data['High'] - data['Low']).abs() / data['Low'] * 100
+        volatility = (data['high'] - data['low']).abs() / data['low'] * 100
         return volatility
 
     def calculate_avg_volatility(self, volatility, span):
@@ -32,4 +32,4 @@ class Indicators:
     
     @staticmethod
     def calculate_moving_average(data: Type[MarketData], window: int) -> pd.Series:
-        return data['Close'].rolling(window=window).mean()
+        return data['close'].rolling(window=window).mean()

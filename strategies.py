@@ -22,7 +22,7 @@ class MovingAverageStrategy(Strategy):
 
         moving_average = Indicators.calculate_moving_average(data, self.window_size).iloc[-1]
         balance_b = memory.get('balance_b', 0)
-        current_price = data['Close'].iloc[-1]
+        current_price = data['close'].iloc[-1]
         quantity = self.cost / current_price
 
         if current_price < moving_average:
@@ -60,7 +60,7 @@ class MultiMovingAverageStrategy(Strategy):
     def run(self, data: MarketData, memory: Memory) -> List[Action]:
         actions = []
         balance_a, balance_b = memory.get('balance_a', 0), memory.get('balance_b', 0)
-        current_price = data['Close'].iloc[-1]
+        current_price = data['close'].iloc[-1]
 
         alignment = self._determine_alignment(data)
         amount = self._calculate_amount(balance_a, balance_b, current_price)
@@ -83,7 +83,7 @@ class MultiMovingAverageStrategy(Strategy):
             actions.append((Action.WAIT, None, None))
 
         if self.debug:
-            print("time:", datetime.fromtimestamp(int(data['Date'].iloc[-1]) / 1000).strftime('%Y-%m-%d %H:%M'))
+            print("time:", datetime.fromtimestamp(int(data['date'].iloc[-1]) / 1000).strftime('%Y-%m-%d %H:%M'))
             print(self.trading_phase)
             print(alignment)
             print("blance_a:", balance_a,"|", "balance_b:", balance_b)
@@ -97,7 +97,7 @@ class MultiMovingAverageStrategy(Strategy):
     
     def _determine_alignment(self, data: MarketData) -> Alignment:
         moving_averages = [Indicators.calculate_moving_average(data, window).iloc[-1] for window in self.windows]
-        current_price = data['Close'].iloc[-1]
+        current_price = data['close'].iloc[-1]
         
         if current_price > moving_averages[0] > moving_averages[1] > moving_averages[2] > moving_averages[3]:
             return self.Alignment.UP

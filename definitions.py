@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import TypedDict, List, Any
+from typing import TypedDict, List, Literal
 
 import pandas as pd
 import pandera as pa
@@ -14,26 +14,37 @@ class Action(Enum):
     TAKE_PROFIT = "take_profit"
     WAIT = "wait"
 
+class Order(TypedDict):
+    timestamp: str  # Consider using datetime if possible
+    pair: str
+    type: Literal['buy_market', 'sell_market']
+    price: float
+    amount: float
+    fee: float
+    total_value: float
+    balance_a: float
+    balance_b: float
+
 class Memory(TypedDict):
-    orders: List[Any]
+    orders: List[Order]
     balance_a: float #balance firs coin in pair (btc if btc/usdt)
     balance_b: float #balance second coint in pair (usdt if btc/usdt)
 
 class MarketData(pa.DataFrameModel): #ordenado de temporalmente (ultimo el mas actual)
-    Date: Series[pd.Int64Dtype]
-    Open: Series[float]
-    High: Series[float]
-    Low: Series[float]
-    Close: Series[float]
-    Volume: Series[float]
+    date: Series[pd.Int64Dtype]
+    open: Series[float]
+    high: Series[float]
+    low: Series[float]
+    close: Series[float]
+    volume: Series[float]
 
 class StrategyExecResult(pa.DataFrameModel):
-    Date: Series[pd.Timestamp]
-    Open: Series[float]
-    High: Series[float]
-    Low: Series[float]
-    Close: Series[float]
-    Volume: Series[float]
+    date: Series[pd.Timestamp]
+    open: Series[float]
+    high: Series[float]
+    low: Series[float]
+    close: Series[float]
+    volume: Series[float]
     timestamp: Series[pd.Timestamp]
     pair: Series[str]
     type: Series[str]
@@ -53,15 +64,15 @@ class StrategyExecResultFunctions:
     @staticmethod
     def calculate_metrics(marketdata: MarketData, memory: Memory) -> StrategyExecResult:
         memory_df = pd.DataFrame(memory.get('orders'))
-        df = pd.merge(marketdata, memory_df, left_on='Date', right_on='timestamp', how='left')
+        df = pd.merge(marketdata, memory_df, left_on='date', right_on='timestamp', how='left')
 
         df = StrategyExecResultFunctions._fill_nan_with_bfill_ffill(df, 'balance_a')
         df = StrategyExecResultFunctions._fill_nan_with_bfill_ffill(df, 'balance_b')
-        df['hold_value'] = df['balance_a'] * df['Close']
-        df['total_value_a'] = df['balance_a'] + df['balance_b'] / df['Close']
+        df['hold_value'] = df['balance_a'] * df['close']
+        df['total_value_a'] = df['balance_a'] + df['balance_b'] / df['close']
         df['total_value_b'] = df['balance_b'] + df['hold_value']
-        df['adjusted_a_balance'] = df['balance_a'] - (df['balance_b'].iloc[0] - df['balance_b']) / df['Close']
-        df['adjusted_b_balance'] = df['balance_b'] - (df['balance_a'].iloc[0] - df['balance_a']) * df['Close']
+        df['adjusted_a_balance'] = df['balance_a'] - (df['balance_b'].iloc[0] - df['balance_b']) / df['close']
+        df['adjusted_b_balance'] = df['balance_b'] - (df['balance_a'].iloc[0] - df['balance_a']) * df['close']
 
         return df
 
@@ -75,15 +86,6 @@ class StrategyExecResultFunctions:
             df[column_name] = df[column_name].fillna(df[column_name].iloc[first_valid_index])
 
         return df
-
-class OscilationAnalysis(TypedDict):
-    average_buy_duration: int
-    longest_buy_duration: int
-    total_buy_periods: int
-    average_sell_duration: int
-    longest_sell_duration: int
-    total_sell_periods: int
-    current_state: str
 
 class PlotMode(Enum):
     # Lowercase names match StrategyExecResult column names

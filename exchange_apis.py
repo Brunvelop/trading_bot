@@ -1,60 +1,55 @@
 import os
+from typing import Dict, List, Optional, Any
+
 import ccxt
 from dotenv import load_dotenv
 
 load_dotenv()
-class BaseExchangeAPI:
-    def __init__(self, exchange_id, api_key, api_secret, options):
-        self.exchange_id = exchange_id
-        self.api_key = api_key
-        self.api_secret = api_secret
-        self.options = options
 
-    def connect_api(self):
+class BaseExchangeAPI:
+    def __init__(self, exchange_id: str, api_key: str, api_secret: str, options: Dict[str, Any]):
+        self.exchange_id: str = exchange_id
+        self.api_key: str = api_key
+        self.api_secret: str = api_secret
+        self.options: Dict[str, Any] = options
+
+    def connect_api(self) -> ccxt.Exchange:
         load_dotenv()
-        exchange = getattr(ccxt, self.exchange_id)({
+        exchange: ccxt.Exchange = getattr(ccxt, self.exchange_id)({
             'apiKey': os.getenv(self.api_key),
             'secret': os.getenv(self.api_secret),
             **self.options
         })
         return exchange
 
-    def create_order(self, pair, order_type, side, amount, price):
-        exchange = self.connect_api()
-        return exchange.create_order(pair, order_type, side, amount, price)
+    def create_order(self, pair: str, order_type: str, side: str, amount: float, price: float, params: Dict[str, Any] = {}) -> Dict[str, Any]:
+        exchange: ccxt.Exchange = self.connect_api()
+        return exchange.create_order(pair, order_type, side, amount, price, params)
 
-    def get_latest_price(self, pair):
-        exchange = self.connect_api()
-        ticker = exchange.fetch_ticker(pair)
+    def get_latest_price(self, pair: str) -> float:
+        exchange: ccxt.Exchange = self.connect_api()
+        ticker: Dict[str, Any] = exchange.fetch_ticker(pair)
         return ticker['last']
 
-    def get_account_balance(self, currency):
-        exchange = self.connect_api()
-        balance = exchange.fetch_balance()
+    def get_account_balance(self, currency: str) -> float:
+        exchange: ccxt.Exchange = self.connect_api()
+        balance: Dict[str, Any] = exchange.fetch_balance()
         return balance['total'][currency]
 
-    def get_bars(self, pair, timeframe, limit):
-        exchange = self.connect_api()
+    def get_bars(self, pair: str, timeframe: str, limit: int) -> List[List[float]]:
+        exchange: ccxt.Exchange = self.connect_api()
         return exchange.fetch_ohlcv(pair, timeframe=timeframe, limit=limit)[::-1]
 
-    def get_order(self, order_id, symbol=''):
-        exchange = self.connect_api()
-        return exchange.fetch_order(order_id)
+    def get_order(self, order_id: str, symbol: str = '') -> Dict[str, Any]:
+        exchange: ccxt.Exchange = self.connect_api()
+        return exchange.fetch_order(order_id, symbol)
 
-    def cancel_order(self, id, symbol):
-        exchange = self.connect_api()
+    def cancel_order(self, id: str, symbol: str) -> Dict[str, Any]:
+        exchange: ccxt.Exchange = self.connect_api()
         return exchange.cancelOrder(id, symbol)
-
-    def update_stop_loss(self, pair, side, price, amount):
-        exchange = self.connect_api()
-        open_orders = exchange.fetchOpenOrders(pair)
-        stop_loss_order = next((order for order in open_orders if order['type'] == 'stop-loss'), None)
-        if stop_loss_order is not None:
-            self.cancel_order(stop_loss_order['id'], pair)
-        return self.create_order(pair, 'stop-loss', side, amount, price)
     
-    def fetch_trades(self, pair, since=None, limit=None, params={}):
-        exchange = self.connect_api()
+    def fetch_trades(self, pair: str, since: Optional[int] = None, limit: Optional[int] = None, params: Dict[str, Any] = {}) -> List[Dict[str, Any]]:
+        exchange: ccxt.Exchange = self.connect_api()
         return exchange.fetch_trades(pair, since, limit, params)
 
 class KrakenAPI(BaseExchangeAPI):
@@ -67,78 +62,15 @@ class KrakenAPI(BaseExchangeAPI):
         })
 
 class OKXAPI(BaseExchangeAPI):
-    def __init__(self, api_key='OKX_API_KEY', api_secret='OKX_API_SECRET'):
-        super().__init__('okex',api_key, api_secret, options={
-            'password' : os.getenv('OKX_PASSWORD'),
+    def __init__(self, api_key: str = 'OKX_API_KEY', api_secret: str = 'OKX_API_SECRET'):
+        super().__init__('okex', api_key, api_secret, options={
+            'password': os.getenv('OKX_PASSWORD'),
             'enableRateLimit': True,
             'options':{
                 'defaultType': 'spot',
             }
-        })
+        })   
 
-    def get_order(self, order_id, symbol=''):
-        exchange = self.connect_api()
-        return exchange.fetch_order(order_id, symbol)
-
-    def create_order_with_tp_and_sl(self, pair, side, amount, price, sl_price, tp_price, leverage, order_type='market'):
-        "amount = contracts amount"
-        order_response = self.create_order(
-            pair=pair,
-            order_type=order_type,
-            amount=amount,# 1 contrato 0.01 btc
-            price=price,
-            side=side,
-            params={
-                'marginMode': 'isolated',
-                'leverage': str(leverage),
-                'type': order_type,
-                }
-            )
-        sl_and_tp_response = self.create_order(
-            pair=pair,
-            order_type='oco',
-            amount=amount,# 1 contrato 0.01 btc
-            price=price,
-            side='sell' if side=='buy' else 'buy',
-            params={
-                'marginMode': 'isolated',
-                'leverage': '50',
-                'type': 'market',
-                'side': 'sell' if side=='buy' else 'buy',
-                'slTriggerPxType': 'mark',
-                'tpTriggerPxType': 'mark',
-                'tpType': 'market',
-                'slType': 'market',
-                'reduceOnly': True,
-                'slTriggerPx': sl_price,
-                'tpTriggerPx': tp_price,
-                'tpOrdPx': -1,
-                'slOrdPx': -1,
-                }
-            )
-        return order_response , sl_and_tp_response
-
-    def create_order(self, pair, order_type, side, amount, price, params={}):
-        exchange = self.connect_api()
-        # params = {
-        #     'marginMode': 'isolated',
-        #     'leverage': '50'
-        # }
-
-        return exchange.create_order(pair, order_type, side, amount, price, params)
-   
-    def edit_order(self, id, symbol, type, side, amount=None, price=None, params={}):
-        exchange = self.connect_api()
-        return exchange.edit_order(id, symbol, type, side, amount, price, params)
-
-    def fetchOpenOrders(self, symbol, since=None, limit=None, params={}):
-        exchange = self.connect_api()
-        return exchange.fetchOpenOrders(symbol, since, limit, params)
-    
-    def fetchPosition(self, symbols, params={}):
-        exchange = self.connect_api()
-        return exchange.fetchPosition(symbols, params)
-    
 class BinanceAPI(BaseExchangeAPI):
     def __init__(self):
         super().__init__('binance', 'BINANCE_API_KEY', 'BINANCE_API_SECRET', {
@@ -148,64 +80,8 @@ class BinanceAPI(BaseExchangeAPI):
             }
         })
 
-    def get_order(self, order_id, symbol=''):
-        exchange = self.connect_api()
-        return exchange.fetch_order(order_id, symbol)
-
-    def create_order_with_stop_loss(self, pair, order_type, side, amount, price, stop_loss_price):
-        exchange = self.connect_api()
-        order_type='conditional'
-        params = {
-            'marginMode': 'isolated',
-            'leverage': '50',
-            'reduceOnly': True,
-            'slTriggerPx': stop_loss_price,
-        }
-        return exchange.create_order(pair, order_type, side, amount, price, params)
-
-    def create_order(self, pair, order_type, side, amount, price):
-        exchange = self.connect_api()
-        params = {
-            'marginMode': 'isolated',
-            'leverage': '3'
-        }
-        return exchange.create_order(pair, order_type, side, amount, price, params)
-
-    def fetchOpenOrders(self, symbol, since=None, limit=None, params={}):
-        exchange = self.connect_api()
-        return exchange.fetchOpenOrders(symbol, since, limit, params)
-    
-    def fetchPosition(self, symbols, params={}):
-        exchange = self.connect_api()
-        return exchange.fetchPosition(symbols, params)
-
-    def fetch_currencies(self):
-        exchange = self.connect_api()
-        return exchange.fetch_currencies()
-    
-
 class BitgetAPI(BaseExchangeAPI):
-    def __init__(self, api_key='BITGET_API_KEY', api_secret='BITGET_API_SECRET'):
+    def __init__(self, api_key: str = 'BITGET_API_KEY', api_secret: str = 'BITGET_API_SECRET'):
         super().__init__('bitget', api_key, api_secret, options={
-            'password' : os.getenv('BITGET_API_PASSWORD')
+            'password': os.getenv('BITGET_API_PASSWORD')
         })
-
-    def get_order(self, order_id, symbol=''):
-        exchange = self.connect_api()
-        return exchange.fetch_order(order_id, symbol)
-
-    def create_order(self, pair, order_type, side, amount, price, params={}):
-        exchange = self.connect_api()
-        return exchange.create_order(pair, order_type, side, amount, price, params)
-
-    def fetch_open_orders(self, symbol, since=None, limit=None, params={}):
-        exchange = self.connect_api()
-        return exchange.fetch_open_orders(symbol, since, limit, params)
-
-    def fetch_position(self, symbols, params={}):
-        exchange = self.connect_api()
-        return exchange.fetch_position(symbols, params)
-
-    def fetch_currencies(self):
-        exchange = self.connect_api()
-        return exchange.fetch_currencies()

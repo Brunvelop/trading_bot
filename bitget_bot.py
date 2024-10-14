@@ -30,7 +30,7 @@ def job():
         print("----------- RUN -----------")
 
         data = trader.exchange_api.get_bars(pair=trader.pair, timeframe='1min', limit=200)
-        data = pd.DataFrame(data, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
+        data = pd.DataFrame(data, columns=['date', 'open', 'high', 'low', 'close', 'volume'])
         data = data.iloc[::-1]
         data = MarketData(data)
 

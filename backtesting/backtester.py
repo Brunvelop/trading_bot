@@ -60,7 +60,7 @@ class Backtester:
         extra_plots_price = None
         if isinstance(self.strategy, MultiMovingAverageStrategy):
             extra_plots_price = StrategyExecResultDrawer.calculate_moving_averages_extra_plot(self.marketdata)
-        StrategyExecResultDrawer.draw_result(
+        StrategyExecResultDrawer.draw(
             df=self.result,  
             extra_plots_price=extra_plots_price,
             **plot_config
@@ -73,7 +73,7 @@ class Backtester:
             if action_type is not None and price is not None:
                 total_value = price * amount
                 fee = amount * self.fee if action_type == Action.BUY_MARKET else total_value * self.fee if action_type == Action.SELL_MARKET else 0
-                timestamp = data['Date'].iloc[-1]
+                timestamp = data['date'].iloc[-1]
                 pair = 'DOG/USDT'  
 
                 if action_type == Action.BUY_MARKET:

@@ -79,9 +79,9 @@ class DataManager:
     
     @staticmethod
     def _nomralize_data(data: MarketData):
-        max_close = data['Close'].max()
-        data['Close'] = data['Close'] / max_close
-        for col in ['Open', 'High', 'Low']:
+        max_close = data['close'].max()
+        data['close'] = data['close'] / max_close
+        for col in ['open', 'high', 'low']:
             if col in data.columns:
                 data[col] = data[col] / max_close
     
@@ -94,8 +94,8 @@ class DataManager:
             end_idx = start_idx + duration
             segment = data.iloc[start_idx:end_idx]
                 
-            start_price = segment.iloc[0]['Close']
-            end_price = segment.iloc[-1]['Close']
+            start_price = segment.iloc[0]['close']
+            end_price = segment.iloc[-1]['close']
             actual_variation = (end_price - start_price) / start_price
                 
             if np.isclose(actual_variation, variation, atol=tolerance):
@@ -157,7 +157,7 @@ class CoinexManager:
                         
                         reader = csv.reader(io.StringIO(csv_content))
                         next(reader, None)  # Skip header
-                        processed_content = "Date,Open,High,Low,Close,Volume\n" + \
+                        processed_content = "date,open,high,low,close,volume\n" + \
                             ''.join(f"{datetime.fromtimestamp(int(row[0])).strftime('%Y-%m-%d %H:%M:%S')},{row[1]},{row[3]},{row[4]},{row[2]},{row[5]}\n" 
                                     for row in reader if len(row) >= 7)
                         
