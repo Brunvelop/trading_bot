@@ -21,22 +21,22 @@ class BacktestAnalyzer:
         data_config: dict = None,
         metrics: List[PlotMode] = None,
     ) -> pd.DataFrame:
-    
+
         results = []
         with ProcessPoolExecutor() as executor:
             futures = []
             for _ in range(num_tests_per_strategy):
                 future = executor.submit(backtester.run_backtest, data_config)
                 futures.append(future)
-        
+
             for future in tqdm(as_completed(futures), total=num_tests_per_strategy, desc=f"Running {num_tests_per_strategy} tests"):
                 df: StrategyExecResult = future.result()
                 metric_change = BacktestAnalyzer._calculate_metric_change(df, metrics)
                 results.append((metric_change, data_config.get('variation')))
-        
+
         df = BacktestAnalyzer._prepare_dataframe(results, num_tests_per_strategy)
         return df
-    
+
     @staticmethod
     def calculate_confidence_interval(df, confidence=0.95):
         intervals = {}
@@ -46,15 +46,15 @@ class BacktestAnalyzer:
                 mean = data.mean()
                 std_err = data.sem()
                 n = len(data)
-                
+
                 # Calculate the confidence interval using the Student's t-distribution
                 interval = stats.t.interval(confidence, df=n-1, loc=mean, scale=std_err)
                 intervals[f"{metric} ({change_type})"] = interval
         return intervals
-    
+
     @staticmethod
     def _calculate_metric_change(
-            df: StrategyExecResult, 
+            df: StrategyExecResult,
             metrics: List[PlotMode]
         ):
         results = {}
@@ -66,7 +66,7 @@ class BacktestAnalyzer:
                 'percentage': ((final_value - initial_value) / initial_value) * 100
             }
         return results
-    
+
     @staticmethod
     def _prepare_dataframe(results, num_tests_per_strategy):
         df_data = []
@@ -79,24 +79,24 @@ class BacktestAnalyzer:
                     'Price Variation': price_variation,
                     'Tests Per Strategy': num_tests_per_strategy,
                 })
-        
+
         return pd.DataFrame(df_data)
-    
+
     @staticmethod
     def _plot_results(df: pd.DataFrame, save_path: Optional[Path] = None, show: bool = True, plot_type: str = 'percentage'):
         metrics = df['Metric'].unique()
         num_cols = 2 if plot_type == 'both' else 1
         fig, axes = plt.subplots(len(metrics), num_cols, figsize=(10 * num_cols, 6 * len(metrics)))
-        
+
         for i, metric in enumerate(metrics):
             metric_data = df[df['Metric'] == metric]
-            
+
             if plot_type in ['absolute', 'both']:
                 ax = axes[i, 0] if plot_type == 'both' else axes[i]
                 metric_data.boxplot(column='Absolute Change', by='Duration', ax=ax)
                 ax.set_title(f'{metric}\nAbsolute Change', fontsize=10)
                 ax.set_xlabel('')
-            
+
             if plot_type in ['percentage', 'both']:
                 ax = axes[i, 1] if plot_type == 'both' else axes[i]
                 metric_data.boxplot(column='Percentage Change', by='Duration', ax=ax)
@@ -105,7 +105,7 @@ class BacktestAnalyzer:
 
         plt.tight_layout(h_pad=3, w_pad=3)
         fig.suptitle('Metric Changes by Duration', fontsize=16, y=1.02)
-        
+
         if save_path:
             fig.savefig(save_path, bbox_inches='tight')
         if show:
@@ -122,6 +122,11 @@ class BacktestAnalyzer:
         metrics = list(intervals.keys())
         y_pos = range(len(metrics))
         
+        # Calculate the range of x values
+        all_values = [val for interval in intervals.values() for val in interval]
+        x_min, x_max = min(all_values), max(all_values)
+        x_range = x_max - x_min
+        
         # Plot intervals
         for i, (metric, interval) in enumerate(intervals.items()):
             lower, upper = interval
@@ -129,12 +134,21 @@ class BacktestAnalyzer:
             ax.plot([lower, upper], [i, i], 'bo-', linewidth=2, markersize=8)
             ax.plot(mid, i, 'ro', markersize=10)
         
+            # Add annotations for the values
+            ax.annotate(f'{lower:.2f}', (lower, i), xytext=(-40, -5), textcoords='offset points', ha='right', va='center')
+            ax.annotate(f'{upper:.2f}', (upper, i), xytext=(40, -5), textcoords='offset points', ha='left', va='center')
+            ax.annotate(f'{mid:.2f}', (mid, i), xytext=(0, 15), textcoords='offset points', ha='center', va='bottom')
+        
         # Customize the plot
         ax.set_yticks(y_pos)
         ax.set_yticklabels(metrics)
         ax.invert_yaxis()  # Labels read top-to-bottom
         ax.set_xlabel('Confidence Interval')
         ax.set_title('Confidence Intervals for Metrics', fontsize=16)
+        
+        # Set x-axis limits with padding
+        padding = x_range * 0.1  # 10% padding on each side
+        ax.set_xlim(x_min - padding, x_max + padding)
         
         # Add grid for better readability
         ax.grid(True, linestyle='--', alpha=0.7)
@@ -158,7 +172,6 @@ class BacktestAnalyzer:
             plt.show()
         else:
             plt.close(fig)
-    
 if __name__ == '__main__':
     import strategies
     from definitions import TradingPhase
