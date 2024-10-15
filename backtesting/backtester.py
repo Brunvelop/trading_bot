@@ -73,7 +73,7 @@ class Backtester:
                 total_value = price * amount
                 fee = amount * self.fee if action_type == Action.BUY_MARKET else total_value * self.fee if action_type == Action.SELL_MARKET else 0
                 timestamp = data['date'].iloc[-1]
-                pair = 'DOG/USDT'  
+                pair = 'A/B'  
 
                 if action_type == Action.BUY_MARKET:
                     self.memory['balance_a'] += amount * (1-self.fee)

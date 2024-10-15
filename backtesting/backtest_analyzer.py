@@ -51,8 +51,8 @@ class BacktestAnalyzer:
                 interval = stats.t.interval(confidence, df=n-1, loc=mean, scale=std_err)
                 intervals[f"{metric} ({change_type})"] = interval
         return intervals
+    
     @staticmethod
-
     def _calculate_metric_change(
             df: StrategyExecResult, 
             metrics: List[PlotMode]
@@ -112,6 +112,52 @@ class BacktestAnalyzer:
             plt.show()
         else:
             plt.close(fig)
+
+    @staticmethod
+    def _plot_intervals(intervals: dict, save_path: Optional[Path] = None, show: bool = True):
+        # Set up the plot
+        fig, ax = plt.subplots(figsize=(12, 8))
+        
+        # Prepare data for plotting
+        metrics = list(intervals.keys())
+        y_pos = range(len(metrics))
+        
+        # Plot intervals
+        for i, (metric, interval) in enumerate(intervals.items()):
+            lower, upper = interval
+            mid = (lower + upper) / 2
+            ax.plot([lower, upper], [i, i], 'bo-', linewidth=2, markersize=8)
+            ax.plot(mid, i, 'ro', markersize=10)
+        
+        # Customize the plot
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(metrics)
+        ax.invert_yaxis()  # Labels read top-to-bottom
+        ax.set_xlabel('Confidence Interval')
+        ax.set_title('Confidence Intervals for Metrics', fontsize=16)
+        
+        # Add grid for better readability
+        ax.grid(True, linestyle='--', alpha=0.7)
+        
+        # Improve aesthetics
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        plt.setp(ax.get_yticklabels(), fontsize=10)
+        
+        # Add legend
+        ax.plot([], [], 'bo-', label='Confidence Interval')
+        ax.plot([], [], 'ro', label='Mean')
+        ax.legend(loc='best')
+        
+        # Adjust layout
+        plt.tight_layout()
+        
+        if save_path:
+            fig.savefig(save_path, bbox_inches='tight', dpi=300)
+        if show:
+            plt.show()
+        else:
+            plt.close(fig)
     
 if __name__ == '__main__':
     import strategies
@@ -131,7 +177,7 @@ if __name__ == '__main__':
     }
     data_config={
         'data_path': Path('data/coinex_prices_raw'),
-        'duration': 43200,
+        'duration': 4320,
         'variation': 0.0,
         'tolerance': 1,
         'normalize': True
@@ -153,7 +199,7 @@ if __name__ == '__main__':
             ),
             **backtester_static_config
         ),
-        num_tests_per_strategy=120,
+        num_tests_per_strategy=5,
         data_config=data_config,
         metrics=metrics,
     )
@@ -166,3 +212,6 @@ if __name__ == '__main__':
     print(f"Variación: {data_config['variation']*100}%:")
     for metric, interval in intervals.items():
         print(f"  {metric}: [{interval[0]:.4f}, {interval[1]:.4f}] -> {abs(interval[1] - interval[0]):4f}")
+
+    # Plot the intervals
+    BacktestAnalyzer._plot_intervals(intervals, show=True)
