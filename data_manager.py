@@ -39,7 +39,7 @@ class DataManager:
         variation: float = None,
         tolerance: float = 0.01,
         normalize: bool = False
-    ) -> (MarketData, dict):
+    ) -> tuple[MarketData, dict]:
         metadata = {}
         if data_path.is_dir():
             data_path = DataManager._chose_random_data_path(data_path)
