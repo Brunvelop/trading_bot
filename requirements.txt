@@ -1,5 +1,6 @@
 ccxt
 python-dotenv
+tqdm
 schedule
 pandas
 pandera

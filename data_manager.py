@@ -13,9 +13,11 @@ import numpy as np
 import pandas as pd
 
 from definitions import MarketData
+from binance_historical_data import BinanceDataDumper
 
 class DataSource(Enum):
     COINEX = auto()
+    BINANCE = auto()
 
 class DataManager:
     @staticmethod
@@ -28,7 +30,8 @@ class DataManager:
         download_folder.mkdir(parents=True, exist_ok=True)
         if source == DataSource.COINEX:
             CoinexManager.download_prices(download_folder, base_currency, pairs_to_download)
-        pass
+        elif source == DataSource.BINANCE:
+            BinanceManager.download_prices(download_folder, base_currency, pairs_to_download)
 
     @staticmethod
     def get_marketdata_sample(
@@ -173,12 +176,67 @@ class CoinexManager:
             except zipfile.BadZipFile:
                 print(f"Invalid zip file for {coin}{base} in {year_month}. Moving to next pair.")
                 break
+
+class BinanceManager:
+    @classmethod
+    def download_prices(
+            cls,
+            download_folder: Path,
+            base_currency: str = 'USDT',
+            pairs_to_download: Union[List[str], int, None] = None
+        ):
+        download_folder.mkdir(parents=True, exist_ok=True)
+        
+        data_dumper = BinanceDataDumper(
+            path_dir_where_to_dump=str(download_folder),
+            asset_class="spot",
+            data_type="klines",
+            data_frequency="1m",
+        )
+        data_dumper.dump_data()
+
+        cls._format_prices()
+    
+    @staticmethod
+    def _format_prices(raw_download_folder: Path, processed_folder: Path):
+        processed_folder.mkdir(parents=True, exist_ok=True)
+        
+        currency_pairs_path = raw_download_folder / 'spot' / 'monthly' / 'klines'
+        currency_pairs = [d.name for d in currency_pairs_path.iterdir() if d.is_dir()]
+        for pair in tqdm(currency_pairs, desc="Processing currency pairs"):
+            pair_folder = currency_pairs_path / pair / '1m'
+            csv_files = list(pair_folder.glob('*.csv'))
+            
+            if not csv_files:
+                continue
+            
+            dfs = []
+            for csv_file in tqdm(csv_files, desc=f"Reading CSVs for {pair}", leave=False):
+                df = pd.read_csv(csv_file, header=None, names=[
+                    "Open time", "Open", "High", "Low", "Close", "Volume",
+                    "Close time", "Quote asset volume", "Number of trades",
+                    "Taker buy base asset volume", "Taker buy quote asset volume", "Ignore"
+                ])
+                dfs.append(df)
+            
+            combined_df = pd.concat(dfs, ignore_index=True)
+            
+            combined_df['date'] = pd.to_datetime(combined_df['Open time'], unit='ms')
+            formatted_df = combined_df[['date', 'Open', 'High', 'Low', 'Close', 'Volume']]
+            formatted_df.columns = ['date', 'open', 'high', 'low', 'close', 'volume']
+            
+            formatted_df = formatted_df.sort_values('date').drop_duplicates(subset='date', keep='first')
+            
+            output_file = processed_folder / f"{pair.split('USDT')[0]}_USDT_1m.csv"
+
+            formatted_df.to_csv(output_file, index=False)
+            
+        print("All currency pairs processed successfully.")
         
 
 if __name__ == "__main__":
-    DataManager.download_prices(
-        source = DataSource.COINEX,
-        download_folder = Path('data/coinex_prices_raw2'),
-        base_currency = 'USDT',
-        pairs_to_download = 2
+    BinanceManager._format_prices(
+        raw_download_folder=Path('E:/binance_prices_raw_dump'),
+        processed_folder=Path('E:/binance_prices_processed'),
     )
+
