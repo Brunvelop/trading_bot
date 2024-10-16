@@ -5,3 +5,4 @@ schedule
 pandas
 pandera
 scipy
+binance-historical-data
