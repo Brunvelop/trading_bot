@@ -1,8 +1,9 @@
 ccxt
-python-dotenv
 tqdm
-schedule
+scipy
 pandas
 pandera
-scipy
+schedule
+matplotlib
+python-dotenv
 binance-historical-data

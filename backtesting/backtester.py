@@ -120,7 +120,7 @@ if __name__ == "__main__":
     )
     df: StrategyExecResult = backtester.run_backtest(
         data_config={
-            'data_path': Path('data/coinex_prices_raw'),
+            'data_path': Path('E:/binance_prices_processed'),
             'duration': 4320,
             'variation': 0.05,
             'tolerance': 0.01,

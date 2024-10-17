@@ -24,16 +24,29 @@ class BacktestAnalyzer:
     ) -> pd.DataFrame:
 
         results = []
+        failed_tests = 0
         with ProcessPoolExecutor() as executor:
             futures = []
-            for _ in range(num_tests_per_strategy):
+            for i in range(num_tests_per_strategy):
                 future = executor.submit(backtester.run_backtest, data_config)
-                futures.append(future)
+                futures.append((i, future))
 
-            for future in tqdm(as_completed(futures), total=num_tests_per_strategy, desc=f"Running {num_tests_per_strategy} tests"):
-                df: StrategyExecResult = future.result()
-                metric_change = BacktestAnalyzer._calculate_metric_change(df, metrics)
-                results.append((metric_change, data_config.get('variation')))
+            for i, future in tqdm(futures, total=num_tests_per_strategy, desc=f"Running {num_tests_per_strategy} tests"):
+                try:
+                    df: StrategyExecResult = future.result()
+                    metric_change = BacktestAnalyzer._calculate_metric_change(df, metrics)
+                    results.append((metric_change, data_config.get('variation')))
+                except Exception as e:
+                    failed_tests += 1
+                    print(f"Error in backtest {i+1}: {str(e)}")
+                    print(f"Data config: {data_config}")
+                    continue  # Skip this iteration and continue with the next one
+
+        if not results:
+            raise ValueError("All backtests failed. Please check your data and strategy.")
+        
+        if failed_tests > 0:
+            print(f"Warning: {failed_tests} out of {num_tests_per_strategy} backtests failed.")
 
         df = BacktestAnalyzer._prepare_dataframe(results, num_tests_per_strategy)
         return df
@@ -145,7 +158,7 @@ class BacktestAnalyzer:
             final_value = df[metric.value].iloc[-1]
             results[metric] = {
                 'absolute': final_value - initial_value,
-                'percentage': ((final_value - initial_value) / initial_value) * 100
+                'percentage': ((final_value - initial_value) / initial_value) * 100 if initial_value != 0 else 0
             }
         return results
 
@@ -230,10 +243,10 @@ if __name__ == '__main__':
         'verbose': False
     }
     data_config={
-        'data_path': Path('data/coinex_prices_raw'),
-        'duration': 1000,
-        'variation': 0.0,
-        'tolerance': 1,
+        'data_path': Path('E:/binance_prices_processed'),
+        'duration': 43200,
+        'variation': 0.1,
+        'tolerance': 0.01,
         'normalize': True
     }
     metrics= [
@@ -253,7 +266,7 @@ if __name__ == '__main__':
             ),
             **backtester_static_config
         ),
-        num_tests_per_strategy=50,
+        num_tests_per_strategy=1000,
         data_config=data_config,
         metrics=metrics,
     )
@@ -273,6 +286,5 @@ if __name__ == '__main__':
     for metric, interval in confidence_intervals.items():
         print(f"  {metric}: [{interval[0]:.4f}, {interval[1]:.4f}] -> {abs(interval[1] - interval[0]):4f}")
 
-    # Plot the intervals
     BacktestAnalyzer.plot_intervals(confidence_intervals, "Confidence", show=True)
     BacktestAnalyzer.plot_intervals(prediction_intervals, "Prediction", show=True)
