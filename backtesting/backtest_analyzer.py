@@ -165,56 +165,45 @@ class BacktestAnalyzer:
         return pd.DataFrame(df_data)
 
     @staticmethod
-    def _plot_intervals(intervals: dict, save_path: Optional[Path] = None, show: bool = True):
-        # Set up the plot
+    def plot_intervals(intervals: dict, interval_type: str, save_path: Optional[Path] = None, show: bool = True):
         fig, ax = plt.subplots(figsize=(12, 8))
         
-        # Prepare data for plotting
         metrics = list(intervals.keys())
         y_pos = range(len(metrics))
         
-        # Calculate the range of x values
         all_values = [val for interval in intervals.values() for val in interval]
         x_min, x_max = min(all_values), max(all_values)
         x_range = x_max - x_min
 
-        # Plot intervals
         for i, (metric, interval) in enumerate(intervals.items()):
             lower, upper = interval
             mid = (lower + upper) / 2
             ax.plot([lower, upper], [i, i], 'bo-', linewidth=2, markersize=8)
             ax.plot(mid, i, 'ro', markersize=10)
 
-            # Add annotations for the values
             ax.annotate(f'{lower:.2f}', (lower, i), xytext=(-40, -5), textcoords='offset points', ha='right', va='center')
             ax.annotate(f'{upper:.2f}', (upper, i), xytext=(40, -5), textcoords='offset points', ha='left', va='center')
             ax.annotate(f'{mid:.2f}', (mid, i), xytext=(0, 15), textcoords='offset points', ha='center', va='bottom')
 
-        # Customize the plot
         ax.set_yticks(y_pos)
         ax.set_yticklabels(metrics)
-        ax.invert_yaxis()  # Labels read top-to-bottom
-        ax.set_xlabel('Confidence Interval')
-        ax.set_title('Confidence Intervals for Metrics', fontsize=16)
+        ax.invert_yaxis()
+        ax.set_xlabel(f'{interval_type} Interval')
+        ax.set_title(f'{interval_type} Intervals for Metrics', fontsize=16)
 
-        # Set x-axis limits with padding
-        padding = x_range * 0.1  # 10% padding on each side
+        padding = x_range * 0.1
         ax.set_xlim(x_min - padding, x_max + padding)
 
-        # Add grid for better readability
         ax.grid(True, linestyle='--', alpha=0.7)
         
-        # Improve aesthetics
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         plt.setp(ax.get_yticklabels(), fontsize=10)
 
-        # Add legend
-        ax.plot([], [], 'bo-', label='Confidence Interval')
+        ax.plot([], [], 'bo-', label=f'{interval_type} Interval')
         ax.plot([], [], 'ro', label='Mean')
         ax.legend(loc='best')
 
-        # Adjust layout
         plt.tight_layout()
         
         if save_path:
@@ -223,6 +212,7 @@ class BacktestAnalyzer:
             plt.show()
         else:
             plt.close(fig)
+
 if __name__ == '__main__':
     import strategies
     from definitions import TradingPhase
@@ -269,15 +259,20 @@ if __name__ == '__main__':
     )
     BacktestAnalyzer.plot_results(result_df)
     
-    intervals = BacktestAnalyzer.calculate_confidence_interval(
+    confidence_intervals = BacktestAnalyzer.calculate_confidence_interval(
+        df=result_df,
+        confidence=0.99
+    )
+    prediction_intervals = BacktestAnalyzer.calculate_prediction_interval(
         df=result_df,
         confidence=0.99
     )
     print(strategy_static_config['trading_phase'])
     print(f"Duracion: {data_config['duration']}")
     print(f"Variación: {data_config['variation']*100}%:")
-    for metric, interval in intervals.items():
+    for metric, interval in confidence_intervals.items():
         print(f"  {metric}: [{interval[0]:.4f}, {interval[1]:.4f}] -> {abs(interval[1] - interval[0]):4f}")
 
     # Plot the intervals
-    BacktestAnalyzer._plot_intervals(intervals, show=True)
+    BacktestAnalyzer.plot_intervals(confidence_intervals, "Confidence", show=True)
+    BacktestAnalyzer.plot_intervals(prediction_intervals, "Prediction", show=True)
