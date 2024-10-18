@@ -44,13 +44,13 @@ class BacktestAnalyzer:
 
         if not results:
             raise ValueError("All backtests failed. Please check your data and strategy.")
-        
+
         if failed_tests > 0:
             print(f"Warning: {failed_tests} out of {num_tests_per_strategy} backtests failed.")
 
         df = BacktestAnalyzer._prepare_dataframe(results, num_tests_per_strategy)
         return df
-    
+
     @staticmethod
     def plot_results(df: pd.DataFrame, save_path: Optional[Path] = None, show: bool = True):
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 16))
@@ -108,7 +108,7 @@ class BacktestAnalyzer:
 
         # Adjust layout
         plt.tight_layout()
-        
+
         if save_path:
             fig.savefig(save_path, bbox_inches='tight', dpi=300)
         if show:
@@ -180,10 +180,10 @@ class BacktestAnalyzer:
     @staticmethod
     def plot_intervals(intervals: dict, interval_type: str, save_path: Optional[Path] = None, show: bool = True):
         fig, ax = plt.subplots(figsize=(12, 8))
-        
+
         metrics = list(intervals.keys())
         y_pos = range(len(metrics))
-        
+
         all_values = [val for interval in intervals.values() for val in interval]
         x_min, x_max = min(all_values), max(all_values)
         x_range = x_max - x_min
@@ -208,7 +208,7 @@ class BacktestAnalyzer:
         ax.set_xlim(x_min - padding, x_max + padding)
 
         ax.grid(True, linestyle='--', alpha=0.7)
-        
+
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         plt.setp(ax.get_yticklabels(), fontsize=10)
@@ -218,7 +218,7 @@ class BacktestAnalyzer:
         ax.legend(loc='best')
 
         plt.tight_layout()
-        
+
         if save_path:
             fig.savefig(save_path, bbox_inches='tight', dpi=300)
         if show:
@@ -266,12 +266,12 @@ if __name__ == '__main__':
             ),
             **backtester_static_config
         ),
-        num_tests_per_strategy=1000,
+        num_tests_per_strategy=10,
         data_config=data_config,
         metrics=metrics,
     )
     BacktestAnalyzer.plot_results(result_df)
-    
+
     confidence_intervals = BacktestAnalyzer.calculate_confidence_interval(
         df=result_df,
         confidence=0.99
@@ -288,3 +288,4 @@ if __name__ == '__main__':
 
     BacktestAnalyzer.plot_intervals(confidence_intervals, "Confidence", show=True)
     BacktestAnalyzer.plot_intervals(prediction_intervals, "Prediction", show=True)
+
