@@ -103,4 +103,5 @@ class TradingPhase(Enum):
     DISTRIBUTION = auto()
     NEUTRAL = auto()
 
-
+class IndicatorTypes(Enum):
+    SIMPLE_MOVING_AVERAGE = auto()

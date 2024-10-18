@@ -1,8 +1,9 @@
 from typing import Type
+from enum import Enum, auto
 
 import pandas as pd
 
-from definitions import MarketData
+from definitions import MarketData, IndicatorTypes
 
 class Indicators:
     
@@ -30,4 +31,8 @@ class Indicators:
     
     @staticmethod
     def calculate_moving_average(data: Type[MarketData], window: int) -> pd.Series:
-        return data['close'].rolling(window=window).mean()
+        return {
+            'name': f'ma_{str(window)}',
+            'type': IndicatorTypes.SIMPLE_MOVING_AVERAGE,
+            'result': data['close'].rolling(window=window).mean(),
+        }

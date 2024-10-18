@@ -40,20 +40,6 @@ class StrategyExecResultDrawer:
         if show:
             plt.show()
 
-    def calculate_moving_averages_extra_plot(data) -> list:
-        ma_10 = data['close'].rolling(window=10).mean()
-        ma_50 = data['close'].rolling(window=50).mean()
-        ma_100 = data['close'].rolling(window=100).mean()
-        ma_200 = data['close'].rolling(window=200).mean()
-
-        extra_plots_price = [
-            ((data['date'], ma_10), {'color': 'blue', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 10', 'type': 'plot'}),
-            ((data['date'], ma_50), {'color': 'orange', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 50', 'type': 'plot'}),
-            ((data['date'], ma_100), {'color': 'green', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 100', 'type': 'plot'}),
-            ((data['date'], ma_200), {'color': 'red', 'linewidth': 2, 'alpha':0.5, 'label': 'MA 200', 'type': 'plot'})
-        ]
-        return extra_plots_price
-
     @staticmethod
     def _setup_layout(plot_modes, extra_plot):
         plot_modes_excluding_price = set(PlotMode) - {PlotMode.PRICE}

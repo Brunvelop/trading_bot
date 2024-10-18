@@ -12,6 +12,9 @@ class Strategy(ABC):
     def run(self, data: MarketData, memory: Memory) -> List[Tuple[Action, float, float]]:
         pass # :return: [(action1, price1, quantity1), (action2, price2, quantity2), ...]
 
+    def calculate_indicators(data: MarketData):
+        pass # return : 
+
 class MovingAverageStrategy(Strategy):
     def __init__(self, window_size: int = 200, cost: float = 10) -> None:
         self.window_size = window_size
@@ -95,13 +98,22 @@ class MultiMovingAverageStrategy(Strategy):
 
         return actions
     
+    def calculate_indicators(self, data: MarketData):
+        return [Indicators.calculate_moving_average(data, window) for window in self.windows]
+
     def _determine_alignment(self, data: MarketData) -> Alignment:
-        moving_averages = [Indicators.calculate_moving_average(data, window).iloc[-1] for window in self.windows]
+        moving_averages = self.calculate_indicators(data)
         current_price = data['close'].iloc[-1]
         
-        if current_price > moving_averages[0] > moving_averages[1] > moving_averages[2] > moving_averages[3]:
+        if (current_price > moving_averages[0]['result'].iloc[-1] > 
+            moving_averages[1]['result'].iloc[-1] > 
+            moving_averages[2]['result'].iloc[-1] > 
+            moving_averages[3]['result'].iloc[-1]):
             return self.Alignment.UP
-        elif current_price < moving_averages[0] < moving_averages[1] < moving_averages[2] < moving_averages[3]:
+        elif (current_price < moving_averages[0]['result'].iloc[-1] < 
+            moving_averages[1]['result'].iloc[-1] < 
+            moving_averages[2]['result'].iloc[-1] < 
+            moving_averages[3]['result'].iloc[-1]):
             return self.Alignment.DOWN
         return self.Alignment.NONE
 
