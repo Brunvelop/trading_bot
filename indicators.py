@@ -1,5 +1,4 @@
 from typing import Type
-from enum import Enum, auto
 
 import pandas as pd
 
