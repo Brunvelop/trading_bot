@@ -54,18 +54,8 @@ class ExperimentManager:
         return experiment_result
 
     def save_experiments(self, file_path: str):
-        existing_experiments = []
-        try:
-            with open(file_path, 'r') as f:
-                existing_experiments = json.load(f)
-        except FileNotFoundError:
-            pass  # El archivo no existe, empezaremos con una lista vacía
-
-        new_experiments = [asdict(exp) for exp in self.experiments]
-        all_experiments = existing_experiments + new_experiments
-
         with open(file_path, 'w') as f:
-            json.dump(all_experiments, f, indent=2)
+            json.dump([asdict(exp) for exp in self.experiments], f, indent=2)
 
     def load_experiments(self, file_path: str):
         with open(file_path, 'r') as f:
@@ -174,7 +164,7 @@ if __name__ == '__main__':
 
     for strategy in [strategies.MultiMovingAverageStrategy]:
         for trading_phase in [TradingPhase.ACCUMULATION]:
-            for variation in [-0.5, -0.25, 0, 0.25, 0.5]:
+            for variation in [-0.5, -0.25, 0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]:
                 strategy_config = {
                     'min_purchase': 5.1,
                     'safety_margin': 1,
@@ -193,7 +183,7 @@ if __name__ == '__main__':
                     strategy_config=strategy_config,
                     backtester_config=backtester_static_config,
                     data_config=data_config,
-                    num_tests_per_strategy=100,
+                    num_tests_per_strategy=10,
                     metrics=metrics
                 )
 
