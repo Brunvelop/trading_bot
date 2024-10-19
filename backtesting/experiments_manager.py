@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
 from dataclasses import dataclass, asdict
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from pathlib import Path
 import matplotlib.pyplot as plt
 
@@ -39,7 +39,7 @@ class ExperimentManager:
         prediction_intervals = BacktestAnalyzer.calculate_prediction_interval(result_df)
 
         strategy_config['trading_phase'] = str(strategy_config['trading_phase'])
-        data_config = str(data_config['data_path'])
+        data_config['data_path'] = str(data_config['data_path'])
         experiment_result = ExperimentResult(
             strategy_name=strategy.__name__,
             strategy_config=strategy_config,
@@ -54,22 +54,95 @@ class ExperimentManager:
         return experiment_result
 
     def save_experiments(self, file_path: str):
+        existing_experiments = []
+        try:
+            with open(file_path, 'r') as f:
+                existing_experiments = json.load(f)
+        except FileNotFoundError:
+            pass  # El archivo no existe, empezaremos con una lista vacía
+
+        new_experiments = [asdict(exp) for exp in self.experiments]
+        all_experiments = existing_experiments + new_experiments
+
         with open(file_path, 'w') as f:
-            json.dump([asdict(exp) for exp in self.experiments], f, indent=2)
+            json.dump(all_experiments, f, indent=2)
 
     def load_experiments(self, file_path: str):
         with open(file_path, 'r') as f:
             data = json.load(f)
         self.experiments = [ExperimentResult(**exp) for exp in data]
 
-    def plot_experiment_comparison():
-        pass
+    def plot_experiment_comparison(self, metrics_to_plot, save_path: Optional[Path] = None, show: bool = True):
+        strategies = list(set(exp.strategy_name for exp in self.experiments))
+        fig, axes = plt.subplots(len(metrics_to_plot), len(strategies), 
+                                figsize=(6*len(strategies), 5*len(metrics_to_plot)), 
+                                squeeze=False)
+        
+        for col, strategy in enumerate(strategies):
+            strategy_experiments = [exp for exp in self.experiments if exp.strategy_name == strategy]
+            strategy_config = strategy_experiments[0].strategy_config  # Assuming all experiments for a strategy have the same config
+            config_str = ', '.join(f'{k}={v}' for k, v in strategy_config.items())
+            
+            for row, metric in enumerate(metrics_to_plot):
+                ax = axes[row, col]
+                
+                variations = [exp.data_config['variation'] for exp in strategy_experiments]
+                ci_lower = [exp.confidence_intervals[metric][0] for exp in strategy_experiments]
+                ci_upper = [exp.confidence_intervals[metric][1] for exp in strategy_experiments]
+                pi_lower = [exp.prediction_intervals[metric][0] for exp in strategy_experiments]
+                pi_upper = [exp.prediction_intervals[metric][1] for exp in strategy_experiments]
+                
+                ax.plot(variations, ci_lower, 'b-', label='Confidence Interval')
+                ax.plot(variations, ci_upper, 'b-')
+                ax.fill_between(variations, ci_lower, ci_upper, alpha=0.2, color='b')
+                
+                ax.plot(variations, pi_lower, 'r--', label='Prediction Interval')
+                ax.plot(variations, pi_upper, 'r--')
+                ax.fill_between(variations, pi_lower, pi_upper, alpha=0.1, color='r')
+                
+                # Highlight the zero level with a dotted line
+                ax.axhline(y=0, color='yellow', linestyle=':', linewidth=1)
+                
+                ax.set_xlabel('Data Variation')
+                ax.set_ylabel(metric, fontsize=5)
+                ax.legend()
+                
+                # Customize the plot
+                ax.grid(True, linestyle='--', alpha=0.7)
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                
+                # Only show x-label for the bottom plots
+                if row != len(metrics_to_plot) - 1:
+                    ax.set_xlabel('')
+
+        # Add strategy names, configs, and metric names as overall row labels
+        for row, metric in enumerate(metrics_to_plot):
+            for col, strategy in enumerate(strategies):
+                strategy_config = self.experiments[col].strategy_config
+                config_str = '\n'.join(f'{k}={v}' for k, v in strategy_config.items())
+                strategy_name = strategy.replace(' ', '\n')
+                label = f"{strategy_name}\n\n{config_str}"
+                fig.text(0.01 + col/len(strategies), 1 - (row + 0.5) / len(metrics_to_plot), label,
+                         va='center', ha='left', fontsize=5, rotation='vertical')
+
+        plt.tight_layout()
+        fig.subplots_adjust(left=0.1, right=1, top=0.95, bottom=0.05)  # Adjusted margins
+        
+        if save_path:
+            fig.savefig(save_path, bbox_inches='tight', dpi=300)
+        if show:
+            plt.show()
+        else:
+            plt.close(fig)
+
 
 if __name__ == '__main__':
     import strategies
     from definitions import TradingPhase, PlotMode
 
     strategy_static_config = {
+        'max_duration' : 400,
         'min_purchase' : 5.1,
         'safety_margin' : 1,
         'trading_phase' : TradingPhase.ACCUMULATION,
@@ -101,7 +174,7 @@ if __name__ == '__main__':
 
     for strategy in [strategies.MultiMovingAverageStrategy]:
         for trading_phase in [TradingPhase.ACCUMULATION]:
-            for variation in [0.1, 0.2]:
+            for variation in [-0.5, -0.25, 0, 0.25, 0.5]:
                 strategy_config = {
                     'min_purchase': 5.1,
                     'safety_margin': 1,
@@ -120,7 +193,7 @@ if __name__ == '__main__':
                     strategy_config=strategy_config,
                     backtester_config=backtester_static_config,
                     data_config=data_config,
-                    num_tests_per_strategy=10,
+                    num_tests_per_strategy=100,
                     metrics=metrics
                 )
 
@@ -128,4 +201,13 @@ if __name__ == '__main__':
     experiment_manager.save_experiments('experiment_results.json')
 
     # Load experiments
-    # experiment_manager.load_experiments('experiment_results.json')
+    experiment_manager.load_experiments('experiment_results.json')
+
+    metrics_to_plot = [
+        # 'total_value_b (Absolute Change)',
+        'total_value_b (Percentage Change)',
+        # 'adjusted_b_balance (Percentage Change)',
+        # 'adjusted_b_balance (Absolute Change)',
+    ]
+    
+    experiment_manager.plot_experiment_comparison(metrics_to_plot)
