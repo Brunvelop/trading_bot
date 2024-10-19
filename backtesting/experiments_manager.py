@@ -128,10 +128,13 @@ class ExperimentManager:
 
 
 if __name__ == '__main__':
+    import time
+    from tqdm import tqdm
+
     import strategies
     from definitions import TradingPhase, PlotMode
 
-    strategy_static_config = {
+    strategy_config = {
         'max_duration' : 400,
         'min_purchase' : 5.1,
         'safety_margin' : 1,
@@ -160,38 +163,37 @@ if __name__ == '__main__':
         PlotMode.ADJUSTED_B_BALANCE,
     ]
 
+    num_tests_per_strategy = 100
+    STRATEGIES = [strategies.MultiMovingAverageStrategy]
+    VARIATIONS = [-0.5, -0.25, 0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
     experiment_manager = ExperimentManager()
-
-    for strategy in [strategies.MultiMovingAverageStrategy]:
+    start_time = time.time()
+    for strategy in STRATEGIES:
         for trading_phase in [TradingPhase.ACCUMULATION]:
-            for variation in [-0.5, -0.25, 0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]:
-                strategy_config = {
-                    'min_purchase': 5.1,
-                    'safety_margin': 1,
-                    'trading_phase': trading_phase,
-                    'debug': False
-                }
-                data_config = {
-                    'data_path': Path('E:/binance_prices_processed'),
-                    'duration': 43200,
-                    'variation': variation,
-                    'tolerance': 0.01,
-                    'normalize': True
-                }
+            for variation in tqdm(VARIATIONS,desc='Testing variations', leave=False):
                 experiment_manager.run_experiment(
                     strategy=strategy,
-                    strategy_config=strategy_config,
+                    strategy_config={**strategy_config, 'trading_phase': trading_phase},
                     backtester_config=backtester_static_config,
-                    data_config=data_config,
-                    num_tests_per_strategy=10,
+                    data_config={**data_config, 'variation': variation},
+                    num_tests_per_strategy=num_tests_per_strategy,
                     metrics=metrics
                 )
+    
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f"Total execution time: {execution_time:.2f} seconds")
+    print(f"Number of strategies: {len(STRATEGIES)}")
+    print(f"Number of variations: {len(VARIATIONS)}")
+    print(f"Tests per strategy: {num_tests_per_strategy}")
+    print(f"Total number of experiments: {len(STRATEGIES)*len(VARIATIONS)*num_tests_per_strategy}")
+    print("-----------------------------")
 
     # Save experiments
     experiment_manager.save_experiments('experiment_results.json')
 
     # Load experiments
-    experiment_manager.load_experiments('experiment_results.json')
+    # experiment_manager.load_experiments('experiment_results.json')
 
     metrics_to_plot = [
         # 'total_value_b (Absolute Change)',

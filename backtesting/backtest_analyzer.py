@@ -31,7 +31,7 @@ class BacktestAnalyzer:
                 future = executor.submit(backtester.run_backtest, data_config)
                 futures.append((i, future))
 
-            for i, future in tqdm(futures, total=num_tests_per_strategy, desc=f"Running {num_tests_per_strategy} tests"):
+            for i, future in tqdm(futures, total=num_tests_per_strategy, desc=f"Running {num_tests_per_strategy} tests", leave=False):
                 try:
                     df: StrategyExecResult = future.result()
                     metric_change = BacktestAnalyzer._calculate_metric_change(df, metrics)
