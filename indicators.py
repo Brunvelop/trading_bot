@@ -35,3 +35,18 @@ class Indicators:
             'type': IndicatorTypes.SIMPLE_MOVING_AVERAGE,
             'result': data['close'].rolling(window=window).mean(),
         }
+    
+    @staticmethod
+    def calculate_rsi(data: Type[MarketData], window: int = 14) -> pd.Series:
+        delta = data['close'].diff()
+        gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
+        
+        rs = gain / loss
+        rsi = 100 - (100 / (1 + rs))
+        
+        return {
+            'name': f'rsi_{str(window)}',
+            'type': IndicatorTypes.RELATIVE_STRENGTH_INDEX,
+            'result': rsi,
+        }

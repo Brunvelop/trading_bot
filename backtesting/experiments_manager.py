@@ -38,13 +38,16 @@ class ExperimentManager:
         confidence_intervals = BacktestAnalyzer.calculate_confidence_interval(result_df)
         prediction_intervals = BacktestAnalyzer.calculate_prediction_interval(result_df)
 
-        strategy_config['trading_phase'] = str(strategy_config['trading_phase'])
-        data_config['data_path'] = str(data_config['data_path'])
+        data_config_copy = data_config.copy()
+        data_config_copy['data_path'] = str(data_config['data_path'])
+        strategy_config_copy = strategy_config.copy()
+        if strategy_config.get('trading_phase'):
+            strategy_config_copy['trading_phase'] = str(strategy_config_copy['trading_phase'])
         experiment_result = ExperimentResult(
             strategy_name=strategy.__name__,
-            strategy_config=strategy_config,
+            strategy_config=strategy_config_copy,
             backtester_config=backtester_config,
-            data_config=data_config,
+            data_config=data_config_copy,
             num_tests_per_strategy=num_tests_per_strategy,
             confidence_intervals=confidence_intervals,
             prediction_intervals=prediction_intervals
@@ -134,13 +137,7 @@ if __name__ == '__main__':
     import strategies
     from definitions import TradingPhase, PlotMode
 
-    strategy_config = {
-        'max_duration' : 400,
-        'min_purchase' : 5.1,
-        'safety_margin' : 1,
-        'trading_phase' : TradingPhase.ACCUMULATION,
-        'debug' : False
-    }
+    
     backtester_static_config = {
         'initial_balance_a': 0000.0,
         'initial_balance_b': 5000.0,
@@ -163,22 +160,35 @@ if __name__ == '__main__':
         PlotMode.ADJUSTED_B_BALANCE,
     ]
 
-    num_tests_per_strategy = 100
-    STRATEGIES = [strategies.MultiMovingAverageStrategy]
-    VARIATIONS = [-0.5, -0.25, 0, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+    num_tests_per_strategy = 10
+    STRATEGIES = [
+        (strategies.RSIStrategy, {
+            'rsi_period': 14,
+            'overbought': 70,
+            'oversold': 30,
+            'cost': 10
+        }),
+        (strategies.MultiMovingAverageStrategy, {
+            'max_duration': 400,
+            'min_purchase': 5.1,
+            'safety_margin': 1,
+            'trading_phase': TradingPhase.ACCUMULATION,
+            'debug': False
+        }),
+    ]
+    VARIATIONS = [-0.25, 0, 0.25]
     experiment_manager = ExperimentManager()
     start_time = time.time()
-    for strategy in STRATEGIES:
-        for trading_phase in [TradingPhase.ACCUMULATION]:
-            for variation in tqdm(VARIATIONS,desc='Testing variations', leave=False):
-                experiment_manager.run_experiment(
-                    strategy=strategy,
-                    strategy_config={**strategy_config, 'trading_phase': trading_phase},
-                    backtester_config=backtester_static_config,
-                    data_config={**data_config, 'variation': variation},
-                    num_tests_per_strategy=num_tests_per_strategy,
-                    metrics=metrics
-                )
+    for strategy, strategy_config in tqdm(STRATEGIES, desc=f'Testing strategies'):
+        for variation in tqdm(VARIATIONS,desc='Testing variations', leave=False):
+            experiment_manager.run_experiment(
+                strategy=strategy,
+                strategy_config=strategy_config,
+                backtester_config=backtester_static_config,
+                data_config={**data_config, 'variation': variation},
+                num_tests_per_strategy=num_tests_per_strategy,
+                metrics=metrics
+            )
     
     end_time = time.time()
     execution_time = end_time - start_time

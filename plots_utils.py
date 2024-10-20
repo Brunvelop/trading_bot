@@ -171,7 +171,7 @@ class StrategyExecResultDrawer:
             plot_method = plot_methods.get(plot_type, ax.plot)
             plot_method(*plot_data, **plot_kwargs)
         
-        cls._customice_extra_plot_axes(plot_kwargs)
+        cls._customice_extra_plot_axes(ax, plot_kwargs)
 
     @staticmethod
     def _customice_extra_plot_axes(ax, plot_kwargs):

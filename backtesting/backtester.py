@@ -8,7 +8,7 @@ from typing import List
 from pathlib import Path
 
 from data_manager import DataManager
-from strategies import Strategy, MultiMovingAverageStrategy
+from strategies import Strategy
 from definitions import Memory, MarketData, Action, StrategyExecResult, PlotMode, StrategyExecResultFunctions, IndicatorTypes
 from plots_utils import StrategyExecResultDrawer
 
@@ -57,7 +57,8 @@ class Backtester:
         ):
         StrategyExecResultDrawer.draw(
             df=self.result,  
-            extra_plots_price=self._calculate_extra_plot(self.strategy, self.marketdata),
+            extra_plots_price=self._calculate_extra_plot_price(self.strategy, self.marketdata),
+            extra_plot=self._calculate_extra_plot(self.strategy, self.marketdata),
             **plot_config
         )
 
@@ -97,7 +98,7 @@ class Backtester:
             self._execute_strategy(window_data)
         return self.memory
     
-    def _calculate_extra_plot(self, strategy: Strategy, data: MarketData) -> list:
+    def _calculate_extra_plot_price(self, strategy: Strategy, data: MarketData) -> list:
         indicators = strategy.calculate_indicators(data)
         extra_plots_price = []
         
@@ -112,29 +113,43 @@ class Backtester:
                 )
         
         return extra_plots_price if extra_plots_price else None
-
+        
+    def _calculate_extra_plot(self, strategy: Strategy, data: MarketData) -> list:
+        indicators = strategy.calculate_indicators(data)
+        extra_plots_price = []
+        
+        colors = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'pink', 'gray']
+        
+        for i, indicator in enumerate(indicators):
+            if indicator['type'] == IndicatorTypes.RELATIVE_STRENGTH_INDEX:
+                color = colors[i % len(colors)]  # Cycle through colors if there are more indicators than colors
+                extra_plots_price.append(
+                    ((data['date'], indicator['result']), 
+                    {'color': color, 'linewidth': 2, 'alpha': 0.5, 'label': indicator['name'], 'type': 'plot'})
+                )
+        
+        return extra_plots_price if extra_plots_price else None
     
 if __name__ == "__main__":
     import strategies
     from definitions import TradingPhase
 
     backtester = Backtester(
-        strategy=strategies.MultiMovingAverageStrategy(
-            max_duration = 200,
-            min_purchase = 5.1,
-            safety_margin = 1,
-            trading_phase = TradingPhase.DISTRIBUTION,
-            debug = False
+        strategy=strategies.RSIStrategy(
+            rsi_period= 14,
+            overbought= 70,
+            oversold= 30,
+            cost= 10
         ),
-        initial_balance_a=5000.0,
-        initial_balance_b=0000.0,
+        initial_balance_a=0000.0,
+        initial_balance_b=5000.0,
         fee=0.001,
         verbose=True
     )
     df: StrategyExecResult = backtester.run_backtest(
         data_config={
             'data_path': Path('E:/binance_prices_processed'),
-            'duration': 4320,
+            'duration': 43200,
             'variation': 0.05,
             'tolerance': 0.01,
             'normalize': True
