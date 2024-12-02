@@ -227,29 +227,31 @@ class BacktestAnalyzer:
             plt.close(fig)
 
 if __name__ == '__main__':
-    import strategies
-    from definitions import TradingPhase
+    from strategies.multi_moving_average_strategy_trend import MultiMovingAverageStrategyTrend
 
-    strategy_static_config = {
-        'min_purchase' : 5.1,
-        'safety_margin' : 1,
-        'trading_phase' : TradingPhase.ACCUMULATION,
-        'debug' : False
-    }
-    backtester_static_config = {
-        'initial_balance_a': 0000.0,
-        'initial_balance_b': 5000.0,
-        'fee': 0.001,
-        'verbose': False
-    }
-    data_config={
+    # Configuración de la estrategia y backtester igual que en backtester.py
+    backtester = Backtester(
+        strategy=MultiMovingAverageStrategyTrend(
+            mode=MultiMovingAverageStrategyTrend.Mode.LONG,
+            debug=False
+        ),
+        initial_balance_a=0.0,      # Empezamos sin crypto
+        initial_balance_b=100000.0,   # Balance inicial en USDT
+        fee=0.001,                  # 0.1% fee por operación
+        verbose=False               # No mostrar progreso en tests múltiples
+    )
+
+    # Configuración de datos
+    data_config = {
         'data_path': Path('E:/binance_prices_processed'),
         'duration': 43200,
         'variation': 0.1,
         'tolerance': 0.01,
         'normalize': True
     }
-    metrics= [
+
+    # Métricas a analizar
+    metrics = [
         PlotMode.BALANCE_A,
         PlotMode.BALANCE_B,
         PlotMode.TOTAL_VALUE_A,
@@ -258,20 +260,18 @@ if __name__ == '__main__':
         PlotMode.ADJUSTED_B_BALANCE,
     ]
 
+    # Ejecutar análisis múltiple
     result_df = BacktestAnalyzer.run_multiple_backtests(
-        backtester = Backtester(
-            strategy=strategies.MultiMovingAverageStrategy(
-                max_duration = 400,
-                **strategy_static_config
-            ),
-            **backtester_static_config
-        ),
+        backtester=backtester,
         num_tests_per_strategy=10,
         data_config=data_config,
         metrics=metrics,
     )
+
+    # Mostrar resultados
     BacktestAnalyzer.plot_results(result_df)
 
+    # Calcular y mostrar intervalos
     confidence_intervals = BacktestAnalyzer.calculate_confidence_interval(
         df=result_df,
         confidence=0.99
@@ -280,12 +280,11 @@ if __name__ == '__main__':
         df=result_df,
         confidence=0.99
     )
-    print(strategy_static_config['trading_phase'])
-    print(f"Duracion: {data_config['duration']}")
+
+    print(f"Duración: {data_config['duration']}")
     print(f"Variación: {data_config['variation']*100}%:")
     for metric, interval in confidence_intervals.items():
         print(f"  {metric}: [{interval[0]:.4f}, {interval[1]:.4f}] -> {abs(interval[1] - interval[0]):4f}")
 
     BacktestAnalyzer.plot_intervals(confidence_intervals, "Confidence", show=True)
     BacktestAnalyzer.plot_intervals(prediction_intervals, "Prediction", show=True)
-

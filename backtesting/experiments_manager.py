@@ -1,5 +1,6 @@
 import sys
 import os
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
@@ -134,7 +135,7 @@ if __name__ == '__main__':
     import time
     from tqdm import tqdm
 
-    import strategies
+    from strategies.multi_moving_average_strategy_trend import MultiMovingAverageStrategyTrend
     from definitions import TradingPhase, PlotMode
 
     
@@ -162,19 +163,17 @@ if __name__ == '__main__':
 
     num_tests_per_strategy = 10
     STRATEGIES = [
-        (strategies.RSIStrategy, {
-            'rsi_period': 14,
-            'overbought': 70,
-            'oversold': 30,
-            'cost': 10
+        (MultiMovingAverageStrategyTrend, {
+            'mode':MultiMovingAverageStrategyTrend.Mode.LONG,
+            'debug':False
         }),
-        (strategies.MultiMovingAverageStrategy, {
-            'max_duration': 400,
-            'min_purchase': 5.1,
-            'safety_margin': 1,
-            'trading_phase': TradingPhase.ACCUMULATION,
-            'debug': False
-        }),
+        # (strategies.MultiMovingAverageStrategy, {
+        #     'max_duration': 400,
+        #     'min_purchase': 5.1,
+        #     'safety_margin': 1,
+        #     'trading_phase': TradingPhase.ACCUMULATION,
+        #     'debug': False
+        # }),
     ]
     VARIATIONS = [-0.25, 0, 0.25]
     experiment_manager = ExperimentManager()
@@ -200,7 +199,7 @@ if __name__ == '__main__':
     print("-----------------------------")
 
     # Save experiments
-    experiment_manager.save_experiments('experiment_results.json')
+    # experiment_manager.save_experiments('experiment_results.json')
 
     # Load experiments
     # experiment_manager.load_experiments('experiment_results.json')
