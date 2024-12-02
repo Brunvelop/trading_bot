@@ -8,7 +8,7 @@ from typing import List
 from pathlib import Path
 
 from data_manager import DataManager
-from strategies import Strategy
+from strategies.strategy import Strategy
 from definitions import Memory, MarketData, Action, StrategyExecResult, PlotMode, StrategyExecResultFunctions, IndicatorTypes
 from plots_utils import StrategyExecResultDrawer
 
@@ -131,17 +131,17 @@ class Backtester:
         return extra_plots if extra_plots else None
     
 if __name__ == "__main__":
-    import strategies
+    from strategies.multi_moving_average_strategy import MultiMovingAverageStrategy
     from definitions import TradingPhase
 
     # Test Trend Momentum Strategy simplificada
     backtester = Backtester(
-        strategy=strategies.TrendMomentumStrategy(
-            ma_window=150,          # Media móvil para tendencia y stop loss
-            velocity_window=20,      # Ventana para detectar cambios de velocidad
-            acceleration_window=20,   # Ventana para detectar cambios de aceleración
-            cost=5,                # Cantidad fija en USDT por operación
-            debug=True
+        strategy=MultiMovingAverageStrategy(
+            max_duration=500,
+            min_purchase=5.1,
+            safety_margin= 1,
+            trading_phase = TradingPhase.ACCUMULATION,
+            debug = True
         ),
         initial_balance_a=0.0,      # Empezamos sin crypto
         initial_balance_b=1000.0,   # Balance inicial en USDT
