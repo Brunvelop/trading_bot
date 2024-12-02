@@ -29,15 +29,15 @@ class Indicators:
         return avg_volatility
     
     @staticmethod
-    def calculate_moving_average(data: Type[MarketData], window: int) -> pd.Series:
+    def calculate_moving_average(data: Type[MarketData], window: int) -> dict:
         return {
             'name': f'ma_{str(window)}',
             'type': IndicatorTypes.SIMPLE_MOVING_AVERAGE,
-            'result': data['close'].rolling(window=window).mean(),
+            'result': data['close'].rolling(window=window).mean()
         }
     
     @staticmethod
-    def calculate_rsi(data: Type[MarketData], window: int = 14) -> pd.Series:
+    def calculate_rsi(data: Type[MarketData], window: int = 14) -> dict:
         delta = data['close'].diff()
         gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
@@ -48,5 +48,23 @@ class Indicators:
         return {
             'name': f'rsi_{str(window)}',
             'type': IndicatorTypes.RELATIVE_STRENGTH_INDEX,
-            'result': rsi,
+            'result': rsi
+        }
+
+    @staticmethod
+    def calculate_velocity(series: pd.Series, window: int) -> dict:
+        """Calculate the velocity (first derivative) using finite differences"""
+        return {
+            'name': f'velocity_{str(window)}',
+            'type': IndicatorTypes.VELOCITY,
+            'result': series.diff(periods=window)
+        }
+
+    @staticmethod
+    def calculate_acceleration(velocity: pd.Series, window: int) -> dict:
+        """Calculate the acceleration (second derivative) using finite differences"""
+        return {
+            'name': f'acceleration_{str(window)}',
+            'type': IndicatorTypes.ACCELERATION,
+            'result': velocity.diff(periods=window)
         }

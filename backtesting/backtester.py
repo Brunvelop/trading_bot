@@ -106,7 +106,7 @@ class Backtester:
         
         for i, indicator in enumerate(indicators):
             if indicator['type'] == IndicatorTypes.SIMPLE_MOVING_AVERAGE:
-                color = colors[i % len(colors)]  # Cycle through colors if there are more indicators than colors
+                color = colors[i % len(colors)]
                 extra_plots_price.append(
                     ((data['date'], indicator['result']), 
                     {'color': color, 'linewidth': 2, 'alpha': 0.5, 'label': indicator['name'], 'type': 'plot'})
@@ -116,49 +116,53 @@ class Backtester:
         
     def _calculate_extra_plot(self, strategy: Strategy, data: MarketData) -> list:
         indicators = strategy.calculate_indicators(data)
-        extra_plots_price = []
+        extra_plots = []
         
         colors = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'pink', 'gray']
         
         for i, indicator in enumerate(indicators):
-            if indicator['type'] == IndicatorTypes.RELATIVE_STRENGTH_INDEX:
-                color = colors[i % len(colors)]  # Cycle through colors if there are more indicators than colors
-                extra_plots_price.append(
+            if indicator['type'] in [IndicatorTypes.RELATIVE_STRENGTH_INDEX, IndicatorTypes.VELOCITY, IndicatorTypes.ACCELERATION]:
+                color = colors[i % len(colors)]
+                extra_plots.append(
                     ((data['date'], indicator['result']), 
                     {'color': color, 'linewidth': 2, 'alpha': 0.5, 'label': indicator['name'], 'type': 'plot'})
                 )
         
-        return extra_plots_price if extra_plots_price else None
+        return extra_plots if extra_plots else None
     
 if __name__ == "__main__":
     import strategies
     from definitions import TradingPhase
 
+    # Test Trend Momentum Strategy simplificada
     backtester = Backtester(
-        strategy=strategies.RSIStrategy(
-            rsi_period= 14,
-            overbought= 70,
-            oversold= 30,
-            cost= 10
+        strategy=strategies.TrendMomentumStrategy(
+            ma_window=150,          # Media móvil para tendencia y stop loss
+            velocity_window=20,      # Ventana para detectar cambios de velocidad
+            acceleration_window=20,   # Ventana para detectar cambios de aceleración
+            cost=5,                # Cantidad fija en USDT por operación
+            debug=True
         ),
-        initial_balance_a=0000.0,
-        initial_balance_b=5000.0,
-        fee=0.001,
-        verbose=True
+        initial_balance_a=0.0,      # Empezamos sin crypto
+        initial_balance_b=1000.0,   # Balance inicial en USDT
+        fee=0.001,                  # 0.1% fee por operación
+        verbose=True                # Mostrar progreso
     )
-    df: StrategyExecResult = backtester.run_backtest(
+    
+    df = backtester.run_backtest(
         data_config={
             'data_path': Path('E:/binance_prices_processed'),
-            'duration': 43200,
-            'variation': 0.05,
-            'tolerance': 0.01,
+            'duration': 4320,        # ~3 días de datos
+            'variation': 0.05,       # 5% de variación mínima
+            'tolerance': 0.01,       # 1% de tolerancia
             'normalize': True
         }
     )
+    
     backtester.plot_results(
         plot_config={
             'plot_modes': list(PlotMode),
-            'save_path': None,  # Path('data/prueba.png'),
+            'save_path': None,
             'show': True
         }
     )

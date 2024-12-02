@@ -106,3 +106,5 @@ class TradingPhase(Enum):
 class IndicatorTypes(Enum):
     SIMPLE_MOVING_AVERAGE = auto()
     RELATIVE_STRENGTH_INDEX = auto()
+    VELOCITY = auto()
+    ACCELERATION = auto()
