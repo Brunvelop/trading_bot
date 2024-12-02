@@ -6,3 +6,4 @@ conection
 data/*
 !data/coinex_pairs.txt
 !data/data_manager.py
+.vscode
