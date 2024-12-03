@@ -1,6 +1,8 @@
 from enum import Enum, auto
-from typing import TypedDict, List, Literal
+from typing import List, Literal
+from pydantic import BaseModel, Field, field_validator
 
+import numpy as np
 import pandas as pd
 import pandera as pa
 from pandera.typing import Series
@@ -14,22 +16,35 @@ class Action(Enum):
     TAKE_PROFIT = "take_profit"
     WAIT = "wait"
 
-class Order(TypedDict):
-    timestamp: str  # Consider using datetime if possible
+class Order(BaseModel):
+    timestamp: str = Field(description="ISO format timestamp")  # Could be datetime
     pair: str
     type: Literal['buy_market', 'sell_market']
-    price: float
-    amount: float
-    fee: float
-    total_value: float
-    balance_a: float
-    balance_b: float
+    price: np.float64 = Field(gt=0)
+    amount: np.float64 = Field(gt=0)
+    fee: np.float64 = Field(ge=0)
+    total_value: np.float64 = Field(gt=0)
+    balance_a: np.float64 = Field(ge=0)
+    balance_b: np.float64 = Field(ge=0)
 
-class Memory(TypedDict):
+    class Config:
+        arbitrary_types_allowed = True
+
+class Memory(BaseModel):
     orders: List[Order]
-    balance_a: float #balance firs coin in pair (btc if btc/usdt)
-    balance_b: float #balance second coint in pair (usdt if btc/usdt)
-
+    balance_a: np.float64 = Field(ge=0, description="Balance first coin in pair (btc if btc/usdt)")
+    balance_b: np.float64 = Field(ge=0, description="Balance second coin in pair (usdt if btc/usdt)")
+    
+    @field_validator('balance_a', 'balance_b')
+    def validate_non_negative(cls, v):
+        if v < 0:
+            raise ValueError("Balance cannot be negative")
+        return v
+    
+    class Config:
+        arbitrary_types_allowed = True
+        validate_assignment = True
+   
 class MarketData(pa.DataFrameModel): #ordenado de temporalmente (ultimo el mas actual)
     date: Series[pd.Int64Dtype]
     open: Series[float]
@@ -62,9 +77,12 @@ class StrategyExecResult(pa.DataFrameModel):
 
 class StrategyExecResultFunctions:
     @staticmethod
-    def calculate_metrics(marketdata: MarketData, memory: Memory) -> StrategyExecResult:
-        memory_df = pd.DataFrame(memory.get('orders'))
+    def calculate_metrics(marketdata: MarketData, memory: Memory, initial_balance_a: float, initial_balance_b: float) -> StrategyExecResult:
+        memory_df = pd.DataFrame.from_records([vars(order) for order in memory.orders])
         df = pd.merge(marketdata, memory_df, left_on='date', right_on='timestamp', how='left')
+
+        df.loc[0, 'balance_a'] = initial_balance_a
+        df.loc[0, 'balance_b'] = initial_balance_b
 
         df = StrategyExecResultFunctions._fill_nan_with_bfill_ffill(df, 'balance_a')
         df = StrategyExecResultFunctions._fill_nan_with_bfill_ffill(df, 'balance_b')

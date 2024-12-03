@@ -2,6 +2,7 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from typing import List
@@ -9,21 +10,36 @@ from pathlib import Path
 
 from data_manager import DataManager
 from strategies.strategy import Strategy
-from definitions import Memory, MarketData, Action, StrategyExecResult, PlotMode, StrategyExecResultFunctions, IndicatorTypes
+from definitions import (
+    Memory,
+    MarketData,
+    Action,
+    StrategyExecResult,
+    PlotMode,
+    StrategyExecResultFunctions,
+    IndicatorTypes,
+    Order
+)
 from plots_utils import StrategyExecResultDrawer
 
 class Backtester:
     def __init__(
-        self, 
+        self,
         strategy: Strategy,
-        initial_balance_a: float, 
-        initial_balance_b: float, 
+        initial_balance_a: float,
+        initial_balance_b: float,
         fee: float = 0.001,
         verbose: bool = False,
     ):
         self.strategy = strategy
-        self.fee = fee
-        self.memory: Memory = {'orders': [], 'balance_a': initial_balance_a, 'balance_b': initial_balance_b}
+        self.fee = np.float64(fee)
+        self.initial_balance_a = initial_balance_a
+        self.initial_balance_b = initial_balance_b
+        self.memory = Memory(
+            orders=[],
+            balance_a=np.float64(initial_balance_a),
+            balance_b=np.float64(initial_balance_b)
+        )
         self.marketdata: MarketData = None
         self.marketdata_metadata = None
         self.result: pd.DataFrame = None
@@ -33,7 +49,7 @@ class Backtester:
             self,
             data_config: dict = {
                 'data_path': Path('data/coinex_prices_raw'),
-                'duration': 4320,
+                'duration': 43200,
                 'variation': 0,
                 'tolerance': 0.01,
                 'normalize': True
@@ -43,12 +59,14 @@ class Backtester:
         self._simulate_real_time_execution()
         self.result = StrategyExecResultFunctions.calculate_metrics(
             marketdata=self.marketdata,
-            memory=self.memory
+            memory=self.memory,
+            initial_balance_a=self.initial_balance_a,
+            initial_balance_b=self.initial_balance_b
         )
         return self.result
     
     def plot_results(
-            self, 
+            self,
             plot_config: dict = {
                 'plot_modes': list(PlotMode),
                 'save_path': None,
@@ -56,7 +74,7 @@ class Backtester:
             }
         ):
         StrategyExecResultDrawer.draw(
-            df=self.result,  
+            df=self.result,
             extra_plots_price=self._calculate_extra_plot_price(self.strategy, self.marketdata),
             extra_plot=self._calculate_extra_plot(self.strategy, self.marketdata),
             **plot_config
@@ -70,31 +88,33 @@ class Backtester:
                 total_value = price * amount
                 fee = amount * self.fee if action_type == Action.BUY_MARKET else total_value * self.fee if action_type == Action.SELL_MARKET else 0
                 timestamp = data['date'].iloc[-1]
-                pair = 'A/B'  
+                pair = 'A/B'
 
                 if action_type == Action.BUY_MARKET:
-                    self.memory['balance_a'] += amount * (1-self.fee)
-                    self.memory['balance_b'] -= total_value
+                    self.memory.balance_a += amount * (1-self.fee)
+                    self.memory.balance_b = np.float64(0) if abs(self.memory.balance_b - total_value) < 1e-8 else self.memory.balance_b - total_value
                 elif action_type == Action.SELL_MARKET:
-                    self.memory['balance_a'] -= amount
-                    self.memory['balance_b'] += total_value * (1-self.fee)
+                    self.memory.balance_a = np.float64(0) if abs(self.memory.balance_a - amount) < 1e-8 else self.memory.balance_a - amount
+                    self.memory.balance_b += total_value * (1-self.fee)
 
-                self.memory.get('orders').append({
-                    'timestamp': timestamp,
-                    'pair': pair,
-                    'type': action_type.value,
-                    'price': price,
-                    'amount': amount,
-                    'fee': fee,
-                    'total_value': total_value,
-                    'balance_a': self.memory['balance_a'],
-                    'balance_b': self.memory['balance_b']
-                })
+                self.memory.orders.append(
+                    Order(
+                        timestamp=timestamp,
+                        pair=pair,
+                        type=action_type.value,
+                        price=price,
+                        amount=amount,
+                        fee=fee,
+                        total_value=total_value,
+                        balance_a=self.memory.balance_a,
+                        balance_b=self.memory.balance_b
+                    )
+                )
     
     def _simulate_real_time_execution(self, window_size: int = 200) -> List[Action]:
         iterator = tqdm(range(window_size, len(self.marketdata))) if self.verbose else range(window_size, len(self.marketdata))
         for i in iterator:
-            window_data = self.marketdata.iloc[i-window_size+1:i+1]
+            window_data = self.marketdata.iloc[i-window_size:i+1]
             self._execute_strategy(window_data)
         return self.memory
     
@@ -108,7 +128,7 @@ class Backtester:
             if indicator['type'] == IndicatorTypes.SIMPLE_MOVING_AVERAGE:
                 color = colors[i % len(colors)]
                 extra_plots_price.append(
-                    ((data['date'], indicator['result']), 
+                    ((data['date'], indicator['result']),
                     {'color': color, 'linewidth': 2, 'alpha': 0.5, 'label': indicator['name'], 'type': 'plot'})
                 )
         
@@ -124,7 +144,7 @@ class Backtester:
             if indicator['type'] in [IndicatorTypes.RELATIVE_STRENGTH_INDEX, IndicatorTypes.VELOCITY, IndicatorTypes.ACCELERATION]:
                 color = colors[i % len(colors)]
                 extra_plots.append(
-                    ((data['date'], indicator['result']), 
+                    ((data['date'], indicator['result']),
                     {'color': color, 'linewidth': 2, 'alpha': 0.5, 'label': indicator['name'], 'type': 'plot'})
                 )
         
@@ -132,12 +152,11 @@ class Backtester:
     
 if __name__ == "__main__":
     from strategies.multi_moving_average_strategy_trend import MultiMovingAverageStrategyTrend
+    from strategies.moving_average_strategy import MovingAverageStrategy
 
     # Test Trend Momentum Strategy simplificada
     backtester = Backtester(
-        strategy=MultiMovingAverageStrategyTrend(
-            mode=MultiMovingAverageStrategyTrend.Mode.LONG,
-            debug=False
+        strategy=MovingAverageStrategy(
         ),
         initial_balance_a=0.0,      # Empezamos sin crypto
         initial_balance_b=100000.0,   # Balance inicial en USDT
@@ -148,7 +167,7 @@ if __name__ == "__main__":
     df = backtester.run_backtest(
         data_config={
             'data_path': Path('E:/binance_prices_processed'),
-            'duration': 43200,        # ~3 días de datos
+            'duration': 4320,        # ~3 días de datos
             'variation': 0.10,       # 5% de variación mínima
             'tolerance': 0.01,       # 1% de tolerancia
             'normalize': True
@@ -162,3 +181,4 @@ if __name__ == "__main__":
             'show': True
         }
     )
+

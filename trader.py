@@ -1,4 +1,4 @@
-from strategies import Strategy
+from strategies.strategy import Strategy
 from exchange_apis import BaseExchangeAPI
 from definitions import MarketData, Memory, Action
 

@@ -6,7 +6,7 @@ import pandas as pd
 from trader import Trader
 from definitions import Memory, MarketData, TradingPhase
 from exchange_apis import BitgetAPI
-from strategies import MultiMovingAverageStrategy
+from strategies.multi_moving_average_strategy import MultiMovingAverageStrategy
 
 
 trader = Trader(
@@ -29,7 +29,7 @@ def job():
 
         print("----------- RUN -----------")
 
-        data = trader.exchange_api.get_bars(pair=trader.pair, timeframe='1min', limit=200)
+        data = trader.exchange_api.get_bars(pair=trader.pair, timeframe='1m', limit=200)
         data = pd.DataFrame(data, columns=['date', 'open', 'high', 'low', 'close', 'volume'])
         data = data.iloc[::-1]
         data = MarketData(data)

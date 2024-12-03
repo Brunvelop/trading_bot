@@ -3,6 +3,7 @@ tqdm
 scipy
 pandas
 pandera
+pydantic
 schedule
 matplotlib
 python-dotenv
