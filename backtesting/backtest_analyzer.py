@@ -4,6 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import math
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
@@ -11,7 +12,7 @@ import scipy.stats as stats
 from typing import Optional, List
 import matplotlib.pyplot as plt
 
-from backtester import Backtester
+from backtesting.backtester import Backtester
 from definitions import PlotMode, StrategyExecResult
 
 class BacktestAnalyzer:
@@ -184,7 +185,7 @@ class BacktestAnalyzer:
         metrics = list(intervals.keys())
         y_pos = range(len(metrics))
 
-        all_values = [val for interval in intervals.values() for val in interval]
+        all_values = [val for interval in intervals.values() for val in interval if not np.isnan(val)]
         x_min, x_max = min(all_values), max(all_values)
         x_range = x_max - x_min
 
