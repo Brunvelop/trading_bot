@@ -26,7 +26,7 @@ if __name__ == "__main__":
     # Configuración de datos
     data_config = {
         'data_path': Path('E:/binance_prices_processed'),
-        'duration': 43200,
+        'duration': 4320,
         'variation': 0.1,
         'tolerance': 0.01,
         'normalize': True
