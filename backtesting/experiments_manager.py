@@ -10,7 +10,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 from backtesting.multi_backtest import MultiBacktest
-from backtester import Backtester
+from backtesting.backtester import Backtester
 
 @dataclass
 class ExperimentResult:
