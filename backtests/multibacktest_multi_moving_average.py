@@ -23,7 +23,6 @@ if __name__ == "__main__":
         fee=0.001,
         verbose=True
     )
-    # Configuración de datos
     data_config = {
         'data_path': Path('E:/binance_prices_processed'),
         'duration': 4320,
@@ -31,8 +30,6 @@ if __name__ == "__main__":
         'tolerance': 0.01,
         'normalize': True
     }
-
-    # Métricas a analizar
     metrics = [
         PlotMode.BALANCE_A,
         PlotMode.BALANCE_B,
@@ -42,7 +39,7 @@ if __name__ == "__main__":
         PlotMode.ADJUSTED_B_BALANCE,
     ]
 
-    # Ejecutar análisis múltiple
+
     result_df = MultiBacktest.run_multiple_backtests(
         backtester=backtester,
         num_tests_per_strategy=10,

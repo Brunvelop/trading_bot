@@ -1,9 +1,8 @@
 .env
-__pycache__
-db.db
-trader.log
-conection
-data/*
-!data/coinex_pairs.txt
-!data/data_manager.py
 .vscode
+__pycache__
+data/*
+conection
+backtests/results
+!data/data_manager.py
+!data/coinex_pairs.txt
