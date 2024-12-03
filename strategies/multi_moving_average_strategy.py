@@ -32,7 +32,7 @@ class MultiMovingAverageStrategy(Strategy):
 
     def run(self, data: MarketData, memory: Memory) -> List[Tuple[Action, float, float]]:
         actions = []
-        balance_a, balance_b = memory.get('balance_a', 0), memory.get('balance_b', 0)
+        balance_a, balance_b = memory.balance_a, memory.balance_b
         current_price = data['close'].iloc[-1]
 
         alignment = self._determine_alignment(data)
