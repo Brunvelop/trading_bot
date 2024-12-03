@@ -149,36 +149,3 @@ class Backtester:
                 )
         
         return extra_plots if extra_plots else None
-    
-if __name__ == "__main__":
-    from strategies.multi_moving_average_strategy_trend import MultiMovingAverageStrategyTrend
-    from strategies.moving_average_strategy import MovingAverageStrategy
-
-    # Test Trend Momentum Strategy simplificada
-    backtester = Backtester(
-        strategy=MovingAverageStrategy(
-        ),
-        initial_balance_a=0.0,      # Empezamos sin crypto
-        initial_balance_b=100000.0,   # Balance inicial en USDT
-        fee=0.001,                  # 0.1% fee por operación
-        verbose=True                # Mostrar progreso
-    )
-    
-    df = backtester.run_backtest(
-        data_config={
-            'data_path': Path('E:/binance_prices_processed'),
-            'duration': 4320,        # ~3 días de datos
-            'variation': 0.10,       # 5% de variación mínima
-            'tolerance': 0.01,       # 1% de tolerancia
-            'normalize': True
-        }
-    )
-    
-    backtester.plot_results(
-        plot_config={
-            'plot_modes': list(PlotMode),
-            'save_path': None,
-            'show': True
-        }
-    )
-
