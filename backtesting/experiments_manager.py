@@ -9,7 +9,7 @@ from typing import Dict, Any, List, Optional
 from pathlib import Path
 import matplotlib.pyplot as plt
 
-from backtesting.backtest_analyzer import BacktestAnalyzer
+from backtesting.multi_backtest import MultiBacktest
 from backtester import Backtester
 
 @dataclass
@@ -29,15 +29,15 @@ class ExperimentManager:
     def run_experiment(self, strategy, strategy_config, backtester_config, data_config, num_tests_per_strategy, metrics):
         backtester = Backtester(strategy=strategy(**strategy_config), **backtester_config)
         
-        result_df = BacktestAnalyzer.run_multiple_backtests(
+        result_df = MultiBacktest.run_multiple_backtests(
             backtester=backtester,
             num_tests_per_strategy=num_tests_per_strategy,
             data_config=data_config,
             metrics=metrics,
         )
 
-        confidence_intervals = BacktestAnalyzer.calculate_confidence_interval(result_df)
-        prediction_intervals = BacktestAnalyzer.calculate_prediction_interval(result_df)
+        confidence_intervals = MultiBacktest.calculate_confidence_interval(result_df)
+        prediction_intervals = MultiBacktest.calculate_prediction_interval(result_df)
 
         data_config_copy = data_config.copy()
         data_config_copy['data_path'] = str(data_config['data_path'])

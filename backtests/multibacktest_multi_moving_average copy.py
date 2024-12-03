@@ -6,7 +6,7 @@ from pathlib import Path
 
 from definitions import PlotMode
 from backtesting.backtester import Backtester
-from backtesting.backtest_analyzer import BacktestAnalyzer
+from backtesting.multi_backtest import MultiBacktest
 from strategies.multi_moving_average_strategy import MultiMovingAverageStrategy, TradingPhase
 
 if __name__ == "__main__":
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     ]
 
     # Ejecutar análisis múltiple
-    result_df = BacktestAnalyzer.run_multiple_backtests(
+    result_df = MultiBacktest.run_multiple_backtests(
         backtester=backtester,
         num_tests_per_strategy=10,
         data_config=data_config,
@@ -51,14 +51,14 @@ if __name__ == "__main__":
     )
 
     # Mostrar resultados
-    BacktestAnalyzer.plot_results(result_df)
+    MultiBacktest.plot_results(result_df)
 
     # Calcular y mostrar intervalos
-    confidence_intervals = BacktestAnalyzer.calculate_confidence_interval(
+    confidence_intervals = MultiBacktest.calculate_confidence_interval(
         df=result_df,
         confidence=0.99
     )
-    prediction_intervals = BacktestAnalyzer.calculate_prediction_interval(
+    prediction_intervals = MultiBacktest.calculate_prediction_interval(
         df=result_df,
         confidence=0.99
     )
@@ -68,5 +68,5 @@ if __name__ == "__main__":
     for metric, interval in confidence_intervals.items():
         print(f"  {metric}: [{interval[0]:.4f}, {interval[1]:.4f}] -> {abs(interval[1] - interval[0]):4f}")
 
-    BacktestAnalyzer.plot_intervals(confidence_intervals, "Confidence", show=True)
-    BacktestAnalyzer.plot_intervals(prediction_intervals, "Prediction", show=True)
+    MultiBacktest.plot_intervals(confidence_intervals, "Confidence", show=True)
+    MultiBacktest.plot_intervals(prediction_intervals, "Prediction", show=True)

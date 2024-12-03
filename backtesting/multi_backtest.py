@@ -2,7 +2,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import math
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor
 
 import numpy as np
 import pandas as pd
@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from backtesting.backtester import Backtester
 from definitions import PlotMode, StrategyExecResult
 
-class BacktestAnalyzer:
+class MultiBacktest:
     @staticmethod
     def run_multiple_backtests(
         backtester: Backtester = None,
@@ -35,7 +35,7 @@ class BacktestAnalyzer:
             for i, future in tqdm(futures, total=num_tests_per_strategy, desc=f"Running {num_tests_per_strategy} tests", leave=False):
                 try:
                     df: StrategyExecResult = future.result()
-                    metric_change = BacktestAnalyzer._calculate_metric_change(df, metrics)
+                    metric_change = MultiBacktest._calculate_metric_change(df, metrics)
                     results.append((metric_change, data_config.get('variation')))
                 except Exception as e:
                     failed_tests += 1
@@ -49,7 +49,7 @@ class BacktestAnalyzer:
         if failed_tests > 0:
             print(f"Warning: {failed_tests} out of {num_tests_per_strategy} backtests failed.")
 
-        df = BacktestAnalyzer._prepare_dataframe(results, num_tests_per_strategy)
+        df = MultiBacktest._prepare_dataframe(results, num_tests_per_strategy)
         return df
 
     @staticmethod
@@ -262,7 +262,7 @@ if __name__ == '__main__':
     ]
 
     # Ejecutar análisis múltiple
-    result_df = BacktestAnalyzer.run_multiple_backtests(
+    result_df = MultiBacktest.run_multiple_backtests(
         backtester=backtester,
         num_tests_per_strategy=10,
         data_config=data_config,
@@ -270,14 +270,14 @@ if __name__ == '__main__':
     )
 
     # Mostrar resultados
-    BacktestAnalyzer.plot_results(result_df)
+    MultiBacktest.plot_results(result_df)
 
     # Calcular y mostrar intervalos
-    confidence_intervals = BacktestAnalyzer.calculate_confidence_interval(
+    confidence_intervals = MultiBacktest.calculate_confidence_interval(
         df=result_df,
         confidence=0.99
     )
-    prediction_intervals = BacktestAnalyzer.calculate_prediction_interval(
+    prediction_intervals = MultiBacktest.calculate_prediction_interval(
         df=result_df,
         confidence=0.99
     )
@@ -287,5 +287,5 @@ if __name__ == '__main__':
     for metric, interval in confidence_intervals.items():
         print(f"  {metric}: [{interval[0]:.4f}, {interval[1]:.4f}] -> {abs(interval[1] - interval[0]):4f}")
 
-    BacktestAnalyzer.plot_intervals(confidence_intervals, "Confidence", show=True)
-    BacktestAnalyzer.plot_intervals(prediction_intervals, "Prediction", show=True)
+    MultiBacktest.plot_intervals(confidence_intervals, "Confidence", show=True)
+    MultiBacktest.plot_intervals(prediction_intervals, "Prediction", show=True)
