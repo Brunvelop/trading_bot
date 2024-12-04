@@ -39,7 +39,7 @@ if __name__ == "__main__":
         PlotMode.ADJUSTED_B_BALANCE,
     ]
 
-
+    # Ejecutar backtests y obtener resultados base
     result_df = MultiBacktest.run_multiple_backtests(
         backtester=backtester,
         num_tests_per_strategy=10,
@@ -47,23 +47,26 @@ if __name__ == "__main__":
         metrics=metrics,
     )
 
-    # Mostrar resultados
+    # Mostrar resultados base
     MultiBacktest.plot_results(result_df)
 
-    # Calcular y mostrar intervalos
-    confidence_intervals = MultiBacktest.calculate_confidence_interval(
-        df=result_df,
-        confidence=0.99
-    )
-    prediction_intervals = MultiBacktest.calculate_prediction_interval(
+    # Calcular y añadir intervalos de confianza
+    result_df = MultiBacktest.calculate_confidence_interval(
         df=result_df,
         confidence=0.99
     )
 
+    # Calcular y añadir intervalos de predicción
+    result_df = MultiBacktest.calculate_prediction_interval(
+        df=result_df,
+        confidence=0.99
+    )
+
+    # Mostrar información general
+    print(f"\nConfiguración del backtest:")
     print(f"Duración: {data_config['duration']}")
-    print(f"Variación: {data_config['variation']*100}%:")
-    for metric, interval in confidence_intervals.items():
-        print(f"  {metric}: [{interval[0]:.4f}, {interval[1]:.4f}] -> {abs(interval[1] - interval[0]):4f}")
+    print(f"Variación: {data_config['variation']*100}%")
 
-    MultiBacktest.plot_intervals(confidence_intervals, "Confidence", show=True)
-    MultiBacktest.plot_intervals(prediction_intervals, "Prediction", show=True)
+    # Visualizar intervalos
+    MultiBacktest.plot_intervals(result_df, "Confidence", show=True)
+    MultiBacktest.plot_intervals(result_df, "Prediction", show=True)

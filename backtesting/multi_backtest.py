@@ -41,7 +41,7 @@ class MultiBacktest:
                     failed_tests += 1
                     print(f"Error in backtest {i+1}: {str(e)}")
                     print(f"Data config: {data_config}")
-                    continue  # Skip this iteration and continue with the next one
+                    continue
 
         if not results:
             raise ValueError("All backtests failed. Please check your data and strategy.")
@@ -119,34 +119,63 @@ class MultiBacktest:
 
     @staticmethod
     def calculate_confidence_interval(df, confidence=0.95):
-        intervals = {}
+        intervals = []
         for metric in df['Metric'].unique():
-            for change_type in ['Percentage Change', 'Absolute Change']:
-                data = df.loc[df['Metric'] == metric, change_type]
-                mean = data.mean()
-                std_err = data.sem()
-                n = len(data)
+            # Calculate confidence intervals for Absolute Change
+            abs_data = df.loc[df['Metric'] == metric, 'Absolute Change']
+            abs_mean = abs_data.mean()
+            abs_std_err = abs_data.sem()
+            abs_n = len(abs_data)
+            abs_lower, abs_upper = stats.t.interval(confidence, df=abs_n-1, loc=abs_mean, scale=abs_std_err)
+            
+            # Calculate confidence intervals for Percentage Change
+            pct_data = df.loc[df['Metric'] == metric, 'Percentage Change']
+            pct_mean = pct_data.mean()
+            pct_std_err = pct_data.sem()
+            pct_n = len(pct_data)
+            pct_lower, pct_upper = stats.t.interval(confidence, df=pct_n-1, loc=pct_mean, scale=pct_std_err)
+            
+            intervals.append({
+                'Metric': metric,
+                'Absolute Lower Confidence': abs_lower,
+                'Absolute Upper Confidence': abs_upper,
+                'Percentage Lower Confidence': pct_lower,
+                'Percentage Upper Confidence': pct_upper
+            })
 
-                # Calculate the confidence interval using the Student's t-distribution
-                interval = stats.t.interval(confidence, df=n-1, loc=mean, scale=std_err)
-                intervals[f"{metric} ({change_type})"] = interval
-        return intervals
+        intervals_df = pd.DataFrame(intervals)
+        return df.merge(intervals_df, on='Metric', how='left')
 
     @staticmethod
     def calculate_prediction_interval(df, confidence=0.95):
-        intervals = {}
+        intervals = []
         for metric in df['Metric'].unique():
-            for change_type in ['Percentage Change', 'Absolute Change']:
-                data = df.loc[df['Metric'] == metric, change_type]
-                mean = data.mean()
-                std = data.std(ddof=1)
-                n = len(data)
+            # Calculate prediction intervals for Absolute Change
+            abs_data = df.loc[df['Metric'] == metric, 'Absolute Change']
+            abs_mean = abs_data.mean()
+            abs_std = abs_data.std(ddof=1)
+            abs_n = len(abs_data)
+            abs_scale = abs_std * math.sqrt(1 + 1/abs_n)
+            abs_lower, abs_upper = stats.t.interval(confidence, df=abs_n-1, loc=abs_mean, scale=abs_scale)
+            
+            # Calculate prediction intervals for Percentage Change
+            pct_data = df.loc[df['Metric'] == metric, 'Percentage Change']
+            pct_mean = pct_data.mean()
+            pct_std = pct_data.std(ddof=1)
+            pct_n = len(pct_data)
+            pct_scale = pct_std * math.sqrt(1 + 1/pct_n)
+            pct_lower, pct_upper = stats.t.interval(confidence, df=pct_n-1, loc=pct_mean, scale=pct_scale)
+            
+            intervals.append({
+                'Metric': metric,
+                'Absolute Lower Prediction': abs_lower,
+                'Absolute Upper Prediction': abs_upper,
+                'Percentage Lower Prediction': pct_lower,
+                'Percentage Upper Prediction': pct_upper
+            })
 
-                # Calculate the prediction interval using the Student's t-distribution
-                scale = std * math.sqrt(1 + 1/n)
-                interval = stats.t.interval(confidence, df=n-1, loc=mean, scale=scale)
-                intervals[f"{metric} ({change_type})"] = interval
-        return intervals
+        intervals_df = pd.DataFrame(intervals)
+        return df.merge(intervals_df, on='Metric', how='left')
 
     @staticmethod
     def _calculate_metric_change(
@@ -180,46 +209,73 @@ class MultiBacktest:
         return pd.DataFrame(df_data)
 
     @staticmethod
-    def plot_intervals(intervals: dict, interval_type: str, save_path: Optional[Path] = None, show: bool = True):
-        fig, ax = plt.subplots(figsize=(12, 8))
-
-        metrics = list(intervals.keys())
+    def plot_intervals(df: pd.DataFrame, interval_type: str, save_path: Optional[Path] = None, show: bool = True):
+        # Create figure with more height and use constrained_layout
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 18), constrained_layout=True)
+        
+        metrics = df['Metric'].unique()
         y_pos = range(len(metrics))
 
-        all_values = [val for interval in intervals.values() for val in interval if not np.isnan(val)]
-        x_min, x_max = min(all_values), max(all_values)
-        x_range = x_max - x_min
+        for idx, (ax, change_type) in enumerate(zip([ax1, ax2], ['Percentage', 'Absolute'])):
+            # Get the appropriate column names for this change type
+            lower_col = f'{change_type} Lower {interval_type}'
+            upper_col = f'{change_type} Upper {interval_type}'
+            
+            # Get all values for setting axis limits
+            all_values = df[[lower_col, upper_col]].values.flatten()
+            all_values = all_values[~np.isnan(all_values) & ~np.isinf(all_values)]  # Filter out NaN and Inf values
+            
+            if len(all_values) == 0:
+                print(f"Warning: No valid values found for {change_type} {interval_type} intervals")
+                continue
+                
+            x_min, x_max = np.min(all_values), np.max(all_values)
+            x_range = x_max - x_min
 
-        for i, (metric, interval) in enumerate(intervals.items()):
-            lower, upper = interval
-            mid = (lower + upper) / 2
-            ax.plot([lower, upper], [i, i], 'bo-', linewidth=2, markersize=8)
-            ax.plot(mid, i, 'ro', markersize=10)
+            # Plot intervals for each metric
+            for i, metric in enumerate(metrics):
+                metric_data = df[df['Metric'] == metric].iloc[0]
+                lower, upper = metric_data[lower_col], metric_data[upper_col]
+                
+                # Skip if values are invalid
+                if np.isnan(lower) or np.isnan(upper) or np.isinf(lower) or np.isinf(upper):
+                    print(f"Warning: Invalid interval values for metric {metric} in {change_type} {interval_type}")
+                    continue
+                    
+                mid = (lower + upper) / 2
 
-            ax.annotate(f'{lower:.2f}', (lower, i), xytext=(-40, -5), textcoords='offset points', ha='right', va='center')
-            ax.annotate(f'{upper:.2f}', (upper, i), xytext=(40, -5), textcoords='offset points', ha='left', va='center')
-            ax.annotate(f'{mid:.2f}', (mid, i), xytext=(0, 15), textcoords='offset points', ha='center', va='bottom')
+                # Plot interval line and midpoint
+                ax.plot([lower, upper], [i, i], 'bo-', linewidth=2, markersize=8)
+                ax.plot(mid, i, 'ro', markersize=10)
 
-        ax.set_yticks(y_pos)
-        ax.set_yticklabels(metrics)
-        ax.invert_yaxis()
-        ax.set_xlabel(f'{interval_type} Interval')
-        ax.set_title(f'{interval_type} Intervals for Metrics', fontsize=16)
+                # Add annotations
+                ax.annotate(f'{lower:.2f}', (lower, i), xytext=(-40, -5), 
+                           textcoords='offset points', ha='right', va='center')
+                ax.annotate(f'{upper:.2f}', (upper, i), xytext=(40, -5), 
+                           textcoords='offset points', ha='left', va='center')
+                ax.annotate(f'{mid:.2f}', (mid, i), xytext=(0, 15), 
+                           textcoords='offset points', ha='center', va='bottom')
 
-        padding = x_range * 0.1
-        ax.set_xlim(x_min - padding, x_max + padding)
+            # Customize the plot
+            ax.set_yticks(y_pos)
+            ax.set_yticklabels(metrics)
+            ax.invert_yaxis()
+            ax.set_title(f'{interval_type} Intervals {change_type}', pad=30)
 
-        ax.grid(True, linestyle='--', alpha=0.7)
+            # Set x-axis limits with padding
+            padding = x_range * 0.1
+            ax.set_xlim(x_min - padding, x_max + padding)
 
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        plt.setp(ax.get_yticklabels(), fontsize=10)
+            # Add grid and improve aesthetics
+            ax.grid(True, linestyle='--', alpha=0.7)
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            plt.setp(ax.get_yticklabels(), fontsize=10)
 
-        ax.plot([], [], 'bo-', label=f'{interval_type} Interval')
-        ax.plot([], [], 'ro', label='Mean')
-        ax.legend(loc='best')
-
-        plt.tight_layout()
+            # Add legend
+            ax.plot([], [], 'bo-', label=f'{interval_type} Interval')
+            ax.plot([], [], 'ro', label='Mean')
+            ax.legend(loc='best')
 
         if save_path:
             fig.savefig(save_path, bbox_inches='tight', dpi=300)
