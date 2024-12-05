@@ -4,9 +4,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from tqdm import tqdm
 from pathlib import Path
+from datetime import datetime
 
 from definitions import PlotMode
-from backtesting.backtester import Backtester
 from backtesting.experiments_manager import ExperimentManager
 from strategies.multi_moving_average_strategy import MultiMovingAverageStrategy, TradingPhase
 
@@ -53,4 +53,19 @@ if __name__ == "__main__":
             metrics=metrics
         )
     
-    experiment_manager.save_experiments('backtests/results/experiment_results.json')
+    # Create descriptive filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    strategy_name = MultiMovingAverageStrategy.__name__
+    trading_phase = strategy_config['trading_phase'].name.lower()
+    duration = data_config['duration']
+    variations = f"var_{min(VARIATIONS)}_{max(VARIATIONS)}"
+    tests_per_strategy = f"tests_{num_tests_per_strategy}"
+    
+    filename = f"{timestamp}_{strategy_name}_{trading_phase}_dur{duration}_{variations}_{tests_per_strategy}.json"
+    
+    # Ensure results directory exists
+    results_dir = Path('backtests/results')
+    results_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Save experiments with descriptive filename
+    experiment_manager.save_experiments(results_dir / filename)
