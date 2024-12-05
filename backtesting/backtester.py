@@ -17,10 +17,10 @@ from definitions import (
     StrategyExecResult,
     PlotMode,
     StrategyExecResultFunctions,
-    IndicatorTypes,
     Order
 )
 from drawer import BacktestDrawer
+from drawer import IndicatorPlotManager
 
 class Backtester:
     def __init__(
@@ -44,6 +44,7 @@ class Backtester:
         self.marketdata_metadata = None
         self.result: pd.DataFrame = None
         self.verbose = verbose
+        self.indicator_plot_manager = IndicatorPlotManager()
 
     def run_backtest(
             self,
@@ -73,10 +74,14 @@ class Backtester:
                 'show': False
             }
         ):
+        indicators = self.strategy.calculate_indicators(self.marketdata)
+        extra_plots_price = self.indicator_plot_manager.create_price_plots(self.marketdata, indicators)
+        extra_plot = self.indicator_plot_manager.create_technical_plots(self.marketdata, indicators)
+        
         BacktestDrawer.draw(
             df=self.result,
-            extra_plots_price=self._calculate_extra_plot_price(self.strategy, self.marketdata),
-            extra_plot=self._calculate_extra_plot(self.strategy, self.marketdata),
+            extra_plots_price=extra_plots_price,
+            extra_plot=extra_plot,
             **plot_config
         )
 
@@ -117,35 +122,3 @@ class Backtester:
             window_data = self.marketdata.iloc[i-window_size:i+1]
             self._execute_strategy(window_data)
         return self.memory
-    
-    def _calculate_extra_plot_price(self, strategy: Strategy, data: MarketData) -> list:
-        indicators = strategy.calculate_indicators(data)
-        extra_plots_price = []
-        
-        colors = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'pink', 'gray']
-        
-        for i, indicator in enumerate(indicators):
-            if indicator['type'] == IndicatorTypes.SIMPLE_MOVING_AVERAGE:
-                color = colors[i % len(colors)]
-                extra_plots_price.append(
-                    ((data['date'], indicator['result']),
-                    {'color': color, 'linewidth': 2, 'alpha': 0.5, 'label': indicator['name'], 'type': 'plot'})
-                )
-        
-        return extra_plots_price if extra_plots_price else None
-        
-    def _calculate_extra_plot(self, strategy: Strategy, data: MarketData) -> list:
-        indicators = strategy.calculate_indicators(data)
-        extra_plots = []
-        
-        colors = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'pink', 'gray']
-        
-        for i, indicator in enumerate(indicators):
-            if indicator['type'] in [IndicatorTypes.RELATIVE_STRENGTH_INDEX, IndicatorTypes.VELOCITY, IndicatorTypes.ACCELERATION]:
-                color = colors[i % len(colors)]
-                extra_plots.append(
-                    ((data['date'], indicator['result']),
-                    {'color': color, 'linewidth': 2, 'alpha': 0.5, 'label': indicator['name'], 'type': 'plot'})
-                )
-        
-        return extra_plots if extra_plots else None

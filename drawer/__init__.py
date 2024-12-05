@@ -1,1 +1,2 @@
-from .backtest_drawer import BacktestDrawer
+from drawer.backtest_drawer import BacktestDrawer
+from drawer.indicator_drawer import IndicatorPlotManager
