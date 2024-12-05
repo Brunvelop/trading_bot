@@ -20,7 +20,7 @@ from definitions import (
     IndicatorTypes,
     Order
 )
-from plots_utils import StrategyExecResultDrawer
+from plots.plots_utils import StrategyExecResultDrawer
 
 class Backtester:
     def __init__(
