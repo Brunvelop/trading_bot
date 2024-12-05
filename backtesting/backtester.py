@@ -20,7 +20,7 @@ from definitions import (
     IndicatorTypes,
     Order
 )
-from plots.plots_utils import StrategyExecResultDrawer
+from drawer import BacktestDrawer
 
 class Backtester:
     def __init__(
@@ -73,7 +73,7 @@ class Backtester:
                 'show': False
             }
         ):
-        StrategyExecResultDrawer.draw(
+        BacktestDrawer.draw(
             df=self.result,
             extra_plots_price=self._calculate_extra_plot_price(self.strategy, self.marketdata),
             extra_plot=self._calculate_extra_plot(self.strategy, self.marketdata),

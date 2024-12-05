@@ -5,7 +5,7 @@ from typing import List, Tuple, Dict, Any, Optional
 
 from definitions import PlotMode, StrategyExecResult
 
-class StrategyExecResultDrawer:
+class BacktestDrawer:
     @classmethod
     def draw(
         cls,
