@@ -7,7 +7,7 @@ from pathlib import Path
 from datetime import datetime
 
 from definitions import PlotMode
-from backtesting.experiments_manager import ExperimentManager
+from backtesting import ExperimentManager
 from strategies.multi_moving_average_strategy import MultiMovingAverageStrategy, TradingPhase
 
 if __name__ == "__main__":

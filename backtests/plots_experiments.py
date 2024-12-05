@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pathlib import Path
 
-from backtesting.experiments_manager import ExperimentManager
+from backtesting import ExperimentManager
 from backtesting.multi_backtest import MultiBacktest
 from definitions import PlotMode
 

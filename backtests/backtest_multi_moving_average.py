@@ -5,8 +5,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pathlib import Path
 
 from definitions import PlotMode
-from backtesting.backtester import Backtester
-from strategies.multi_moving_average_strategy import MultiMovingAverageStrategy, TradingPhase
+from backtesting import Backtester
+from strategies import MultiMovingAverageStrategy, TradingPhase
 
 if __name__ == "__main__":
     backtester = Backtester(
