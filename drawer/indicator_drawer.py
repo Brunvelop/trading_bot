@@ -1,6 +1,6 @@
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple
 import pandas as pd
-from definitions import IndicatorTypes
+from indicators import IndicatorTypes
 
 class IndicatorPlotConfig:
     DEFAULT_COLORS = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'pink', 'gray']
