@@ -27,7 +27,7 @@ class BacktestDrawer:
             current_ax += 1
         
         if extra_plot:
-            cls._draw_extra(axes[current_ax], extra_plot)
+            cls._draw_extra(axes[current_ax], df['date'].values, extra_plot)
             current_ax += 1
 
         if any(mode in plot_modes for mode in set(PlotMode) - {PlotMode.PRICE}):
@@ -61,17 +61,23 @@ class BacktestDrawer:
             df: Backtest,
             extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None
         ) -> None:
-        ax.plot(df['date'], df['close'], label='close Price', color='darkblue', linewidth=2)
+        dates = mdates.date2num(df['date'].values)
+        ax.plot(dates, df['close'], label='close Price', color='darkblue', linewidth=2)
         
-        cls._draw_extra_plots_price(ax, extra_plots_price)
+        cls._draw_extra_plots_price(ax, df['date'].values, extra_plots_price)
         cls._draw_buy_and_sell_points(ax, df)
         cls._customice_price_axes(ax)
 
     @staticmethod
-    def _draw_extra_plots_price(ax, extra_plots_price):
+    def _draw_extra_plots_price(ax, dates, extra_plots_price):
         if extra_plots_price:
             for plot_data, plot_kwargs in extra_plots_price:
                 plot_type = plot_kwargs.pop('type', 'plot')
+                # Convert dates in plot_data if it's a time series plot
+                if plot_type == 'plot' and len(plot_data) >= 2:
+                    plot_data = list(plot_data)  # Convert to list to make mutable
+                    if len(plot_data[0]) == len(dates):  # Check if it's using the same time series
+                        plot_data[0] = mdates.date2num(dates)
                 getattr(ax, plot_type)(*plot_data, **plot_kwargs)
 
     @staticmethod
@@ -79,7 +85,8 @@ class BacktestDrawer:
         if 'type' in df.columns:
             for trade_type, color, label in [('buy_market', 'green', 'Buy'), ('sell_market', 'red', 'Sell')]:
                 points = df[df['type'] == trade_type]
-                ax.scatter(points['date'], points['price'], color=color, label=label, s=50)
+                dates = mdates.date2num(points['date'].values)
+                ax.scatter(dates, points['price'], color=color, label=label, s=50)
 
     @staticmethod
     def _customice_price_axes(ax):
@@ -108,10 +115,12 @@ class BacktestDrawer:
         }
 
         lines, labels, used_axes = [], [], set()
+        dates = mdates.date2num(df['date'].values)
+        
         for mode in plot_modes:
             if mode in plot_configs:
                 config = plot_configs[mode]
-                line = cls._draw_balances_lines(df, config)
+                line = cls._draw_balances_lines(dates, df, config)
                 
                 lines.append(line)
                 labels.append(config.get('label'))
@@ -143,12 +152,15 @@ class BacktestDrawer:
             ax_extra.axis('off')
 
     @staticmethod
-    def _draw_balances_lines(df: Backtest, config:tuple) -> plt.Line2D:
-        line, = config.get('axis').plot(df['date'], df[config.get('column')],label=config.get('label'), color=config.get('color'), 
-                        linewidth=config.get('linewidth'), linestyle=config.get('linestyle'), alpha=config.get('alpha'))
+    def _draw_balances_lines(dates: List[float], df: Backtest, config:tuple) -> plt.Line2D:
+        line, = config.get('axis').plot(dates, df[config.get('column')],
+                        label=config.get('label'), color=config.get('color'), 
+                        linewidth=config.get('linewidth'), linestyle=config.get('linestyle'), 
+                        alpha=config.get('alpha'))
         
         for i in [0, -1]:
-            value, date = df[config.get('column')].iloc[i], df['date'].iloc[i]
+            value = df[config.get('column')].iloc[i]
+            date = dates[i if i == 0 else -1]
             config.get('axis').scatter(date, value, color=config.get('color'), s=10)
             config.get('axis').text(date, value, f"{value:.0f}", color=config.get('color'), 
                     ha='right' if i == 0 else 'left', va='bottom' if i == 0 else 'top')
@@ -156,7 +168,7 @@ class BacktestDrawer:
         return line
 
     @classmethod
-    def _draw_extra(cls, ax: plt.Axes, extra_plot: List[Tuple[Tuple, Dict[str, Any]]]) -> None:
+    def _draw_extra(cls, ax: plt.Axes, dates, extra_plot: List[Tuple[Tuple, Dict[str, Any]]]) -> None:
         plot_methods = {
             'scatter': ax.scatter,
             'plot': ax.plot,
@@ -167,6 +179,13 @@ class BacktestDrawer:
         for plot_data, plot_kwargs in extra_plot:
             plot_type = plot_kwargs.pop('type', 'plot')
             plot_method = plot_methods.get(plot_type, ax.plot)
+            
+            # Convert dates for time series plots
+            if plot_type == 'plot' and len(plot_data) >= 2:
+                plot_data = list(plot_data)  # Convert to list to make mutable
+                if len(plot_data[0]) == len(dates):  # Check if it's using the same time series
+                    plot_data[0] = mdates.date2num(dates)
+            
             plot_method(*plot_data, **plot_kwargs)
         
         cls._customice_extra_plot_axes(ax, plot_kwargs)
