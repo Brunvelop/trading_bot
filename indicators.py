@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Union
 from enum import Enum, auto
 
 import pandas as pd
@@ -6,15 +6,18 @@ from pydantic import BaseModel
 
 from definitions import MarketData
 
-class IndicatorTypes(Enum):
-    SIMPLE_MOVING_AVERAGE = auto()
-    RELATIVE_STRENGTH_INDEX = auto()
-    VELOCITY = auto()
-    ACCELERATION = auto()
+class IndicatorTypes():
+    class Price(Enum):
+        SIMPLE_MOVING_AVERAGE = auto()
+    
+    class Extra(Enum):
+        VELOCITY = auto()
+        ACCELERATION = auto()
+        RELATIVE_STRENGTH_INDEX = auto()
 
 class Indicator(BaseModel):
     name: str
-    type: IndicatorTypes
+    type: Union[IndicatorTypes.Price, IndicatorTypes.Extra]
     result: pd.Series
 
     class Config:
@@ -25,7 +28,7 @@ class Indicators:
     def calculate_moving_average(data: Type[MarketData], window: int) -> Indicator:
         return Indicator(
             name=f'ma_{window}',
-            type=IndicatorTypes.SIMPLE_MOVING_AVERAGE,
+            type=IndicatorTypes.Price.SIMPLE_MOVING_AVERAGE,
             result=data['close'].rolling(window=window).mean()
         )
     
@@ -40,7 +43,7 @@ class Indicators:
         
         return Indicator(
             name=f'rsi_{window}',
-            type=IndicatorTypes.RELATIVE_STRENGTH_INDEX,
+            type=IndicatorTypes.Extra.RELATIVE_STRENGTH_INDEX,
             result=rsi
         )
 
@@ -48,7 +51,7 @@ class Indicators:
     def calculate_velocity(series: pd.Series, window: int) -> Indicator:
         return Indicator(
             name=f'velocity_{window}',
-            type=IndicatorTypes.VELOCITY,
+            type=IndicatorTypes.Price.VELOCITY,
             result=series.diff(periods=window)
         )
 
@@ -56,6 +59,6 @@ class Indicators:
     def calculate_acceleration(velocity: pd.Series, window: int) -> Indicator:
         return Indicator(
             name=f'acceleration_{window}',
-            type=IndicatorTypes.ACCELERATION,
+            type=IndicatorTypes.Price.ACCELERATION,
             result=velocity.diff(periods=window)
         )

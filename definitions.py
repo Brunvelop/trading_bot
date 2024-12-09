@@ -19,11 +19,11 @@ class Action(Enum):
 class Order(BaseModel):
     timestamp: str = Field(description="ISO format timestamp")  # Could be datetime
     pair: str
-    type: Literal['buy_market', 'sell_market']
-    price: np.float64 = Field(gt=0)
-    amount: np.float64 = Field(gt=0)
+    type: Literal['buy_market', 'sell_market', 'wait']
+    price: np.float64 = Field(ge=0)
+    amount: np.float64 = Field(ge=0)
     fee: np.float64 = Field(ge=0)
-    total_value: np.float64 = Field(gt=0)
+    total_value: np.float64 = Field(ge=0)
     balance_a: np.float64 = Field(ge=0)
     balance_b: np.float64 = Field(ge=0)
 

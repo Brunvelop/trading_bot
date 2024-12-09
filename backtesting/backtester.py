@@ -91,7 +91,7 @@ class Backtester:
         for action_type, price, amount in actions:
             if action_type is not None and price is not None:
                 total_value = price * amount
-                fee = amount * self.fee if action_type == Action.BUY_MARKET else total_value * self.fee if action_type == Action.SELL_MARKET else 0
+                fee = amount * self.fee if action_type == Action.BUY_MARKET else total_value * self.fee if action_type == Action.SELL_MARKET else np.float64(0)
                 timestamp = data['date'].iloc[-1]
                 pair = 'A/B'
 
