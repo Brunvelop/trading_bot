@@ -8,7 +8,8 @@ class MACrossoverStrategy(Strategy):
     def calculate_indicators(self, data: MarketData) -> List[Indicator]:
         ma_200 = Indicators.calculate_moving_average(data, 200)
         ma_50 = Indicators.calculate_moving_average(data, 50)
-        return [ma_200, ma_50]
+        rsi = Indicators.calculate_rsi(data)
+        return [ma_200, ma_50, rsi]
 
     def run(self, data: MarketData, memory: Memory) -> List[Tuple[Action, float, float]]:
         # Calculate indicators

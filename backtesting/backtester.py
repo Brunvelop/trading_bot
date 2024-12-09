@@ -14,7 +14,7 @@ from definitions import (
     Memory,
     MarketData,
     Action,
-    StrategyExecResult,
+    Backtest,
     PlotMode,
     StrategyExecResultFunctions,
     Order
@@ -55,7 +55,7 @@ class Backtester:
                 'tolerance': 0.01,
                 'normalize': True
             },
-    ) -> StrategyExecResult:
+    ) -> Backtest:
         self.marketdata, self.marketdata_metadata = DataManager.get_marketdata_sample(**data_config)
         self._simulate_real_time_execution()
         self.result = StrategyExecResultFunctions.calculate_metrics(

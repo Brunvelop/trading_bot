@@ -13,7 +13,7 @@ from typing import Optional, List
 import matplotlib.pyplot as plt
 
 from backtesting.backtester import Backtester
-from definitions import PlotMode, StrategyExecResult
+from definitions import PlotMode, Backtest
 
 class MultiBacktest:
     @staticmethod
@@ -34,7 +34,7 @@ class MultiBacktest:
 
             for i, future in tqdm(futures, total=num_tests_per_strategy, desc=f"Running {num_tests_per_strategy} tests", leave=False):
                 try:
-                    df: StrategyExecResult = future.result()
+                    df: Backtest = future.result()
                     metric_change = MultiBacktest._calculate_metric_change(df, metrics)
                     results.append((metric_change, data_config.get('variation')))
                 except Exception as e:
@@ -179,7 +179,7 @@ class MultiBacktest:
 
     @staticmethod
     def _calculate_metric_change(
-            df: StrategyExecResult,
+            df: Backtest,
             metrics: List[PlotMode]
         ):
         results = {}

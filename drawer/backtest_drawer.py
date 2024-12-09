@@ -3,13 +3,13 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from typing import List, Tuple, Dict, Any, Optional
 
-from definitions import PlotMode, StrategyExecResult
+from definitions import PlotMode, Backtest
 
 class BacktestDrawer:
     @classmethod
     def draw(
         cls,
-        df: StrategyExecResult,
+        df: Backtest,
         plot_modes: List[PlotMode],
         extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None,
         extra_plot: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None,
@@ -26,12 +26,12 @@ class BacktestDrawer:
             cls._draw_prices(axes[current_ax], df, extra_plots_price)
             current_ax += 1
         
-        if any(mode in plot_modes for mode in set(PlotMode) - {PlotMode.PRICE}):
-            cls._draw_balances(axes[current_ax], axes[current_ax].twinx(), df, plot_modes)
-            current_ax += 1
-        
         if extra_plot:
             cls._draw_extra(axes[current_ax], extra_plot)
+            current_ax += 1
+
+        if any(mode in plot_modes for mode in set(PlotMode) - {PlotMode.PRICE}):
+            cls._draw_balances(axes[current_ax], axes[current_ax].twinx(), df, plot_modes)
         
         plt.tight_layout()
         if save_path:
@@ -58,7 +58,7 @@ class BacktestDrawer:
     def _draw_prices(
             cls,
             ax: plt.Axes,
-            df: StrategyExecResult,
+            df: Backtest,
             extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None
         ) -> None:
         ax.plot(df['date'], df['close'], label='close Price', color='darkblue', linewidth=2)
@@ -87,7 +87,6 @@ class BacktestDrawer:
         ax.xaxis.set_major_locator(mdates.AutoDateLocator())
         ax.legend(fontsize='large')
         ax.set_title('Buy and Sell Points Over Time', fontsize=16)
-        ax.set_xlabel('Time', fontsize=14)
         ax.set_ylabel('Price', fontsize=14)
 
     @classmethod
@@ -95,7 +94,7 @@ class BacktestDrawer:
             cls,
             ax: plt.Axes,
             ax_extra: plt.Axes,
-            df: StrategyExecResult, 
+            df: Backtest, 
             plot_modes: List[PlotMode]
         ) -> None:
         plot_configs = {
@@ -137,7 +136,6 @@ class BacktestDrawer:
             ax.legend(lines, labels, loc='center left', fontsize='small', ncol=1)
         
         ax.set_title('Balances', fontsize=16)
-        ax.set_xlabel('Time', fontsize=14)
 
         if ax not in used_axes:
             ax.axis('off')
@@ -145,7 +143,7 @@ class BacktestDrawer:
             ax_extra.axis('off')
 
     @staticmethod
-    def _draw_balances_lines(df: StrategyExecResult, config:tuple) -> plt.Line2D:
+    def _draw_balances_lines(df: Backtest, config:tuple) -> plt.Line2D:
         line, = config.get('axis').plot(df['date'], df[config.get('column')],label=config.get('label'), color=config.get('color'), 
                         linewidth=config.get('linewidth'), linestyle=config.get('linestyle'), alpha=config.get('alpha'))
         
@@ -180,7 +178,6 @@ class BacktestDrawer:
         
         ax.legend(fontsize='large', loc='best')
         ax.set_title(plot_kwargs.get('title', 'Extra Plot'), fontsize=16)
-        ax.set_xlabel(plot_kwargs.get('xlabel', 'Time'), fontsize=14)
         ax.set_ylabel(plot_kwargs.get('ylabel', 'Value'), fontsize=14)
         
         plt.tight_layout()

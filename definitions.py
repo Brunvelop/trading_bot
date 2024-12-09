@@ -53,7 +53,7 @@ class MarketData(pa.DataFrameModel): #ordenado de temporalmente (ultimo el mas a
     close: Series[float]
     volume: Series[float]
 
-class StrategyExecResult(pa.DataFrameModel):
+class Backtest(pa.DataFrameModel):
     date: Series[pd.Timestamp]
     open: Series[float]
     high: Series[float]
@@ -77,7 +77,7 @@ class StrategyExecResult(pa.DataFrameModel):
 
 class StrategyExecResultFunctions:
     @staticmethod
-    def calculate_metrics(marketdata: MarketData, memory: Memory, initial_balance_a: float, initial_balance_b: float) -> StrategyExecResult:
+    def calculate_metrics(marketdata: MarketData, memory: Memory, initial_balance_a: float, initial_balance_b: float) -> Backtest:
         memory_df = pd.DataFrame.from_records([vars(order) for order in memory.orders])
         df = pd.merge(marketdata, memory_df, left_on='date', right_on='timestamp', how='left')
 
@@ -106,7 +106,7 @@ class StrategyExecResultFunctions:
         return df
 
 class PlotMode(Enum):
-    # Lowercase names match StrategyExecResult column names
+    # Lowercase names match Backtest column names
     PRICE = 'price'
     BALANCE_A = 'balance_a'
     BALANCE_B = 'balance_b'
