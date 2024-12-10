@@ -6,15 +6,15 @@ from pathlib import Path
 
 from definitions import PlotMode
 from backtesting.backtester import Backtester
-from strategies.ma_crossover_strategy import MACrossoverStrategy
+from strategies import TrendMomentumStrategy
 
 if __name__ == "__main__":
     backtester = Backtester(
-        strategy=MACrossoverStrategy(),
+        strategy=TrendMomentumStrategy(),
         initial_balance_a=0.0,
-        initial_balance_b=100000.0,  # Starting with 100k USDT
+        initial_balance_b=1000.0,  # Starting with 100k USDT
         fee=0.001,  # 0.1% fee
-        verbose=True
+        verbose=False
     )
     
     df = backtester.run_backtest(
