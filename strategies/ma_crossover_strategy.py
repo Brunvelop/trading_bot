@@ -43,4 +43,4 @@ class MACrossoverStrategy(Strategy):
             if quantity > 0:
                 return [(Action.SELL_MARKET, current_price, quantity)]
         
-        return [(Action.WAIT, np.float64(0), np.float64(0))]
+        return [(Action.WAIT, None, None)]

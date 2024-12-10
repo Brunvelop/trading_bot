@@ -51,7 +51,7 @@ class Indicators:
     def calculate_velocity(series: pd.Series, window: int) -> Indicator:
         return Indicator(
             name=f'velocity_{window}',
-            type=IndicatorTypes.Price.VELOCITY,
+            type=IndicatorTypes.Extra.VELOCITY,
             result=series.diff(periods=window)
         )
 
@@ -59,6 +59,6 @@ class Indicators:
     def calculate_acceleration(velocity: pd.Series, window: int) -> Indicator:
         return Indicator(
             name=f'acceleration_{window}',
-            type=IndicatorTypes.Price.ACCELERATION,
+            type=IndicatorTypes.Extra.ACCELERATION,
             result=velocity.diff(periods=window)
         )

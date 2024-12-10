@@ -75,15 +75,15 @@ class MultiMovingAverageStrategy(Strategy):
         moving_averages = self.calculate_indicators(data)
         current_price = data['close'].iloc[-1]
         
-        if (current_price > moving_averages[0]['result'].iloc[-1] > 
-            moving_averages[1]['result'].iloc[-1] > 
-            moving_averages[2]['result'].iloc[-1] > 
-            moving_averages[3]['result'].iloc[-1]):
+        if (current_price > moving_averages[0].result.iloc[-1] > 
+            moving_averages[1].result.iloc[-1] > 
+            moving_averages[2].result.iloc[-1] > 
+            moving_averages[3].result.iloc[-1]):
             return self.Alignment.UP
-        elif (current_price < moving_averages[0]['result'].iloc[-1] < 
-            moving_averages[1]['result'].iloc[-1] < 
-            moving_averages[2]['result'].iloc[-1] < 
-            moving_averages[3]['result'].iloc[-1]):
+        elif (current_price < moving_averages[0].result.iloc[-1] < 
+            moving_averages[1].result.iloc[-1] < 
+            moving_averages[2].result.iloc[-1] < 
+            moving_averages[3].result.iloc[-1]):
             return self.Alignment.DOWN
         return self.Alignment.NONE
 
