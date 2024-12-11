@@ -1,6 +1,8 @@
 from enum import Enum, auto
 from typing import List, Literal
 from pydantic import BaseModel, Field, field_validator
+from datetime import datetime
+
 
 import numpy as np
 import pandas as pd
@@ -17,7 +19,7 @@ class Action(Enum):
     WAIT = "wait"
 
 class Order(BaseModel):
-    timestamp: str = Field(description="ISO format timestamp")  # Could be datetime
+    timestamp: datetime = Field(description="Timestamp as datetime object")
     pair: str
     type: Literal['buy_market', 'sell_market', 'wait']
     price: np.float64 = Field(ge=0)
@@ -45,13 +47,13 @@ class Memory(BaseModel):
         arbitrary_types_allowed = True
         validate_assignment = True
    
-class MarketData(pa.DataFrameModel): #ordenado de temporalmente (ultimo el mas actual)
-    date: Series[pd.Int64Dtype]
-    open: Series[float]
-    high: Series[float]
-    low: Series[float]
-    close: Series[float]
-    volume: Series[float]
+class MarketData(pa.DataFrameModel):
+    date: pa.typing.Series[pd.Timestamp] = pa.Field() #datetime64[ns]
+    open: pa.typing.Series[np.float64] = pa.Field(gt=0)
+    high: pa.typing.Series[np.float64] = pa.Field(gt=0)
+    low: pa.typing.Series[np.float64] = pa.Field(gt=0)
+    close: pa.typing.Series[np.float64] = pa.Field(gt=0)
+    volume: pa.typing.Series[np.float64] = pa.Field(ge=0)
 
 class Backtest(pa.DataFrameModel):
     date: Series[pd.Timestamp]

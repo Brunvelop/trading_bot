@@ -46,21 +46,21 @@ class DataManager:
         metadata = {}
         if data_path.is_dir():
             sample_data_path = DataManager._chose_random_data_path(data_path)
-        data = pd.read_csv(sample_data_path)
+        market_data = MarketData(pd.read_csv(sample_data_path, parse_dates=['date']))
         
         if duration and variation is not None:
-            data = DataManager._select_variation_segment(duration, variation, tolerance, data)
+            market_data = DataManager._select_variation_segment(duration, variation, tolerance, market_data)
         
         if start or end:
-            data = DataManager._select_time_segment(start, end, data)
+            market_data = DataManager._select_time_segment(start, end, market_data)
         
         if normalize:
-            DataManager._nomralize_data(data)
+            DataManager._nomralize_data(market_data)
 
         metadata = {
             'data_path': str(sample_data_path),
-            'start': start if start is not None else data.index[0],
-            'end': end if end is not None else data.index[-1],
+            'start': start if start is not None else market_data.index[0],
+            'end': end if end is not None else market_data.index[-1],
             'duration': duration,
             'variation': variation,
             'tolerance': tolerance,
@@ -68,7 +68,7 @@ class DataManager:
         }
         metadata = {k: v for k, v in metadata.items() if v is not None}
 
-        return data, metadata
+        return market_data, metadata
 
     @staticmethod
     def _chose_random_data_path(data_path: Path = Path('data/coinex_prices_raw')) -> Path:

@@ -9,7 +9,7 @@ from typing import List
 from pathlib import Path
 
 from data_manager import DataManager
-from strategies.strategy import Strategy
+from strategies import Strategy
 from definitions import (
     Memory,
     MarketData,

@@ -34,15 +34,15 @@ if __name__ == "__main__":
     )
 
     # For each experiment, show detailed plots using MultiBacktest functions
-    for i, experiment in enumerate(experiment_manager.experiments):
-        print(f"\nPlots for experiment {i+1} - Strategy: {experiment.strategy_name}")
-        print(f"Data variation: {experiment.data_config['variation']}")
+    # for i, experiment in enumerate(experiment_manager.experiments):
+    #     print(f"\nPlots for experiment {i+1} - Strategy: {experiment.strategy_name}")
+    #     print(f"Data variation: {experiment.data_config['variation']}")
         
-        # Plot boxplots
-        MultiBacktest.plot_results(experiment.results_df)
+    #     # Plot boxplots
+    #     MultiBacktest.plot_results(experiment.results_df)
         
-        # Plot confidence intervals
-        MultiBacktest.plot_intervals(experiment.results_df, "Confidence", show=True)
+    #     # Plot confidence intervals
+    #     MultiBacktest.plot_intervals(experiment.results_df, "Confidence", show=True)
         
-        # Plot prediction intervals
-        MultiBacktest.plot_intervals(experiment.results_df, "Prediction", show=True)
+    #     # Plot prediction intervals
+    #     MultiBacktest.plot_intervals(experiment.results_df, "Prediction", show=True)
