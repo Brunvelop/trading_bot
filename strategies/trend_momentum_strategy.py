@@ -7,11 +7,11 @@ from .strategy import Strategy
 
 class TrendMomentumStrategy(Strategy):
     def __init__(self, 
-                 ma_window: int = 200, 
-                 velocity_window: int = 10,
-                 acceleration_window: int = 5,
+                 ma_window: int = 120, 
+                 velocity_window: int = 1,
+                 acceleration_window: int = 60,
                  cost: float = 10,
-                 debug: bool = True):
+                 debug: bool = False):
         self.ma_window = ma_window
         self.velocity_window = velocity_window
         self.acceleration_window = acceleration_window
@@ -19,10 +19,10 @@ class TrendMomentumStrategy(Strategy):
         self.debug = debug
 
     def calculate_indicators(self, data: MarketData):
-        ma200 = Indicators.calculate_moving_average(data, self.ma_window)
-        velocity = Indicators.calculate_velocity(data['close'], self.velocity_window)
+        ma = Indicators.calculate_moving_average(data, self.ma_window)
+        velocity = Indicators.calculate_velocity(ma.result, self.velocity_window)
         acceleration = Indicators.calculate_acceleration(velocity.result, self.acceleration_window)
-        return [ma200, velocity, acceleration]
+        return [ma, velocity, acceleration]
 
     def run(self, data: MarketData, memory: Memory) -> List[Tuple[Action, float, float]]:
         actions = []
@@ -35,7 +35,6 @@ class TrendMomentumStrategy(Strategy):
         
         balance_a = memory.balance_a
         balance_b = memory.balance_b
-        quantity = self.cost / current_price
 
         # Buy conditions: price < MA, velocity < 0, acceleration > 0
         if (balance_b >= self.cost and 
@@ -56,7 +55,7 @@ class TrendMomentumStrategy(Strategy):
 
         if self.debug:
             print(f"Price: {current_price:.2f}")
-            print(f"MA200: {current_ma:.2f}")
+            print(f"ma: {current_ma:.2f}")
             print(f"Velocity: {current_velocity:.4f}")
             print(f"Acceleration: {current_acceleration:.4f}")
             print(f"Action: {actions}")

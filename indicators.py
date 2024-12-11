@@ -52,7 +52,7 @@ class Indicators:
         return Indicator(
             name=f'velocity_{window}',
             type=IndicatorTypes.Extra.VELOCITY,
-            result=series.diff(periods=window)
+            result=series.diff(periods=1).rolling(window=window).mean()
         )
 
     @staticmethod
@@ -60,5 +60,5 @@ class Indicators:
         return Indicator(
             name=f'acceleration_{window}',
             type=IndicatorTypes.Extra.ACCELERATION,
-            result=velocity.diff(periods=window)
+            result=velocity.diff(periods=1).rolling(window=window).mean()
         )

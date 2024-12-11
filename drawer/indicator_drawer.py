@@ -15,17 +15,17 @@ class IndicatorPlotConfig:
         IndicatorTypes.Extra.RELATIVE_STRENGTH_INDEX: {
             'linewidth': 2,
             'alpha': 0.7,
-            'linestyle': '--'
+            'linestyle': '-'
         },
         IndicatorTypes.Extra.VELOCITY: {
             'linewidth': 1.5,
-            'alpha': 0.6,
-            'linestyle': ':'
+            'alpha': 0.2,
+            'linestyle': '-'
         },
         IndicatorTypes.Extra.ACCELERATION: {
             'linewidth': 1.5,
-            'alpha': 0.6,
-            'linestyle': '-.'
+            'alpha': 1,
+            'linestyle': '-'
         }
     }
     

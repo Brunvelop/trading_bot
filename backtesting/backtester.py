@@ -119,6 +119,6 @@ class Backtester:
     def _simulate_real_time_execution(self, window_size: int = 200) -> List[Action]:
         iterator = tqdm(range(window_size, len(self.marketdata))) if self.verbose else range(window_size, len(self.marketdata))
         for i in iterator:
-            window_data = self.marketdata.iloc[i-window_size:i+1]
+            window_data = self.marketdata.iloc[i-window_size:i]
             self._execute_strategy(window_data)
         return self.memory
