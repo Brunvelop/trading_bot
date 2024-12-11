@@ -68,7 +68,7 @@ class DataManager:
         }
         metadata = {k: v for k, v in metadata.items() if v is not None}
 
-        return market_data, metadata
+        return MarketData(market_data), metadata
 
     @staticmethod
     def _chose_random_data_path(data_path: Path = Path('data/coinex_prices_raw')) -> Path:
@@ -81,11 +81,14 @@ class DataManager:
     
     @staticmethod
     def _nomralize_data(data: MarketData):
+        data = data.copy()
         max_close = data['close'].max()
-        data['close'] = data['close'] / max_close
+        data.loc[:, 'close'] = data['close'] / max_close
         for col in ['open', 'high', 'low']:
             if col in data.columns:
-                data[col] = data[col] / max_close
+                data.loc[:, col] = data[col] / max_close
+                
+        return data
     
     @staticmethod
     def _select_variation_segment(duration, variation, tolerance, data):

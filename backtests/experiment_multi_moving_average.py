@@ -13,13 +13,13 @@ from strategies.multi_moving_average_strategy import MultiMovingAverageStrategy,
 if __name__ == "__main__":
     backtester_static_config = {
         'initial_balance_a': 0000.0,
-        'initial_balance_b': 5000.0,
+        'initial_balance_b': 100000.0,
         'fee': 0.001,
         'verbose': False
     }
     data_config={
         'data_path': Path('E:/binance_prices_processed'),
-        'duration': 4320,
+        'duration': 43200,
         'variation': 0.1,
         'tolerance': 0.01,
         'normalize': True
@@ -32,10 +32,10 @@ if __name__ == "__main__":
         PlotMode.ADJUSTED_A_BALANCE,
         PlotMode.ADJUSTED_B_BALANCE,
     ]
-    num_tests_per_strategy = 10
-    VARIATIONS = [-0.25, 0, 0.25]
+    num_tests_per_strategy = 100
+    VARIATIONS = [-0.5, -0.4, -0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3, 0.4, 0.5]
     strategy_config={
-            'max_duration': 400,
+            'max_duration': 341,
             'min_purchase': 5.1,
             'safety_margin': 1,
             'trading_phase': TradingPhase.ACCUMULATION,

@@ -13,7 +13,9 @@ if __name__ == "__main__":
     experiment_manager = ExperimentManager()
     
     # Load experiments from file
-    results_file = Path('backtests/results/20241205_100531_MultiMovingAverageStrategy_accumulation_dur4320_var_-0.25_0.25_tests_10.json')
+    # results_file = Path('backtests/results/20241205_100531_MultiMovingAverageStrategy_accumulation_dur4320_var_-0.25_0.25_tests_10.json')
+    results_file = Path('backtests/results/20241211_225601_MultiMovingAverageStrategy_accumulation_dur43200_var_-0.5_0.5_tests_100.json')
+
     experiment_manager.load_experiments(results_file)
 
     # Define metrics to plot using PlotMode
