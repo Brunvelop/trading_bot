@@ -12,8 +12,8 @@ from strategies.multi_moving_average_strategy import MultiMovingAverageStrategy,
 
 if __name__ == "__main__":
     backtester_static_config = {
-        'initial_balance_a': 0000.0,
-        'initial_balance_b': 100000.0,
+        'initial_balance_a': 100000.0,
+        'initial_balance_b': 0.0,
         'fee': 0.001,
         'verbose': False
     }
@@ -38,7 +38,7 @@ if __name__ == "__main__":
             'max_duration': 341,
             'min_purchase': 5.1,
             'safety_margin': 1,
-            'trading_phase': TradingPhase.ACCUMULATION,
+            'trading_phase': TradingPhase.DISTRIBUTION,
             'debug': False
         }
 
