@@ -3,20 +3,10 @@ from typing import List, Literal
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 
-
 import numpy as np
 import pandas as pd
 import pandera as pa
 from pandera.typing import Series
-
-class Action(Enum):
-    BUY_MARKET = "buy_market"
-    SELL_MARKET = "sell_market"
-    BUY_LIMIT = "buy_limit"
-    SELL_LIMIT = "sell_limit"
-    STOP_LOSS = "stop_loss"
-    TAKE_PROFIT = "take_profit"
-    WAIT = "wait"
 
 class Order(BaseModel):
     timestamp: datetime = Field(description="Timestamp as datetime object")

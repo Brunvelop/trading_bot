@@ -13,7 +13,6 @@ from strategies import Strategy
 from definitions import (
     Memory,
     MarketData,
-    Action,
     Backtest,
     PlotMode,
     StrategyExecResultFunctions,
@@ -21,6 +20,7 @@ from definitions import (
 )
 from drawer import BacktestDrawer
 from drawer import IndicatorPlotManager
+from strategies.strategy import Action, ActionType
 
 class Backtester:
     def __init__(
@@ -88,27 +88,27 @@ class Backtester:
     def _execute_strategy(self, data: MarketData):
         actions = self.strategy.run(data, self.memory)
         
-        for action_type, price, amount in actions:
-            if action_type is not None and price is not None:
-                total_value = price * amount
-                fee = amount * self.fee if action_type == Action.BUY_MARKET else total_value * self.fee if action_type == Action.SELL_MARKET else np.float64(0)
+        for action in actions:
+            if action.action_type is not None and action.price is not None:
+                total_value = action.price * action.amount
+                fee = action.amount * self.fee if action.action_type == ActionType.BUY_MARKET else total_value * self.fee if action.action_type == ActionType.SELL_MARKET else np.float64(0)
                 timestamp = data['date'].iloc[-1]
                 pair = 'A/B'
 
-                if action_type == Action.BUY_MARKET:
-                    self.memory.balance_a += amount * (1-self.fee)
+                if action.action_type == ActionType.BUY_MARKET:
+                    self.memory.balance_a += action.amount * (1-self.fee)
                     self.memory.balance_b = np.float64(0) if abs(self.memory.balance_b - total_value) < 1e-8 else self.memory.balance_b - total_value
-                elif action_type == Action.SELL_MARKET:
-                    self.memory.balance_a = np.float64(0) if abs(self.memory.balance_a - amount) < 1e-8 else self.memory.balance_a - amount
+                elif action.action_type == ActionType.SELL_MARKET:
+                    self.memory.balance_a = np.float64(0) if abs(self.memory.balance_a - action.amount) < 1e-8 else self.memory.balance_a - action.amount
                     self.memory.balance_b += total_value * (1-self.fee)
 
                 self.memory.orders.append(
                     Order(
                         timestamp=timestamp,
                         pair=pair,
-                        type=action_type.value,
-                        price=price,
-                        amount=amount,
+                        type=action.action_type.value,
+                        price=action.price,
+                        amount=action.amount,
                         fee=fee,
                         total_value=total_value,
                         balance_a=self.memory.balance_a,

@@ -3,9 +3,9 @@ from datetime import datetime
 from typing import Tuple, List
 import numpy as np
 
-from definitions import Action, Memory, MarketData, TradingPhase
+from definitions import Memory, MarketData, TradingPhase
 from indicators import Indicators
-from .strategy import Strategy
+from .strategy import Strategy, Action, ActionType
 
 class MultiMovingAverageStrategy(Strategy):
     class Alignment(Enum):
@@ -41,19 +41,19 @@ class MultiMovingAverageStrategy(Strategy):
         if self.trading_phase == TradingPhase.ACCUMULATION:
             if alignment == self.Alignment.UP and self._can_sell(balance_a, amount):
                 self.acumulation_length -=1
-                actions.append((Action.SELL_MARKET, current_price, amount))
+                actions.append(Action(action_type=ActionType.SELL_MARKET, price=current_price, amount=amount))
             elif alignment == self.Alignment.DOWN and self._can_buy(balance_b, amount, current_price):
                 self.acumulation_length +=1
-                actions.append((Action.BUY_MARKET, current_price, amount))
+                actions.append(Action(action_type=ActionType.BUY_MARKET, price=current_price, amount=amount))
         elif self.trading_phase == TradingPhase.DISTRIBUTION:
             if alignment == self.Alignment.UP and self._can_sell(balance_a, amount):
                 self.distribution_length +=1
-                actions.append((Action.SELL_MARKET, current_price, amount))
+                actions.append(Action(action_type=ActionType.SELL_MARKET, price=current_price, amount=amount))
             elif alignment == self.Alignment.DOWN and self._can_buy(balance_b, amount, current_price):
                 self.distribution_length -=1
-                actions.append((Action.BUY_MARKET, current_price, amount))
+                actions.append(Action(action_type=ActionType.BUY_MARKET, price=current_price, amount=amount))
         else:
-            actions.append((Action.WAIT, None, None))
+            actions.append(Action(action_type=ActionType.WAIT, price=None, amount=None))
 
         if self.debug:
             print("time:", str(data['date'].iloc[-1]))
