@@ -12,8 +12,8 @@ import scipy.stats as stats
 from typing import Optional, List
 import matplotlib.pyplot as plt
 
-from backtesting.backtester import Backtester
-from definitions import PlotMode, Backtest
+from backtesting import Backtester, Backtest
+from definitions import PlotMode
 
 class MultiBacktest:
     @staticmethod

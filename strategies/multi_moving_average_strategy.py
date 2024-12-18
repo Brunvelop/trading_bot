@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Tuple, List
 import numpy as np
 
-from definitions import Memory, MarketData, TradingPhase
+from definitions import Memory, MarketData
 from indicators import Indicators
 from .strategy import Strategy, Action, ActionType
 
@@ -12,6 +12,11 @@ class MultiMovingAverageStrategy(Strategy):
         UP = auto()
         DOWN = auto()
         NONE = auto()
+    
+    class TradingPhase(Enum):
+        ACCUMULATION = auto()
+        DISTRIBUTION = auto()
+        NEUTRAL = auto()
 
     def __init__(self, 
             max_duration: int = 500, 
@@ -38,14 +43,14 @@ class MultiMovingAverageStrategy(Strategy):
         alignment = self._determine_alignment(data)
         amount = self._calculate_amount(balance_a, balance_b, current_price)
 
-        if self.trading_phase == TradingPhase.ACCUMULATION:
+        if self.trading_phase == self.TradingPhase.ACCUMULATION:
             if alignment == self.Alignment.UP and self._can_sell(balance_a, amount):
                 self.acumulation_length -=1
                 actions.append(Action(action_type=ActionType.SELL_MARKET, price=current_price, amount=amount))
             elif alignment == self.Alignment.DOWN and self._can_buy(balance_b, amount, current_price):
                 self.acumulation_length +=1
                 actions.append(Action(action_type=ActionType.BUY_MARKET, price=current_price, amount=amount))
-        elif self.trading_phase == TradingPhase.DISTRIBUTION:
+        elif self.trading_phase == self.TradingPhase.DISTRIBUTION:
             if alignment == self.Alignment.UP and self._can_sell(balance_a, amount):
                 self.distribution_length +=1
                 actions.append(Action(action_type=ActionType.SELL_MARKET, price=current_price, amount=amount))
@@ -88,27 +93,27 @@ class MultiMovingAverageStrategy(Strategy):
         return self.Alignment.NONE
 
     def _calculate_amount(self, balance_a: float, balance_b: float, current_price: float) -> float:
-        if self.trading_phase == TradingPhase.NEUTRAL:
+        if self.trading_phase == self.TradingPhase.NEUTRAL:
             return 0
-        elif self.trading_phase == TradingPhase.ACCUMULATION:
+        elif self.trading_phase == self.TradingPhase.ACCUMULATION:
             amount = balance_b / (self.max_duration * self.safety_margin * current_price)
-        elif self.trading_phase == TradingPhase.DISTRIBUTION:
+        elif self.trading_phase == self.TradingPhase.DISTRIBUTION:
             amount = balance_a / ( self.max_duration * self.safety_margin )
 
         return max(amount, self.min_purchase / current_price)
 
     def _can_sell(self, balance_a: float, amount: float) -> bool:
         enough_amount_to_sell = balance_a > amount
-        if self.trading_phase == TradingPhase.ACCUMULATION:
+        if self.trading_phase == self.TradingPhase.ACCUMULATION:
             return enough_amount_to_sell and self.acumulation_length > 0
-        elif self.trading_phase == TradingPhase.DISTRIBUTION:
+        elif self.trading_phase == self.TradingPhase.DISTRIBUTION:
             return enough_amount_to_sell 
         return enough_amount_to_sell
     
     def _can_buy(self, balance_b: float, amount: float, current_price: float) -> bool:
         enough_amount_to_buy = balance_b > amount * current_price
-        if self.trading_phase == TradingPhase.ACCUMULATION:
+        if self.trading_phase == self.TradingPhase.ACCUMULATION:
             return enough_amount_to_buy 
-        elif self.trading_phase == TradingPhase.DISTRIBUTION:
+        elif self.trading_phase == self.TradingPhase.DISTRIBUTION:
             return enough_amount_to_buy and self.distribution_length > 0
         return enough_amount_to_buy

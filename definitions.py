@@ -54,8 +54,3 @@ class PlotMode(Enum):
     TOTAL_VALUE_B = 'total_value_b'
     ADJUSTED_A_BALANCE = 'adjusted_a_balance'
     ADJUSTED_B_BALANCE = 'adjusted_b_balance'
-
-class TradingPhase(Enum):
-    ACCUMULATION = auto()
-    DISTRIBUTION = auto()
-    NEUTRAL = auto()

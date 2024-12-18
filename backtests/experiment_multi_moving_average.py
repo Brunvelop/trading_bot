@@ -8,7 +8,7 @@ from datetime import datetime
 
 from definitions import PlotMode
 from backtesting import ExperimentManager
-from strategies.multi_moving_average_strategy import MultiMovingAverageStrategy, TradingPhase
+from strategies.multi_moving_average_strategy import MultiMovingAverageStrategy
 
 if __name__ == "__main__":
     backtester_static_config = {
@@ -38,7 +38,7 @@ if __name__ == "__main__":
             'max_duration': 341,
             'min_purchase': 5.1,
             'safety_margin': 1,
-            'trading_phase': TradingPhase.DISTRIBUTION,
+            'trading_phase': MultiMovingAverageStrategy.TradingPhase.DISTRIBUTION,
             'debug': False
         }
 

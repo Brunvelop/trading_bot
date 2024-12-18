@@ -6,7 +6,7 @@ from pathlib import Path
 
 from definitions import PlotMode
 from backtesting import Backtester
-from strategies import MultiMovingAverageStrategy, TradingPhase
+from strategies import MultiMovingAverageStrategy
 
 if __name__ == "__main__":
     backtester = Backtester(
@@ -14,7 +14,7 @@ if __name__ == "__main__":
             max_duration=341,
             min_purchase=5.1,
             safety_margin=1,
-            trading_phase=TradingPhase.ACCUMULATION,
+            trading_phase=MultiMovingAverageStrategy.TradingPhase.ACCUMULATION,
             debug=False
         ),
         initial_balance_a=0.0,
