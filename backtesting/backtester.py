@@ -11,9 +11,8 @@ from pathlib import Path
 
 from data_manager import DataManager
 from strategies import Strategy
-from definitions import Memory, MarketData, PlotMode, StrategyExecResultFunctions, Order
-from drawer import BacktestDrawer
-from drawer import IndicatorPlotManager
+from definitions import Memory, MarketData, PlotMode, Order
+from drawer import BacktestDrawer, IndicatorPlotManager
 from strategies.strategy import Action, ActionType
 
 class Backtest(pa.DataFrameModel):
@@ -37,6 +36,46 @@ class Backtest(pa.DataFrameModel):
     total_value_b: pa.typing.Series[np.float64] = pa.Field(ge=0)
     adjusted_a_balance: pa.typing.Series[np.float64] = pa.Field()
     adjusted_b_balance: pa.typing.Series[np.float64] = pa.Field()
+
+class BacktestProcessor:
+    @staticmethod
+    def calculate_metrics(
+            marketdata: MarketData, 
+            memory: Memory, 
+            initial_balance_a: float, 
+            initial_balance_b: float
+        ) -> Backtest:
+        memory_df = pd.DataFrame.from_records([vars(order) for order in memory.orders])
+        df = pd.merge(marketdata, memory_df, left_on='date', right_on='timestamp', how='left')
+        
+        df.loc[0, 'balance_a'] = initial_balance_a
+        df.loc[0, 'balance_b'] = initial_balance_b
+        
+        df = BacktestProcessor._fill_nan_with_bfill_ffill(df, ['balance_a', 'balance_b', 'total_value'])
+        
+        df['hold_value'] = df['balance_a'] * df['close']
+        df['total_value_a'] = df['balance_a'] + df['balance_b'] / df['close']
+        df['total_value_b'] = df['balance_b'] + df['hold_value']
+        df['adjusted_a_balance'] = df['balance_a'] - (df['balance_b'].iloc[0] - df['balance_b']) / df['close']
+        df['adjusted_b_balance'] = df['balance_b'] - (df['balance_a'].iloc[0] - df['balance_a']) * df['close']
+        
+        df['timestamp'] = df['timestamp'].fillna(df['date'])
+        df['pair'] = df['pair'].fillna('A/B')
+        df['type'] = df['type'].fillna('wait')
+        df['price'] = df['price'].fillna(df['close'])
+        df['amount'] = df['amount'].fillna(0)
+        df['fee'] = df['fee'].fillna(0)
+
+        return Backtest(df)
+    
+    @staticmethod
+    def _fill_nan_with_bfill_ffill(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+        for column in columns:
+            df[column] = df[column].ffill()
+            first_valid_index = df[column].first_valid_index()
+            if first_valid_index is not None:
+                df[column] = df[column].fillna(df[column].iloc[first_valid_index])
+        return df
 
 class Backtester:
     def __init__(
@@ -74,7 +113,7 @@ class Backtester:
     ) -> Backtest:
         self.marketdata, self.marketdata_metadata = DataManager.get_marketdata_sample(**data_config)
         self._simulate_real_time_execution()
-        self.result = StrategyExecResultFunctions.calculate_metrics(
+        self.result = BacktestProcessor.calculate_metrics(
             marketdata=self.marketdata,
             memory=self.memory,
             initial_balance_a=self.initial_balance_a,

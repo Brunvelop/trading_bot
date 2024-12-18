@@ -44,36 +44,6 @@ class MarketData(pa.DataFrameModel):
     close: pa.typing.Series[np.float64] = pa.Field(gt=0)
     volume: pa.typing.Series[np.float64] = pa.Field(ge=0)
 
-class StrategyExecResultFunctions:
-    @staticmethod
-    def calculate_metrics(marketdata: MarketData, memory: Memory, initial_balance_a: float, initial_balance_b: float) -> Backtest:
-        memory_df = pd.DataFrame.from_records([vars(order) for order in memory.orders])
-        df = pd.merge(marketdata, memory_df, left_on='date', right_on='timestamp', how='left')
-
-        df.loc[0, 'balance_a'] = initial_balance_a
-        df.loc[0, 'balance_b'] = initial_balance_b
-
-        df = StrategyExecResultFunctions._fill_nan_with_bfill_ffill(df, 'balance_a')
-        df = StrategyExecResultFunctions._fill_nan_with_bfill_ffill(df, 'balance_b')
-        df['hold_value'] = df['balance_a'] * df['close']
-        df['total_value_a'] = df['balance_a'] + df['balance_b'] / df['close']
-        df['total_value_b'] = df['balance_b'] + df['hold_value']
-        df['adjusted_a_balance'] = df['balance_a'] - (df['balance_b'].iloc[0] - df['balance_b']) / df['close']
-        df['adjusted_b_balance'] = df['balance_b'] - (df['balance_a'].iloc[0] - df['balance_a']) * df['close']
-
-        return df
-
-    @staticmethod
-    def _fill_nan_with_bfill_ffill(df: pd.DataFrame, column_name: str) -> pd.DataFrame:
-        # Fill NaN values forward
-        df[column_name] = df[column_name].ffill()
-        # Fill remaining NaN values (at the beginning) with the first non-NaN value
-        first_valid_index = df[column_name].first_valid_index()
-        if first_valid_index is not None:
-            df[column_name] = df[column_name].fillna(df[column_name].iloc[first_valid_index])
-
-        return df
-
 class PlotMode(Enum):
     # Lowercase names match Backtest column names
     PRICE = 'price'

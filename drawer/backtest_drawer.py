@@ -3,13 +3,13 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from typing import List, Tuple, Dict, Any, Optional
 
-from definitions import PlotMode, Backtest
+from definitions import PlotMode
 
 class BacktestDrawer:
     @classmethod
     def draw(
         cls,
-        df: Backtest,
+        df,
         plot_modes: List[PlotMode],
         extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None,
         extra_plot: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None,
@@ -58,7 +58,7 @@ class BacktestDrawer:
     def _draw_prices(
             cls,
             ax: plt.Axes,
-            df: Backtest,
+            df,
             extra_plots_price: Optional[List[Tuple[Tuple, Dict[str, Any]]]] = None
         ) -> None:
         dates = mdates.date2num(df['date'].values)
@@ -101,7 +101,7 @@ class BacktestDrawer:
             cls,
             ax: plt.Axes,
             ax_extra: plt.Axes,
-            df: Backtest, 
+            df, 
             plot_modes: List[PlotMode]
         ) -> None:
         plot_configs = {
@@ -152,7 +152,7 @@ class BacktestDrawer:
             ax_extra.axis('off')
 
     @staticmethod
-    def _draw_balances_lines(dates: List[float], df: Backtest, config:tuple) -> plt.Line2D:
+    def _draw_balances_lines(dates: List[float], df, config:tuple) -> plt.Line2D:
         line, = config.get('axis').plot(dates, df[config.get('column')],
                         label=config.get('label'), color=config.get('color'), 
                         linewidth=config.get('linewidth'), linestyle=config.get('linestyle'), 
