@@ -18,7 +18,7 @@ class ActionType(Enum):
 class Action(BaseModel):
     action_type: ActionType
     price: np.float64 = Field(gt=0, description="Price must be greater than 0")
-    amount: np.float64 = Field(gt=0, description="Quantity must be greater than 0")
+    amount: np.float64 = Field(ge=0, description="Quantity must be greater or equal to 0")
 
     class Config:
         arbitrary_types_allowed = True

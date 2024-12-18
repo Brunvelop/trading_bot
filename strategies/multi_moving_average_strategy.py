@@ -1,6 +1,8 @@
 from enum import Enum, auto
 from typing import Tuple, List
 
+import numpy as np
+
 from definitions import Memory, MarketData
 from indicators import Indicators, Indicator
 from .strategy import Strategy, Action, ActionType
@@ -56,7 +58,7 @@ class MultiMovingAverageStrategy(Strategy):
                 self.distribution_length -=1
                 actions.append(Action(action_type=ActionType.BUY_MARKET, price=current_price, amount=amount))
         else:
-            actions.append(Action(action_type=ActionType.WAIT, price=None, amount=None))
+            actions.append(Action(action_type=ActionType.WAIT, price=current_price, amount=np.float64(0)))
 
         if self.debug:
             print("time:", str(data['date'].iloc[-1]))
