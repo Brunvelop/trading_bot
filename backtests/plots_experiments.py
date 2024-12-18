@@ -28,6 +28,7 @@ if __name__ == "__main__":
         # PlotMode.ADJUSTED_B_BALANCE,
     ]
 
+    print(experiment_manager.get_experiment_summary())
     # Plot experiment comparison (variation vs intervals)
     experiment_manager.plot_experiment_comparison(
         metrics_to_plot=metrics,
