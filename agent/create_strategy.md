@@ -5,3 +5,5 @@ Puedes crear los indicadores que consideres pero recuerda incluirlos en @/indica
 Fijate en @/strategies/strategy.py @/drawer/indicator_drawer.py @/strategies/__init__.py 
 
 Para hacer el código compatible
+
+Finalmente crea un backtest similar al de @/backtests/backtest_multi_moving_average.py con la nueva estrategia

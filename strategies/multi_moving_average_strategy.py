@@ -1,7 +1,5 @@
 from enum import Enum, auto
-from datetime import datetime
 from typing import Tuple, List
-import numpy as np
 
 from definitions import Memory, MarketData
 from indicators import Indicators, Indicator
