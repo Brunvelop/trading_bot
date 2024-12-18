@@ -1,12 +1,11 @@
 from enum import Enum, auto
-from typing import List, Literal
-from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
+from typing import List, Literal
 
 import numpy as np
 import pandas as pd
 import pandera as pa
-from pandera.typing import Series
+from pydantic import BaseModel, Field, field_validator
 
 class Order(BaseModel):
     timestamp: datetime = Field(description="Timestamp as datetime object")
@@ -44,28 +43,6 @@ class MarketData(pa.DataFrameModel):
     low: pa.typing.Series[np.float64] = pa.Field(gt=0)
     close: pa.typing.Series[np.float64] = pa.Field(gt=0)
     volume: pa.typing.Series[np.float64] = pa.Field(ge=0)
-
-class Backtest(pa.DataFrameModel):
-    date: Series[pd.Timestamp]
-    open: Series[float]
-    high: Series[float]
-    low: Series[float]
-    close: Series[float]
-    volume: Series[float]
-    timestamp: Series[pd.Timestamp]
-    pair: Series[str]
-    type: Series[str]
-    price: Series[float]
-    amount: Series[float]
-    fee: Series[float]
-    total_value: Series[float]
-    balance_a: Series[float]
-    balance_b: Series[float]
-    hold_value: Series[float]
-    total_value_a: Series[float]
-    total_value_b: Series[float]
-    adjusted_a_balance: Series[float]
-    adjusted_b_balance: Series[float]
 
 class StrategyExecResultFunctions:
     @staticmethod

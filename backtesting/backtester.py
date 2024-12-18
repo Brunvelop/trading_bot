@@ -4,23 +4,39 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import numpy as np
 import pandas as pd
+import pandera as pa
 from tqdm import tqdm
 from typing import List
 from pathlib import Path
 
 from data_manager import DataManager
 from strategies import Strategy
-from definitions import (
-    Memory,
-    MarketData,
-    Backtest,
-    PlotMode,
-    StrategyExecResultFunctions,
-    Order
-)
+from definitions import Memory, MarketData, PlotMode, StrategyExecResultFunctions, Order
 from drawer import BacktestDrawer
 from drawer import IndicatorPlotManager
 from strategies.strategy import Action, ActionType
+
+class Backtest(pa.DataFrameModel):
+    date: pa.typing.Series[pd.Timestamp] = pa.Field()
+    open: pa.typing.Series[np.float64] = pa.Field(gt=0)
+    high: pa.typing.Series[np.float64] = pa.Field(gt=0)
+    low: pa.typing.Series[np.float64] = pa.Field(gt=0)
+    close: pa.typing.Series[np.float64] = pa.Field(gt=0)
+    volume: pa.typing.Series[np.float64] = pa.Field(ge=0)
+    timestamp: pa.typing.Series[pd.Timestamp] = pa.Field()
+    pair: pa.typing.Series[str] = pa.Field()
+    type: pa.typing.Series[str] = pa.Field()
+    price: pa.typing.Series[np.float64] = pa.Field(ge=0)
+    amount: pa.typing.Series[np.float64] = pa.Field(ge=0)
+    fee: pa.typing.Series[np.float64] = pa.Field(ge=0)
+    total_value: pa.typing.Series[np.float64] = pa.Field(ge=0)
+    balance_a: pa.typing.Series[np.float64] = pa.Field(ge=0)
+    balance_b: pa.typing.Series[np.float64] = pa.Field(ge=0)
+    hold_value: pa.typing.Series[np.float64] = pa.Field(ge=0)
+    total_value_a: pa.typing.Series[np.float64] = pa.Field(ge=0)
+    total_value_b: pa.typing.Series[np.float64] = pa.Field(ge=0)
+    adjusted_a_balance: pa.typing.Series[np.float64] = pa.Field()
+    adjusted_b_balance: pa.typing.Series[np.float64] = pa.Field()
 
 class Backtester:
     def __init__(
