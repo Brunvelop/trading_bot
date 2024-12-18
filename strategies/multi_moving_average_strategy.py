@@ -4,7 +4,7 @@ from typing import Tuple, List
 import numpy as np
 
 from definitions import Memory, MarketData
-from indicators import Indicators
+from indicators import Indicators, Indicator
 from .strategy import Strategy, Action, ActionType
 
 class MultiMovingAverageStrategy(Strategy):
@@ -73,7 +73,7 @@ class MultiMovingAverageStrategy(Strategy):
 
         return actions
     
-    def calculate_indicators(self, data: MarketData):
+    def calculate_indicators(self, data: MarketData) -> List[Indicator]:
         return [Indicators.calculate_moving_average(data, window) for window in self.windows]
 
     def _determine_alignment(self, data: MarketData) -> Alignment:
