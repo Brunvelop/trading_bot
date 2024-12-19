@@ -117,6 +117,52 @@ class ExperimentManager:
         with open(file_path, 'w') as f:
             json.dump([exp.to_dict() for exp in self.experiments], f, indent=2)
 
+    def save_experiment_results(
+        self,
+        strategy_class,
+        data_config: Dict[str, Any],
+        variations: List[float],
+        num_tests_per_strategy: int,
+        base_dir: str = 'backtests/results'
+    ) -> Path:
+        """
+        Save experiment results and summaries in an organized directory structure.
+        
+        Args:
+            strategy_class: The strategy class used in the experiments
+            data_config: Configuration for the data used in experiments
+            variations: List of variations tested
+            num_tests_per_strategy: Number of tests per strategy
+            base_dir: Base directory for results (default: 'backtests/results')
+            
+        Returns:
+            Path: The experiment directory path where results were saved
+        """
+        # Create directory path components
+        strategy_name = strategy_class.__name__
+        duration = f"duration_{data_config['duration']}"
+        variations_str = f"variations_{min(variations)}_{max(variations)}"
+        tests = f"tests_{num_tests_per_strategy}"
+        
+        # Create directory structure
+        results_base_dir = Path(base_dir)
+        experiment_dir = results_base_dir / f"{duration}/{variations_str}/{tests}"
+        summaries_dir = experiment_dir / "summaries"
+        
+        # Create directories
+        experiment_dir.mkdir(parents=True, exist_ok=True)
+        summaries_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Save main experiment results
+        self.save_experiments(experiment_dir / f"{strategy_name}.json")
+        
+        # Save summary
+        summary = self.get_experiment_summary()
+        summary_filename = f"{strategy_name}_summary.csv"
+        summary.to_csv(summaries_dir / summary_filename)
+        
+        return experiment_dir
+
     def load_experiments(self, file_path: Union[str, Path]):
         """Load experiments from a JSON file"""
         file_path = Path(file_path)

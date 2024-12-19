@@ -1,2 +1,3 @@
 from strategies.strategy import Strategy, Action, ActionType
 from strategies.multi_moving_average_strategy import MultiMovingAverageStrategy
+from strategies.momentum_rsi_strategy import MomentumRsiStrategy

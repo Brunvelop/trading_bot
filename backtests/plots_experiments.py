@@ -14,7 +14,7 @@ if __name__ == "__main__":
     
     # Load experiments from file
     # results_file = Path('backtests/results/20241212_100217_MultiMovingAverageStrategy_distribution_dur43200_var_-0.5_0.5_tests_100.json')
-    results_file = Path('backtests/results/20241211_225601_MultiMovingAverageStrategy_accumulation_dur43200_var_-0.5_0.5_tests_100.json')
+    results_file = Path('backtests/results/20241218_190635_MomentumRsiStrategy_distribution_dur4320_var_-0.5_0.5_tests_10.json')
 
     experiment_manager.load_experiments(results_file)
 

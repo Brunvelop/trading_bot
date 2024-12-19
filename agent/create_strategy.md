@@ -6,4 +6,4 @@ Fijate en @/strategies/strategy.py @/drawer/indicator_drawer.py @/strategies/__i
 
 Para hacer el código compatible
 
-Finalmente crea un backtest similar al de @/backtests/backtest_multi_moving_average.py con la nueva estrategia
+Finalmente crea un backtest similar al de @/backtests/backtest_multi_moving_average.py con la nueva estrategia y Escribe un archivo similar a @/backtests/experiment_multi_moving_average.py para la nueva estrategia
