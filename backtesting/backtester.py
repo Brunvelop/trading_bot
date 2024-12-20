@@ -59,15 +59,20 @@ class BacktestProcessor:
         df['adjusted_a_balance'] = df['balance_a'] - (df['balance_b'].iloc[0] - df['balance_b']) / df['close']
         df['adjusted_b_balance'] = df['balance_b'] - (df['balance_a'].iloc[0] - df['balance_a']) * df['close']
         
+        df = BacktestProcessor._fill_nan_values(df)
+
+        return Backtest(df)
+    
+    @staticmethod
+    def _fill_nan_values(df: pd.DataFrame) -> pd.DataFrame:
         df['timestamp'] = df['timestamp'].fillna(df['date'])
         df['pair'] = df['pair'].fillna('A/B')
         df['type'] = df['type'].fillna('wait')
         df['price'] = df['price'].fillna(df['close'])
         df['amount'] = df['amount'].fillna(0)
         df['fee'] = df['fee'].fillna(0)
+        return df
 
-        return Backtest(df)
-    
     @staticmethod
     def _fill_nan_with_bfill_ffill(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
         for column in columns:

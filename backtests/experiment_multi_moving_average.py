@@ -31,8 +31,9 @@ if __name__ == "__main__":
         PlotMode.ADJUSTED_A_BALANCE,
         PlotMode.ADJUSTED_B_BALANCE,
     ]
-    num_tests_per_strategy = 10
-    VARIATIONS = [-0.5, -0.4, -0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3, 0.4, 0.5]
+    num_tests_per_strategy = 3
+    # VARIATIONS = [-0.5, -0.4, -0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3, 0.4, 0.5]
+    VARIATIONS = [-0.5, 0, 0.5]
     strategy_config={
             'max_duration': 341,
             'min_purchase': 5.1,
@@ -52,20 +53,15 @@ if __name__ == "__main__":
             metrics=metrics
         )
     
-    # Save experiment results
-    experiment_dir = experiment_manager.save_experiment_results(
-        strategy_class=MultiMovingAverageStrategy,
-        data_config=data_config,
-        variations=VARIATIONS,
-        num_tests_per_strategy=num_tests_per_strategy
-    )
+    base_dir = Path('backtests/results')
+    duration = f"duration_{data_config['duration']}"
+    variations_str = f"variations_{min(VARIATIONS)}_{max(VARIATIONS)}"
+    tests = f"tests_{num_tests_per_strategy}"
+    experiment_dir = base_dir / duration / variations_str / tests
 
-    # # Save summary with only total value b
-    # summary = experiment_manager.get_experiment_summary()
-    # summary_filename = f"{MultiMovingAverageStrategy.__name__}_summary.csv"
-    # summary.to_csv(summaries_dir / summary_filename)
+    experiment_manager.save_experiments(experiment_dir / f"{MultiMovingAverageStrategy.__name__}.json")
+    experiment_manager.save_summary(experiment_dir / "summaries" / f"{MultiMovingAverageStrategy.__name__}")
 
-    print(experiment_manager.get_experiment_summary())
     experiment_manager.plot_experiment_comparison(
         metrics_to_plot=[PlotMode.TOTAL_VALUE_B],
         save_path=None,
