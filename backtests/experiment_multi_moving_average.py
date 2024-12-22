@@ -18,7 +18,7 @@ if __name__ == "__main__":
     }
     data_config={
         'data_path': Path('E:/binance_prices_processed'),
-        'duration': 4320,
+        'duration': 43200,
         'variation': 0.1,
         'tolerance': 0.01,
         'normalize': True
@@ -31,9 +31,8 @@ if __name__ == "__main__":
         PlotMode.ADJUSTED_A_BALANCE,
         PlotMode.ADJUSTED_B_BALANCE,
     ]
-    num_tests_per_strategy = 3
-    # VARIATIONS = [-0.5, -0.4, -0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3, 0.4, 0.5]
-    VARIATIONS = [-0.5, 0, 0.5]
+    num_tests_per_strategy = 100
+    VARIATIONS = [-0.5, -0.4, -0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3, 0.4, 0.5]
     strategy_config={
             'max_duration': 341,
             'min_purchase': 5.1,

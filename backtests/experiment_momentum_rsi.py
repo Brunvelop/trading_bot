@@ -18,7 +18,7 @@ if __name__ == "__main__":
     }
     data_config={
         'data_path': Path('E:/binance_prices_processed'),
-        'duration': 4320,
+        'duration': 43200,
         'variation': 0.1,
         'tolerance': 0.01,
         'normalize': True
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         PlotMode.ADJUSTED_A_BALANCE,
         PlotMode.ADJUSTED_B_BALANCE,
     ]
-    num_tests_per_strategy = 10
+    num_tests_per_strategy = 100
     VARIATIONS = [-0.5, -0.4, -0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3, 0.4, 0.5]
     strategy_config = {
         'max_duration': 341,
@@ -57,30 +57,15 @@ if __name__ == "__main__":
             metrics=metrics
         )
     
-    # Create directory path components
-    strategy_name = MomentumRsiStrategy.__name__
+    base_dir = Path('backtests/results')
     duration = f"duration_{data_config['duration']}"
-    variations = f"variations_{min(VARIATIONS)}_{max(VARIATIONS)}"
+    variations_str = f"variations_{min(VARIATIONS)}_{max(VARIATIONS)}"
     tests = f"tests_{num_tests_per_strategy}"
-    
-    # Create directory structure
-    results_base_dir = Path('backtests/results')
-    experiment_dir = results_base_dir / f"{duration}/{variations}/{tests}"
-    summaries_dir = experiment_dir / "summaries"
-    
-    # Create directories
-    experiment_dir.mkdir(parents=True, exist_ok=True)
-    summaries_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Save main experiment results
-    experiment_manager.save_experiments(experiment_dir / f"{strategy_name}.json")
-    
-    # Save summary with only total value b
-    summary = experiment_manager.get_experiment_summary()
-    summary_filename = f"{strategy_name}_summary.csv"
-    summary.to_csv(summaries_dir / summary_filename)
+    experiment_dir = base_dir / duration / variations_str / tests
 
-    print(experiment_manager.get_experiment_summary())
+    experiment_manager.save_experiments(experiment_dir / f"{MomentumRsiStrategy.__name__}.json")
+    experiment_manager.save_summary(experiment_dir / "summaries" / f"{MomentumRsiStrategy.__name__}")
+
     experiment_manager.plot_experiment_comparison(
         metrics_to_plot=[PlotMode.TOTAL_VALUE_B],
         save_path=None,
