@@ -1,7 +1,6 @@
-from strategies import Strategy
-from strategies import ActionType
 from exchange_apis import BaseExchangeAPI
 from definitions import MarketData, Memory
+from strategies import Strategy, ActionType
 
 class Trader:
     def __init__(self, strategy: Strategy, exchange_api: BaseExchangeAPI, pair: str = 'BTC/USD') -> None:
