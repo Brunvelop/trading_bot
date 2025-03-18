@@ -1,0 +1,82 @@
+# .clinerules - Trading Bot
+
+## Patrones de Implementación Críticos
+
+### Estrategias de Trading
+- Las estrategias deben heredar de la clase base `Strategy` e implementar los métodos `run()` y `calculate_indicators()`
+- El método `run()` debe devolver una lista de objetos `Action` con el tipo de acción, precio y cantidad
+- Las estrategias deben ser stateless en cuanto a datos de mercado, pero pueden mantener estado interno para tracking
+- Las fases de trading (acumulación/distribución) son críticas para determinar el comportamiento de compra/venta
+
+### Backtesting
+- Siempre usar una ventana deslizante para simular ejecución en tiempo real (`_simulate_real_time_execution`)
+- Para análisis estadístico significativo, ejecutar al menos 100 backtests por configuración
+- Utilizar intervalos de confianza y predicción para evaluar la robustez de las estrategias
+- Comparar siempre con la estrategia de "hold" como benchmark
+
+### Exchanges
+- Todas las interacciones con exchanges deben pasar por la clase `BaseExchangeAPI`
+- Nunca hardcodear credenciales de API, siempre usar variables de entorno
+- Implementar reintentos para operaciones críticas debido a posibles fallos de API
+
+## Preferencias y Workflow
+
+### Estructura de Código
+- Mantener la separación clara entre estrategias, ejecución de trading y backtesting
+- Usar validación de datos con pydantic para objetos y pandera para DataFrames
+- Preferir métodos estáticos para funciones de utilidad sin estado
+- Documentar parámetros de configuración con valores por defecto razonables
+
+### Convenciones de Nomenclatura
+- Nombres de clases: PascalCase (ej. `MultiMovingAverageStrategy`)
+- Nombres de métodos y variables: snake_case (ej. `calculate_indicators`)
+- Constantes: UPPER_SNAKE_CASE (ej. `MAX_RETRIES`)
+- Métodos privados: prefijo con guion bajo (ej. `_calculate_amount`)
+
+### Visualización
+- Usar colores consistentes para diferentes métricas en gráficos
+- Incluir siempre leyendas claras en visualizaciones
+- Para comparaciones, normalizar datos cuando sea apropiado
+
+## Conocimientos del Proyecto
+
+### Configuración de Estrategias
+- `max_duration`: Controla cuánto tiempo se distribuye la compra/venta (valores típicos: 300-500)
+- `safety_margin`: Factor de seguridad para calcular cantidades (valores típicos: 1-3)
+- `min_purchase`: Cantidad mínima para órdenes (debe ajustarse según el par de trading)
+- Las ventanas de medias móviles (10, 50, 100, 200) son estándar en análisis técnico
+
+### Datos Históricos
+- Los datos de Coinex tienen formato ligeramente diferente a los de Binance
+- Para backtesting significativo, usar al menos 30 días de datos
+- La normalización de datos es importante para comparar diferentes pares
+
+### Optimización de Parámetros
+- Probar estrategias en diferentes condiciones de mercado (variaciones de -50% a +50%)
+- Buscar parámetros que funcionen bien en múltiples escenarios, no solo en uno específico
+- Considerar el trade-off entre rendimiento y riesgo
+
+## Desafíos Conocidos
+
+### Limitaciones Técnicas
+- La biblioteca ccxt puede tener comportamientos inconsistentes entre diferentes exchanges
+- Los datos históricos pueden tener gaps o inconsistencias
+- El procesamiento de grandes volúmenes de datos puede ser lento con archivos CSV
+
+### Consideraciones de Trading
+- Las estrategias basadas en medias móviles funcionan mejor en mercados con tendencia
+- El RSI es más efectivo en mercados laterales (rango)
+- El volumen es un indicador importante para confirmar movimientos de precio
+
+## Evolución del Proyecto
+
+### Decisiones Históricas
+- Se eligió Python por su facilidad para prototipado y bibliotecas de análisis de datos
+- Se implementó primero el backtesting antes que el trading en vivo para validar estrategias
+- Se priorizó la modularidad y extensibilidad sobre la optimización prematura
+
+### Dirección Futura
+- Migrar a una base de datos para mejor gestión de datos históricos
+- Implementar WebSockets para datos en tiempo real
+- Considerar la integración con modelos de aprendizaje automático
+- Desarrollar una interfaz web para monitoreo y control
