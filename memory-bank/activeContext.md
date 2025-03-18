@@ -39,6 +39,14 @@ Hasta el momento, los cambios más recientes incluyen:
    - Mejora del logging para facilitar el diagnóstico de problemas
    - Creación de pruebas unitarias completas en `tests/test_exchange_apis.py`
 
+5. **Documentación y Mejora del Módulo Indicators**:
+   - Creación de documentación detallada en `memory-bank/modules/indicators.md`
+   - Refactorización para mejorar la legibilidad y mantenibilidad del código
+   - Adición de docstrings completos para todas las clases y métodos
+   - Implementación de nuevos indicadores (EMA, ATR)
+   - Mejora del manejo de casos límite (como división por cero en RSI)
+   - Creación de pruebas unitarias completas en `tests/test_indicators.py`
+
 ## Estado del Proyecto
 
 ### Componentes Funcionales
@@ -84,10 +92,10 @@ Las prioridades inmediatas para el desarrollo son:
 1. **Completar el Ciclo de Mejora para Todos los Módulos**:
    - ✅ Módulo Trader: Refactorización, documentación y pruebas completas
    - ✅ Módulo Exchange APIs: Refactorización, documentación y pruebas completas
+   - ✅ Módulo Indicators: Refactorización, documentación y pruebas completas
    - ⬜ Módulo Strategies: Pendiente de refactorización, documentación y pruebas
    - ⬜ Módulo Backtesting: Pendiente de refactorización, documentación y pruebas
    - ⬜ Módulo Data Manager: Pendiente de refactorización, documentación y pruebas
-   - ⬜ Módulo Indicators: Pendiente de refactorización, documentación y pruebas
    - ⬜ Módulo Drawer (Visualización): Pendiente de refactorización, documentación y pruebas
 
 2. **Implementar Órdenes Avanzadas**:
@@ -95,7 +103,7 @@ Las prioridades inmediatas para el desarrollo son:
    - ⬜ Verificar la compatibilidad de estas implementaciones con diferentes exchanges
 
 3. **Ampliar las Pruebas**:
-   - ✅ Desarrollar pruebas unitarias para los módulos Trader y Exchange APIs
+   - ✅ Desarrollar pruebas unitarias para los módulos Trader, Exchange APIs e Indicators
    - ⬜ Implementar pruebas de integración entre módulos
    - ⬜ Crear pruebas para las estrategias de trading
 

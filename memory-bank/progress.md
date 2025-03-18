@@ -67,6 +67,7 @@
 ### Pruebas
 - ✅ Pruebas unitarias completas para el módulo Trader
 - ✅ Pruebas unitarias completas para el módulo Exchange APIs
+- ✅ Pruebas unitarias completas para el módulo Indicators
 - ❌ Pruebas unitarias para otros componentes
 - ❌ Pruebas de integración
 - ❌ Pruebas de rendimiento
@@ -90,6 +91,7 @@
 ### Documentación
 - ✅ Documentación detallada del módulo Trader
 - ✅ Documentación detallada del módulo Exchange APIs
+- ✅ Documentación detallada del módulo Indicators
 - ❌ Documentación de API completa para otros componentes
 - ❌ Guías de usuario
 - ❌ Ejemplos de uso
@@ -101,34 +103,34 @@
 |------------|--------|-------|
 | Núcleo del Sistema | 90% | Funcionalidad básica completa, órdenes avanzadas implementadas en Trader |
 | Estrategias | 70% | Tres estrategias implementadas, pero pueden refinarse |
-| Indicadores | 90% | Mayoría de indicadores comunes implementados |
+| Indicadores | 100% | Indicadores comunes implementados, documentados y probados |
 | Backtesting | 85% | Sistema robusto, pero falta optimización automática |
 | Visualización | 75% | Funcionalidad básica presente, falta dashboard interactivo |
 | Gestión de Datos | 70% | Funciona, pero podría mejorarse con base de datos |
 | Despliegue | 60% | Docker configurado, falta CI/CD y monitoreo |
-| Pruebas | 40% | Pruebas completas para Trader y Exchange APIs, faltan para otros componentes |
-| Documentación | 50% | Documentación mejorada para Trader y Exchange APIs, falta para otros componentes |
+| Pruebas | 50% | Pruebas completas para Trader, Exchange APIs e Indicators, faltan para otros componentes |
+| Documentación | 60% | Documentación mejorada para Trader, Exchange APIs e Indicators, falta para otros componentes |
 
 ### Progreso por Módulo
 ```mermaid
 graph TD
     subgraph "Progreso del Proyecto"
     A[Trader] -->|100%| B[Exchange APIs]
-    B -->|100%| C[Strategies]
+    B -->|100%| F[Indicators]
+    F -->|100%| C[Strategies]
     C -->|30%| D[Backtesting]
     D -->|30%| E[Data Manager]
-    E -->|30%| F[Indicators]
-    F -->|30%| G[Drawer]
+    E -->|30%| G[Drawer]
     G -->|30%| H[Integración]
     H -->|20%| I[Despliegue]
     I -->|10%| J[Completado]
     
     style A fill:#4CAF50,stroke:#388E3C,color:white
     style B fill:#4CAF50,stroke:#388E3C,color:white
+    style F fill:#4CAF50,stroke:#388E3C,color:white
     style C fill:#FFC107,stroke:#FFA000,color:black
     style D fill:#FFC107,stroke:#FFA000,color:black
     style E fill:#FFC107,stroke:#FFA000,color:black
-    style F fill:#FFC107,stroke:#FFA000,color:black
     style G fill:#FFC107,stroke:#FFA000,color:black
     end
 ```
@@ -156,7 +158,7 @@ graph TD
    - Impacto: Limitaciones en escalabilidad y rendimiento para grandes volúmenes de datos.
 
 5. **Documentación Interna Mejorada Parcialmente**
-   - Comentarios y documentación en el código han sido mejorados en los módulos Trader y Exchange APIs.
+   - Comentarios y documentación en el código han sido mejorados en los módulos Trader, Exchange APIs e Indicators.
    - Pendiente extender estas mejoras a otros componentes.
    - Impacto: Curva de aprendizaje desigual para diferentes partes del sistema.
 
@@ -200,10 +202,10 @@ graph TD
 - [ ] Completar el ciclo de mejora para todos los módulos principales:
   - [x] Trader
   - [x] Exchange APIs
+  - [x] Indicators
   - [ ] Strategies
   - [ ] Backtesting
   - [ ] Data Manager
-  - [ ] Indicators
   - [ ] Drawer (Visualización)
 - [ ] Considerar migración a base de datos para datos históricos
 
