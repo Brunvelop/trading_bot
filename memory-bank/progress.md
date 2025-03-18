@@ -1,216 +1,117 @@
-# Progress: Trading Bot
+# Progress
 
-## Lo que Funciona
+## Completed
 
-### Núcleo del Sistema
-- ✅ Estructura modular con separación clara de responsabilidades
-- ✅ Definiciones de tipos de datos fundamentales (Order, Memory, MarketData)
-- ✅ Interfaz unificada para diferentes exchanges de criptomonedas
-- ✅ Ejecución básica de órdenes de mercado (compra/venta)
-- ✅ Implementación de órdenes avanzadas (límite, stop loss, take profit) en el módulo Trader
-- ✅ Sistema de logging detallado para los módulos Trader y Exchange APIs
-- ✅ Manejo robusto de errores y validación de balances en el módulo Trader
-- ✅ Sistema de reintentos automáticos para operaciones de API en el módulo Exchange APIs
-- ✅ Gestión eficiente de conexiones a exchanges (una sola conexión por instancia)
+### Core Infrastructure
+- ✅ Basic project structure and organization
+- ✅ Configuration management
+- ✅ Logging system
+- ✅ Error handling framework
+- ✅ Data validation with pydantic and pandera
 
-### Estrategias de Trading
-- ✅ Arquitectura extensible para estrategias (clase base Strategy)
-- ✅ Estrategia MultiMovingAverage implementada y funcional
-- ✅ Estrategia AdaptiveMovingAverage implementada y funcional
-- ✅ Estrategia MomentumRSI implementada y funcional
-- ✅ Capacidad para cambiar entre fases de acumulación y distribución
+### Data Management
+- ✅ Data source abstraction (Coinex, Binance)
+- ✅ Historical data downloading
+- ✅ Data normalization
+- ✅ Market data sampling
+- ✅ Segment selection based on time or variation
+- ✅ Documentation for Data Manager module
+- ✅ Unit tests for Data Manager (with some known issues)
 
-### Indicadores Técnicos
-- ✅ Medias móviles simples
-- ✅ Bandas de Bollinger
-- ✅ MACD (Moving Average Convergence Divergence)
-- ✅ RSI (Relative Strength Index)
-- ✅ Indicadores de volumen
-- ✅ Indicadores de momentum (velocidad y aceleración)
+### Exchange APIs
+- ✅ Base exchange API interface
+- ✅ Coinex API implementation
+- ✅ Binance API implementation
+- ✅ Order management
+- ✅ Balance tracking
+- ✅ Rate limiting
+- ✅ Error handling for API calls
+- ✅ Documentation for Exchange APIs module
+- ✅ Unit tests for Exchange APIs
 
-### Sistema de Backtesting
-- ✅ Simulación de estrategias con datos históricos
-- ✅ Cálculo de métricas de rendimiento
-- ✅ Backtesting múltiple para análisis estadístico
-- ✅ Cálculo de intervalos de confianza y predicción
-- ✅ Gestión de experimentos para optimización de parámetros
+### Trading
+- ✅ Base Strategy class
+- ✅ Action class for buy/sell decisions
+- ✅ Trader class for strategy execution
+- ✅ Position management
+- ✅ Documentation for Trader module
+- ✅ Unit tests for Trader
 
-### Visualización
-- ✅ Gráficos de precios e indicadores
-- ✅ Visualización de resultados de backtesting
-- ✅ Gráficos comparativos de experimentos
+### Technical Indicators
+- ✅ Moving averages (SMA, EMA, WMA)
+- ✅ Momentum indicators (RSI, MACD)
+- ✅ Volatility indicators (Bollinger Bands, ATR)
+- ✅ Volume indicators
+- ✅ Documentation for Indicators module
+- ✅ Unit tests for Indicators
 
-### Gestión de Datos
-- ✅ Descarga de datos históricos de Coinex
-- ✅ Descarga de datos históricos de Binance
-- ✅ Procesamiento y normalización de datos
-- ✅ Selección de segmentos de datos por duración y variación
+### Strategies
+- ✅ Multi Moving Average strategy
+- ✅ Momentum RSI strategy
+- ✅ Adaptive Moving Average strategy
 
-### Despliegue
-- ✅ Configuración Docker para despliegue consistente
-- ✅ Gestión segura de credenciales a través de variables de entorno
+### Backtesting
+- ✅ Backtester class
+- ✅ Performance metrics calculation
+- ✅ Multi-backtest for parameter optimization
+- ✅ Experiments manager
 
-## Lo que Falta por Construir
+### Visualization
+- ✅ Backtest results visualization
+- ✅ Indicator visualization
+- ✅ Performance metrics charts
 
-### Órdenes Avanzadas
-- ✅ Implementación de órdenes límite
-- ✅ Implementación de stop loss
-- ✅ Implementación de take profit
-- ✅ Gestión de órdenes pendientes (cancelación y consulta de estado)
-- ❌ Verificación de compatibilidad con todos los exchanges soportados
+## In Progress
 
-### Gestión de Riesgos
-- ❌ Límites de pérdidas automáticos
-- ❌ Diversificación entre múltiples pares/estrategias
-- ❌ Análisis de correlación entre activos
+### Data Management
+- 🔄 Fix failing tests for CoinexManager
+- 🔄 Add retry mechanisms for network operations
+- 🔄 Implement caching for frequently used data
 
-### Pruebas
-- ✅ Pruebas unitarias completas para el módulo Trader
-- ✅ Pruebas unitarias completas para el módulo Exchange APIs
-- ✅ Pruebas unitarias completas para el módulo Indicators
-- ❌ Pruebas unitarias para otros componentes
-- ❌ Pruebas de integración
-- ❌ Pruebas de rendimiento
+### Backtesting
+- 🔄 Improve statistical analysis of results
+- 🔄 Add more sophisticated performance metrics
+- 🔄 Implement Monte Carlo simulation
 
-### Monitoreo y Logging
-- ✅ Sistema de logging detallado para los módulos Trader y Exchange APIs
-- ❌ Sistema de logging para otros componentes
-- ❌ Alertas para eventos críticos
-- ❌ Dashboard para monitoreo en tiempo real
+### Strategies
+- 🔄 Develop more advanced strategies
+- 🔄 Implement machine learning-based strategies
+- 🔄 Add strategy combination framework
 
-### Optimización
-- ❌ Optimización automática de parámetros de estrategias
-- ❌ Validación cruzada para evitar overfitting
-- ❌ Backtesting con datos out-of-sample
+## Planned
 
-### Interfaz de Usuario
-- ❌ CLI mejorada para control y monitoreo
-- ❌ API REST para acceso remoto
-- ❌ Interfaz web para visualización y control
+### Live Trading
+- ⏳ Real-time data streaming
+- ⏳ Live strategy execution
+- ⏳ Risk management system
+- ⏳ Portfolio management
+- ⏳ Alerts and notifications
 
-### Documentación
-- ✅ Documentación detallada del módulo Trader
-- ✅ Documentación detallada del módulo Exchange APIs
-- ✅ Documentación detallada del módulo Indicators
-- ❌ Documentación de API completa para otros componentes
-- ❌ Guías de usuario
-- ❌ Ejemplos de uso
+### User Interface
+- ⏳ Web dashboard for monitoring
+- ⏳ Strategy configuration interface
+- ⏳ Performance reporting
 
-## Estado Actual
+### Deployment
+- ⏳ Docker containerization
+- ⏳ Cloud deployment scripts
+- ⏳ Monitoring and logging infrastructure
 
-### Componentes Implementados
-| Componente | Estado | Notas |
-|------------|--------|-------|
-| Núcleo del Sistema | 90% | Funcionalidad básica completa, órdenes avanzadas implementadas en Trader |
-| Estrategias | 70% | Tres estrategias implementadas, pero pueden refinarse |
-| Indicadores | 100% | Indicadores comunes implementados, documentados y probados |
-| Backtesting | 85% | Sistema robusto, pero falta optimización automática |
-| Visualización | 75% | Funcionalidad básica presente, falta dashboard interactivo |
-| Gestión de Datos | 70% | Funciona, pero podría mejorarse con base de datos |
-| Despliegue | 60% | Docker configurado, falta CI/CD y monitoreo |
-| Pruebas | 50% | Pruebas completas para Trader, Exchange APIs e Indicators, faltan para otros componentes |
-| Documentación | 60% | Documentación mejorada para Trader, Exchange APIs e Indicators, falta para otros componentes |
+## Known Issues
 
-### Progreso por Módulo
-```mermaid
-graph TD
-    subgraph "Progreso del Proyecto"
-    A[Trader] -->|100%| B[Exchange APIs]
-    B -->|100%| F[Indicators]
-    F -->|100%| C[Strategies]
-    C -->|30%| D[Backtesting]
-    D -->|30%| E[Data Manager]
-    E -->|30%| G[Drawer]
-    G -->|30%| H[Integración]
-    H -->|20%| I[Despliegue]
-    I -->|10%| J[Completado]
-    
-    style A fill:#4CAF50,stroke:#388E3C,color:white
-    style B fill:#4CAF50,stroke:#388E3C,color:white
-    style F fill:#4CAF50,stroke:#388E3C,color:white
-    style C fill:#FFC107,stroke:#FFA000,color:black
-    style D fill:#FFC107,stroke:#FFA000,color:black
-    style E fill:#FFC107,stroke:#FFA000,color:black
-    style G fill:#FFC107,stroke:#FFA000,color:black
-    end
-```
+1. **Data Manager Tests**: Two tests in `test_data_manager.py` are failing:
+   - `test_download_pair` in `TestCoinexManager` - Issue with mock for file opening
+   - `test_download_prices` in `TestCoinexManager` - Issue with mock for download_pair method
 
-## Problemas Conocidos
+2. **Backtesting Performance**: The backtesting process becomes slow with large datasets, optimization needed.
 
-### Bugs y Limitaciones
+3. **Strategy Parameters**: Some strategies are sensitive to parameter changes and require better optimization methods.
 
-1. **Órdenes Avanzadas Implementadas Parcialmente**
-   - Las funciones para órdenes límite, stop loss y take profit están implementadas en el módulo Trader.
-   - Pendiente verificar compatibilidad con todos los exchanges soportados.
-   - Impacto: Posibles diferencias en el comportamiento según el exchange.
+## Next Steps
 
-2. **Gestión de Errores Mejorada Parcialmente**
-   - El manejo de errores de API de exchanges ha sido mejorado en los módulos Trader y Exchange APIs.
-   - Pendiente extender estas mejoras a otros componentes.
-   - Impacto: Robustez desigual en diferentes partes del sistema.
-
-3. **Pruebas Insuficientes**
-   - Cobertura de pruebas limitada.
-   - Impacto: Mayor riesgo de bugs no detectados.
-
-4. **Almacenamiento de Datos en CSV**
-   - Los datos históricos se almacenan en archivos CSV.
-   - Impacto: Limitaciones en escalabilidad y rendimiento para grandes volúmenes de datos.
-
-5. **Documentación Interna Mejorada Parcialmente**
-   - Comentarios y documentación en el código han sido mejorados en los módulos Trader, Exchange APIs e Indicators.
-   - Pendiente extender estas mejoras a otros componentes.
-   - Impacto: Curva de aprendizaje desigual para diferentes partes del sistema.
-
-### Deuda Técnica
-
-1. **Validación de Datos Inconsistente**
-   - Algunas partes del código utilizan validación estricta con pydantic/pandera, otras no.
-   - Acción: Estandarizar la validación de datos en todo el proyecto.
-
-2. **Hardcoding de Configuraciones**
-   - Algunas configuraciones están hardcodeadas en lugar de externalizadas.
-   - Acción: Mover todas las configuraciones a archivos de configuración o variables de entorno.
-
-3. **Duplicación en Procesamiento de Datos**
-   - Existe cierta duplicación en el procesamiento de datos históricos.
-   - Acción: Refactorizar para centralizar el procesamiento de datos.
-
-4. **Acoplamiento entre Componentes**
-   - Algunos componentes tienen mayor acoplamiento del deseado.
-   - Acción: Revisar y mejorar la separación de responsabilidades.
-
-5. **Logging Inconsistente**
-   - El logging no sigue un patrón consistente en todo el proyecto.
-   - Acción: Implementar un sistema de logging unificado.
-
-## Próximos Hitos
-
-### Corto Plazo (1-2 Semanas)
-- [x] Completar la documentación interna del código para el módulo Trader
-- [x] Implementar pruebas unitarias para el módulo Trader
-- [x] Documentar y mejorar el módulo Exchange APIs
-- [x] Implementar pruebas unitarias para el módulo Exchange APIs
-- [ ] Seleccionar el siguiente módulo a mejorar (Strategies o Backtesting)
-- [ ] Documentar y mejorar el módulo seleccionado
-- [ ] Implementar pruebas unitarias para el módulo seleccionado
-
-### Medio Plazo (1-2 Meses)
-- [x] Implementar órdenes límite, stop loss y take profit
-- [x] Mejorar la gestión de errores y robustez en los módulos Trader y Exchange APIs
-- [x] Desarrollar un sistema de logging detallado para los módulos Trader y Exchange APIs
-- [ ] Completar el ciclo de mejora para todos los módulos principales:
-  - [x] Trader
-  - [x] Exchange APIs
-  - [x] Indicators
-  - [ ] Strategies
-  - [ ] Backtesting
-  - [ ] Data Manager
-  - [ ] Drawer (Visualización)
-- [ ] Considerar migración a base de datos para datos históricos
-
-### Largo Plazo (3+ Meses)
-- [ ] Desarrollar una interfaz web para monitoreo y control
-- [ ] Implementar optimización automática de parámetros
-- [ ] Expandir a más exchanges y pares de trading
-- [ ] Considerar la integración con modelos de aprendizaje automático
+1. Fix the failing tests in the Data Manager module
+2. Implement retry mechanisms for API calls
+3. Add caching for frequently accessed data
+4. Improve backtesting performance
+5. Develop more sophisticated strategies
+6. Begin implementation of live trading components
