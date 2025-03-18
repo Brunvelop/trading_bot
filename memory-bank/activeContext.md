@@ -10,6 +10,13 @@ El proyecto se encuentra actualmente en una fase de retomada después de un per�
 
 3. **Planificación de Mejoras**: Definir un roadmap claro para las próximas iteraciones del proyecto.
 
+4. **Mejora Modular Progresiva**: Abordar el proyecto módulo por módulo, siguiendo un proceso sistemático para cada uno:
+   - Refactorizar y mejorar el código (optimización, manejo de errores, logging)
+   - Documentar exhaustivamente (comentarios en código y documentación en Memory Bank)
+   - Crear pruebas unitarias completas
+   
+   Este enfoque modular nos permite avanzar de manera ordenada y asegurar que cada componente del sistema alcance un alto nivel de calidad antes de pasar al siguiente.
+
 ## Cambios Recientes
 
 Hasta el momento, los cambios más recientes incluyen:
@@ -24,6 +31,13 @@ Hasta el momento, los cambios más recientes incluyen:
    - Mejora del manejo de errores y logging
    - Adición de validaciones para balances insuficientes
    - Creación de pruebas unitarias completas en `tests/test_trader.py`
+
+4. **Documentación y Mejora del Módulo Exchange APIs**:
+   - Creación de documentación detallada en `memory-bank/modules/exchange_apis.md`
+   - Refactorización para optimizar la gestión de conexiones (una sola conexión por instancia)
+   - Implementación de un sistema robusto de manejo de errores con reintentos automáticos
+   - Mejora del logging para facilitar el diagnóstico de problemas
+   - Creación de pruebas unitarias completas en `tests/test_exchange_apis.py`
 
 ## Estado del Proyecto
 
@@ -55,39 +69,43 @@ Hasta el momento, los cambios más recientes incluyen:
    - Pendiente integración completa con todos los exchanges soportados.
 
 2. **Pruebas Unitarias**:
-   - El directorio de tests existe y se ha ampliado con pruebas completas para el módulo Trader.
+   - El directorio de tests existe y se ha ampliado con pruebas completas para los módulos Trader y Exchange APIs.
    - Pendiente implementar pruebas para otros componentes del sistema.
 
 3. **Documentación**:
-   - Se ha mejorado la documentación interna del código en el módulo Trader.
-   - Se ha creado documentación detallada del módulo en el Memory Bank.
+   - Se ha mejorado la documentación interna del código en los módulos Trader y Exchange APIs.
+   - Se ha creado documentación detallada de estos módulos en el Memory Bank.
    - Pendiente documentar otros componentes del sistema.
 
 ## Próximos Pasos
 
 Las prioridades inmediatas para el desarrollo son:
 
-1. **Completar la Documentación**:
-   - ✅ Añadir comentarios en el código (completado para el módulo Trader)
-   - ✅ Crear documentación de API para cada componente principal (iniciado con el módulo Trader)
-   - Continuar con la documentación de otros módulos siguiendo el mismo enfoque
+1. **Completar el Ciclo de Mejora para Todos los Módulos**:
+   - ✅ Módulo Trader: Refactorización, documentación y pruebas completas
+   - ✅ Módulo Exchange APIs: Refactorización, documentación y pruebas completas
+   - ⬜ Módulo Strategies: Pendiente de refactorización, documentación y pruebas
+   - ⬜ Módulo Backtesting: Pendiente de refactorización, documentación y pruebas
+   - ⬜ Módulo Data Manager: Pendiente de refactorización, documentación y pruebas
+   - ⬜ Módulo Indicators: Pendiente de refactorización, documentación y pruebas
+   - ⬜ Módulo Drawer (Visualización): Pendiente de refactorización, documentación y pruebas
 
 2. **Implementar Órdenes Avanzadas**:
    - ✅ Completar la implementación de órdenes límite, stop loss y take profit (completado en el módulo Trader)
-   - Verificar la compatibilidad de estas implementaciones con diferentes exchanges
+   - ⬜ Verificar la compatibilidad de estas implementaciones con diferentes exchanges
 
 3. **Ampliar las Pruebas**:
-   - ✅ Desarrollar pruebas unitarias para todos los componentes principales (iniciado con el módulo Trader)
-   - Implementar pruebas de integración entre módulos
-   - Crear pruebas para las estrategias de trading
+   - ✅ Desarrollar pruebas unitarias para los módulos Trader y Exchange APIs
+   - ⬜ Implementar pruebas de integración entre módulos
+   - ⬜ Crear pruebas para las estrategias de trading
 
 4. **Mejorar la Gestión de Datos**:
-   - Optimizar el almacenamiento y recuperación de datos históricos
-   - Considerar la migración a una base de datos
+   - ⬜ Optimizar el almacenamiento y recuperación de datos históricos
+   - ⬜ Considerar la migración a una base de datos
 
 5. **Refinar las Estrategias Existentes**:
-   - Optimizar parámetros basados en backtesting extensivo
-   - Mejorar la adaptabilidad a diferentes condiciones de mercado
+   - ⬜ Optimizar parámetros basados en backtesting extensivo
+   - ⬜ Mejorar la adaptabilidad a diferentes condiciones de mercado
 
 ## Decisiones y Consideraciones Activas
 
@@ -120,8 +138,8 @@ Las prioridades inmediatas para el desarrollo son:
    - Considerar optimizaciones o computación distribuida para conjuntos de datos grandes
 
 2. **Gestión de Errores**:
-   - ✅ Mejorar la robustez frente a fallos de API de exchanges (implementado en el módulo Trader)
-   - ✅ Implementar reintentos, circuit breakers y fallbacks (iniciado con manejo de excepciones en Trader)
+   - ✅ Mejorar la robustez frente a fallos de API de exchanges (implementado en los módulos Trader y Exchange APIs)
+   - ✅ Implementar reintentos, circuit breakers y fallbacks (implementado en ambos módulos)
    - Extender estas mejoras a otros componentes del sistema
 
 3. **Seguridad**:
@@ -129,7 +147,7 @@ Las prioridades inmediatas para el desarrollo son:
    - Considerar encriptación adicional para el archivo .env
 
 4. **Logging y Monitoreo**:
-   - ✅ Implementar un sistema de logging más detallado (implementado en el módulo Trader)
+   - ✅ Implementar un sistema de logging más detallado (implementado en los módulos Trader y Exchange APIs)
    - Extender el sistema de logging a otros componentes
    - Considerar herramientas de monitoreo para despliegue en producción
 
